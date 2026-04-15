@@ -1,7 +1,7 @@
 import type { HODData, HodPageData } from "@/lib/types";
 
 export const hodData: HODData = {
-  name: "Dr. R. Meenakshi",
+  name: "Dr. Kanagavalli",
   designation: "Head of Department — AIML",
   qualification: "Ph.D. in Artificial Intelligence",
   experience: "22+ Years",
