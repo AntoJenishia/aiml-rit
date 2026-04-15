@@ -117,8 +117,8 @@ export const contactData: ContactData = {
   formTitle: "Send a Message",
   formSubtitle: "Share your query and we will respond at the earliest.",
   addressLines: [
-    "Department of AIML, RIT College of Engineering",
-    "Anna Nagar, Chennai, Tamil Nadu 600040",
+    "Department of AIML, Rajalakshmi Institute of Technology",
+    "Kuthambakkam, Chembarabakkam, Chennai, Tamil Nadu 600124",
     "India"
   ],
   phoneLabel: "Phone",
