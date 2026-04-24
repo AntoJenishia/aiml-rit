@@ -1,8 +1,8 @@
+"use client";
+
 import type { LucideIcon } from "lucide-react";
-import { motion, useInView, useReducedMotion } from "framer-motion";
-import clsx from "clsx";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { motionTokens } from "@/data/quickLinks";
+import { useInView } from "@/lib/hooks/useInView";
 
 interface StatCardProps {
   icon: LucideIcon;
@@ -11,13 +11,8 @@ interface StatCardProps {
   suffix?: string;
 }
 
-const GLASS_CARD_CLASS =
-  "bg-white/70 backdrop-blur-sm border border-white/50 shadow-xl shadow-blue-100/40 rounded-2xl";
-
 export default function StatCard({ icon: Icon, label, value, suffix }: StatCardProps) {
-  const prefersReducedMotion = useReducedMotion();
-  const ref = useRef<HTMLDivElement | null>(null);
-  const inView = useInView(ref, { once: true, margin: "-80px" });
+  const { ref, inView } = useInView({ threshold: 0.3 });
   const [displayValue, setDisplayValue] = useState<number>(0);
 
   const targetValue = useMemo(() => {
@@ -27,54 +22,37 @@ export default function StatCard({ icon: Icon, label, value, suffix }: StatCardP
 
   useEffect(() => {
     if (!inView) return;
-    if (prefersReducedMotion) {
-      setDisplayValue(targetValue);
-      return;
-    }
-
-    const durationMs = motionTokens.countUpDurationMs;
+    const durationMs = 1200;
     const start = performance.now();
-
     let rafId = 0;
+
     const tick = (now: number) => {
       const t = Math.min(1, (now - start) / durationMs);
-      const next = Math.round(targetValue * t);
-      setDisplayValue(next);
+      /* ease-out quad */
+      const eased = 1 - (1 - t) * (1 - t);
+      setDisplayValue(Math.round(targetValue * eased));
       if (t < 1) rafId = requestAnimationFrame(tick);
     };
 
     rafId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafId);
-  }, [inView, prefersReducedMotion, targetValue]);
+  }, [inView, targetValue]);
 
   return (
-    <motion.div
-      ref={ref}
-      className={clsx(
-        GLASS_CARD_CLASS,
-        "p-6",
-        "transition-shadow duration-300",
-        "will-change-transform"
-      )}
-      whileHover={prefersReducedMotion ? undefined : { y: -6, scale: 1.02 }}
-      transition={
-        prefersReducedMotion
-          ? { duration: 0 }
-          : { type: "spring", stiffness: 300, damping: 22 }
-      }
+    <div
+      ref={ref as React.RefObject<HTMLDivElement>}
+      className="bg-white rounded-2xl border border-slate-100 shadow-sm border-t-4 border-t-blue-600 p-6 transition-all duration-200 ease-out hover:shadow-lg hover:-translate-y-1"
     >
-      <div className="flex items-center gap-4">
-        <div className="rounded-xl bg-gradient-to-br from-blue-500 to-violet-500 p-3 text-white shadow-lg shadow-blue-200/40">
+      <div className="flex flex-col items-center text-center gap-3">
+        <div className="rounded-xl bg-blue-50 p-3 text-[#2563eb]">
           <Icon className="h-6 w-6" aria-hidden="true" />
         </div>
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">{label}</p>
-          <p className="mt-1 text-3xl font-extrabold text-slate-900">
-            {displayValue}
-            {suffix ?? ""}
-          </p>
-        </div>
+        <p className="text-3xl font-extrabold text-[#1e3a8a]">
+          {displayValue}
+          {suffix ?? ""}
+        </p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-[#64748b]">{label}</p>
       </div>
-    </motion.div>
+    </div>
   );
 }

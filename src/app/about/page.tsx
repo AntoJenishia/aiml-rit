@@ -1,104 +1,103 @@
-"use client";
-
-import { motion, useReducedMotion } from "framer-motion";
-import clsx from "clsx";
-import SectionHeading from "@/components/SectionHeading";
-import HodTeaserCard from "@/components/HodTeaserCard";
 import { aboutData, aboutIconData } from "@/data/about";
 import { hodData } from "@/data/hod";
-import { motionTokens } from "@/data/quickLinks";
-
-const GLASS_CARD_CLASS =
-  "bg-white/70 backdrop-blur-sm border border-white/50 shadow-xl shadow-blue-100/40 rounded-2xl";
+import Link from "next/link";
 
 export default function AboutPage() {
-  const prefersReducedMotion = useReducedMotion();
   const VisionIcon = aboutIconData.vision;
   const MissionIcon = aboutIconData.mission;
 
   return (
-    <div className="grid gap-10">
-      <motion.section
-        className="relative flex h-48 items-center overflow-hidden rounded-3xl bg-gradient-to-br from-blue-950 via-blue-900 to-violet-900 px-8"
-        initial={{ opacity: 0, y: motionTokens.sectionFadeInY }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.6, ease: "easeOut" }}
-      >
-        <div className="relative z-10">
-          <p className="text-xs font-semibold uppercase tracking-widest text-blue-300">
+    <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+      <div className="grid gap-12">
+        {/* Page header */}
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-widest text-[#2563eb]">
             {aboutData.pageHeroBadgeLabel}
           </p>
-          <h1 className="mt-2 text-3xl font-extrabold text-white sm:text-4xl">{aboutData.pageHeroTitle}</h1>
-        </div>
-      </motion.section>
-
-      <motion.section
-        className="grid gap-4 lg:grid-cols-2"
-        initial={{ opacity: 0, y: motionTokens.sectionFadeInY }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: "-80px" }}
-        transition={prefersReducedMotion ? { duration: 0 } : { duration: motionTokens.sectionFadeInDuration, ease: "easeOut" }}
-      >
-        <div className={clsx(GLASS_CARD_CLASS, "p-8", "border-l-4 border-blue-500")}>
-          <div className="flex items-start gap-4">
-            <div className="rounded-xl bg-blue-600/10 p-3 text-blue-700">
-              <VisionIcon className="h-6 w-6" aria-hidden="true" />
-            </div>
-            <div className="min-w-0">
-              <SectionHeading title={aboutData.visionTitle} />
-              <p className="mt-4 text-sm leading-relaxed text-slate-600">{aboutData.visionText}</p>
-            </div>
-          </div>
+          <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-[#1e3a8a] sm:text-4xl">
+            {aboutData.pageHeroTitle}
+          </h1>
         </div>
 
-        <div className={clsx(GLASS_CARD_CLASS, "p-8", "border-l-4 border-violet-500")}>
-          <div className="flex items-start gap-4">
-            <div className="rounded-xl bg-violet-600/10 p-3 text-violet-700">
-              <MissionIcon className="h-6 w-6" aria-hidden="true" />
-            </div>
-            <div className="min-w-0">
-              <SectionHeading title={aboutData.missionTitle} />
-              <p className="mt-4 text-sm leading-relaxed text-slate-600">{aboutData.missionText}</p>
-            </div>
-          </div>
-        </div>
-      </motion.section>
-
-      <motion.section
-        initial={{ opacity: 0, y: motionTokens.sectionFadeInY }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: "-80px" }}
-        transition={prefersReducedMotion ? { duration: 0 } : { duration: motionTokens.sectionFadeInDuration, ease: "easeOut" }}
-      >
-        <SectionHeading title={aboutData.programmeOutcomesTitle} subtitle={aboutData.programmeOutcomesSubtitle} />
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
-          {aboutData.programmeOutcomes.map((po, index) => (
-            <motion.div
-              key={po.code}
-              className={clsx(GLASS_CARD_CLASS, "relative overflow-hidden p-6")}
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-80px" }}
-              transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.6, ease: "easeOut", delay: index * motionTokens.cardStaggerDelay }}
-            >
-              <div className="pointer-events-none absolute -right-2 -top-6 text-6xl font-black text-transparent opacity-10 [background:linear-gradient(90deg,#1e3a8a,#2563eb,#7c3aed)] bg-clip-text">
-                {index + 1}
+        {/* Vision / Mission cards */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Vision */}
+          <div className="relative bg-white rounded-2xl border border-slate-100 shadow-sm border-l-4 border-l-[#2563eb] p-8 overflow-hidden">
+            <span className="pointer-events-none absolute -top-4 -left-2 text-8xl font-extrabold text-[#93c5fd] opacity-20 select-none" aria-hidden="true">
+              &ldquo;
+            </span>
+            <div className="relative flex items-start gap-4">
+              <div className="rounded-xl bg-blue-50 p-3 text-[#2563eb] shrink-0">
+                <VisionIcon className="h-6 w-6" aria-hidden="true" />
               </div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">{po.code}</p>
-              <p className="mt-3 text-sm leading-relaxed text-slate-700">{po.text}</p>
-            </motion.div>
-          ))}
-        </div>
-      </motion.section>
+              <div>
+                <h2 className="text-xl font-extrabold tracking-tight text-[#1e3a8a]">{aboutData.visionTitle}</h2>
+                <p className="mt-4 text-sm leading-7 text-slate-600">{aboutData.visionText}</p>
+              </div>
+            </div>
+          </div>
 
-      <HodTeaserCard
-        label={aboutData.hodTeaserLabel}
-        title={aboutData.hodTeaserTitle}
-        name={hodData.name}
-        designation={hodData.designation}
-        href={aboutData.hodTeaserHref}
-        buttonText={aboutData.hodTeaserButtonText}
-      />
+          {/* Mission */}
+          <div className="relative bg-white rounded-2xl border border-slate-100 shadow-sm border-l-4 border-l-[#2563eb] p-8 overflow-hidden">
+            <span className="pointer-events-none absolute -top-4 -left-2 text-8xl font-extrabold text-[#93c5fd] opacity-20 select-none" aria-hidden="true">
+              &ldquo;
+            </span>
+            <div className="relative flex items-start gap-4">
+              <div className="rounded-xl bg-blue-50 p-3 text-[#2563eb] shrink-0">
+                <MissionIcon className="h-6 w-6" aria-hidden="true" />
+              </div>
+              <div>
+                <h2 className="text-xl font-extrabold tracking-tight text-[#1e3a8a]">{aboutData.missionTitle}</h2>
+                <p className="mt-4 text-sm leading-7 text-slate-600">{aboutData.missionText}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Programme Outcomes */}
+        <section>
+          <h2 className="text-2xl font-extrabold tracking-tight text-[#1e3a8a] sm:text-3xl">
+            {aboutData.programmeOutcomesTitle}
+          </h2>
+          <p className="mt-2 text-sm text-[#64748b] sm:text-base">{aboutData.programmeOutcomesSubtitle}</p>
+          <div className="mt-3 h-1 w-16 rounded-full bg-[#2563eb]" aria-hidden="true" />
+
+          <div className="mt-8 grid gap-4 sm:grid-cols-2">
+            {aboutData.programmeOutcomes.map((po, index) => (
+              <div
+                key={po.code}
+                className="bg-white rounded-xl border border-slate-100 shadow-sm p-5 flex items-start gap-4 transition-all duration-200 hover:bg-blue-50"
+              >
+                {/* Number badge */}
+                <span className="shrink-0 flex items-center justify-center h-8 w-8 rounded-full bg-[#2563eb] text-white text-xs font-bold">
+                  {index + 1}
+                </span>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-[#64748b]">{po.code}</p>
+                  <p className="mt-1.5 text-sm leading-relaxed text-slate-700">{po.text}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* HOD Teaser */}
+        <section className="bg-[#1e3a8a] rounded-2xl p-8 sm:p-10 flex flex-col sm:flex-row items-center gap-6 sm:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-blue-300">{aboutData.hodTeaserLabel}</p>
+            <p className="mt-2 text-2xl font-extrabold text-white">{aboutData.hodTeaserTitle}</p>
+            <p className="mt-2 text-sm text-blue-200">
+              <span className="font-semibold">{hodData.name}</span> · {hodData.designation}
+            </p>
+          </div>
+          <Link
+            href={aboutData.hodTeaserHref}
+            className="shrink-0 inline-flex items-center justify-center rounded-xl bg-white px-6 py-3 text-sm font-semibold text-[#1e3a8a] transition-all duration-200 hover:bg-blue-50 active:scale-95"
+          >
+            {aboutData.hodTeaserButtonText}
+          </Link>
+        </section>
+      </div>
     </div>
   );
 }

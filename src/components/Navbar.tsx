@@ -2,17 +2,29 @@
 
 import { navLinks } from "@/data/quickLinks";
 import { Menu, X } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useMemo, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 
 export default function Navbar() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const prefersReducedMotion = useReducedMotion();
+  const [scrolled, setScrolled] = useState(false);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
+
+  /* scroll shadow */
+  useEffect(() => {
+    const handler = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", handler, { passive: true });
+    handler();
+    return () => window.removeEventListener("scroll", handler);
+  }, []);
+
+  /* close mobile menu on route change */
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
 
   const isActive = useMemo(() => {
     return (href: string) => {
@@ -22,92 +34,97 @@ export default function Navbar() {
   }, [pathname]);
 
   return (
-    <motion.nav
-      className="sticky top-0 z-50 border-b border-white/30 bg-white/80 shadow-sm backdrop-blur-md"
-      initial={{ y: -64, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.5, ease: "easeOut" }}
+    <nav
+      className={clsx(
+        "sticky top-0 z-50 transition-shadow duration-300",
+        "bg-white/90 backdrop-blur-md border-b border-slate-100",
+        scrolled ? "shadow-md shadow-slate-200/60" : "shadow-none"
+      )}
       aria-label="Primary navigation"
     >
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
-        <Link href="/" className="inline-flex items-center gap-3">
-          <span className="relative h-9 w-[140px] overflow-hidden rounded-md ring-1 ring-white/50">
-            <Image src="/rit-header.png" alt="RIT" fill sizes="140px" className="object-contain" priority />
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
+        {/* Logo */}
+        <Link href="/" className="flex flex-col leading-none group" aria-label="AIML Department Home">
+          <span className="text-xl font-extrabold tracking-tight text-[#2563eb] group-hover:text-[#1e3a8a] transition-colors duration-200">
+            AIML
+          </span>
+          <span className="text-[10px] font-medium tracking-widest uppercase text-slate-400 mt-0.5">
+            Dept. of AI &amp; ML
           </span>
         </Link>
 
+        {/* Desktop nav */}
         <div className="hidden items-center gap-1 md:flex">
           {navLinks.map((link) => {
             const active = isActive(link.href);
-            const Icon = link.icon;
             return (
               <Link
                 key={link.href}
                 href={link.href}
                 className={clsx(
-                  "relative inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold",
-                  "text-slate-700 hover:text-slate-900",
-                  "transition-colors"
+                  "relative px-3 py-2 text-sm font-medium rounded-md transition-colors duration-200",
+                  "text-slate-600 hover:text-blue-600",
+                  "after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-full after:bg-blue-600",
+                  "after:scale-x-0 hover:after:scale-x-100 after:transition-transform after:duration-200 after:origin-left",
+                  active && "text-blue-600 font-semibold after:scale-x-100"
                 )}
               >
-                <Icon className="h-4 w-4 text-blue-700" aria-hidden="true" />
-                <span>{link.label}</span>
-                {active ? (
-                  <motion.div
-                    layoutId="navUnderline"
-                    className="absolute inset-x-4 -bottom-0.5 h-0.5 rounded-full bg-gradient-to-r from-blue-600 to-violet-500"
-                  />
-                ) : null}
+                {link.label}
               </Link>
             );
           })}
         </div>
 
+        {/* Mobile hamburger */}
         <button
           type="button"
-          className="inline-flex items-center justify-center rounded-xl border border-white/50 bg-white/60 p-2 text-slate-800 md:hidden"
+          className="inline-flex items-center justify-center rounded-lg p-2 text-slate-700 hover:bg-slate-100 transition-colors duration-200 md:hidden"
           aria-label={open ? "Close menu" : "Open menu"}
           aria-expanded={open}
+          aria-controls="mobile-menu"
           onClick={() => setOpen((v) => !v)}
         >
-          {open ? <X className="h-5 w-5" aria-hidden="true" /> : <Menu className="h-5 w-5" aria-hidden="true" />}
+          {open ? (
+            <X className="h-5 w-5" aria-hidden="true" />
+          ) : (
+            <Menu className="h-5 w-5" aria-hidden="true" />
+          )}
         </button>
       </div>
 
-      <AnimatePresence initial={false}>
-        {open ? (
-          <motion.div
-            className="md:hidden"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.3, ease: "easeOut" }}
-          >
-            <div className="mx-auto max-w-6xl border-t border-white/30 px-4 py-3 sm:px-6 lg:px-8">
-              <div className="grid gap-1">
-                {navLinks.map((link) => {
-                  const active = isActive(link.href);
-                  const Icon = link.icon;
-                  return (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      onClick={() => setOpen(false)}
-                      className={clsx(
-                        "flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold",
-                        active ? "bg-blue-50 text-blue-700" : "text-slate-700 hover:bg-slate-50"
-                      )}
-                    >
-                      <Icon className="h-4 w-4 text-blue-700" aria-hidden="true" />
-                      <span>{link.label}</span>
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
-    </motion.nav>
+      {/* Mobile menu — CSS slide-down, stagger fade-in via delay classes */}
+      <div
+        id="mobile-menu"
+        ref={mobileMenuRef}
+        className={clsx(
+          "md:hidden overflow-hidden transition-all duration-300 ease-out",
+          open ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0"
+        )}
+      >
+        <div className="mx-auto max-w-7xl border-t border-slate-100 px-4 pt-2 pb-4 sm:px-6 lg:px-8 grid gap-1">
+          {navLinks.map((link, index) => {
+            const active = isActive(link.href);
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setOpen(false)}
+                style={{ animationDelay: open ? `${index * 40}ms` : "0ms" }}
+                className={clsx(
+                  "flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium",
+                  "transition-colors duration-200",
+                  open ? "animate-slideDown" : "",
+                  active
+                    ? "bg-blue-50 text-blue-700 font-semibold"
+                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                )}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+    </nav>
   );
 }
