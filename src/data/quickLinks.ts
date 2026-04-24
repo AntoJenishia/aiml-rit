@@ -117,8 +117,8 @@ export const contactData: ContactData = {
   formTitle: "Send a Message",
   formSubtitle: "Share your query and we will respond at the earliest.",
   addressLines: [
-    "Department of AIML, RIT College of Engineering",
-    "Anna Nagar, Chennai, Tamil Nadu 600040",
+    "Department of AIML, Rajalakshmi Institute of Technology",
+    "Kuthambakkam,Chembarabakkam, Chennai, Tamil Nadu 600024",
     "India"
   ],
   phoneLabel: "Phone",
@@ -126,7 +126,7 @@ export const contactData: ContactData = {
   emailLabel: "Email",
   email: "aiml.department@rit.edu.in",
   mapEmbedTitle: "AIML Department Location Map",
-  mapEmbedUrl: "https://www.google.com/maps?q=Chennai%20Tamil%20Nadu&output=embed",
+  mapEmbedUrl: "https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d3886.9596138459974!2d80.0428186!3d13.0382427!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3a528bae35449d29%3A0x37d13f08d672385b!2sRajalakshmi%20Institute%20of%20Technology!5e0!3m2!1sen!2sin!4v1777059037956!5m2!1sen!2sin",
   formNameLabel: "Name",
   formNamePlaceholder: "Your full name",
   formEmailLabel: "Email",
