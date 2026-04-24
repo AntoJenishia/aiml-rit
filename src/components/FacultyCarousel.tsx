@@ -1,64 +1,60 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import Image from "next/image";
-import { X, ChevronLeft, ChevronRight, Briefcase, GraduationCap, Cpu } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Briefcase, GraduationCap, Cpu, Mail } from "lucide-react";
 import type { Faculty } from "@/lib/types";
 
-/* Vivid card accent colours — one per card, cycling */
-const CARD_ACCENTS = [
-  { bg: "from-blue-600 to-blue-800",    ring: "ring-blue-400",   label: "bg-blue-500" },
-  { bg: "from-violet-600 to-purple-800",ring: "ring-violet-400", label: "bg-violet-500" },
-  { bg: "from-rose-500 to-pink-700",    ring: "ring-rose-400",   label: "bg-rose-500" },
-  { bg: "from-teal-500 to-emerald-700", ring: "ring-teal-400",   label: "bg-teal-500" },
-  { bg: "from-amber-500 to-orange-600", ring: "ring-amber-400",  label: "bg-amber-500" },
-  { bg: "from-sky-500 to-cyan-700",     ring: "ring-sky-400",    label: "bg-sky-500" },
-  { bg: "from-indigo-600 to-blue-800",  ring: "ring-indigo-400", label: "bg-indigo-500" },
-  { bg: "from-fuchsia-600 to-pink-700", ring: "ring-fuchsia-400",label: "bg-fuchsia-500" },
+/* One vivid accent per slot — used for the card's top bar + ring, NOT full bg */
+const ACCENTS = [
+  { bar: "#2563eb", ring: "rgba(37,99,235,0.35)",  tag: "#2563eb" },
+  { bar: "#7c3aed", ring: "rgba(124,58,237,0.35)", tag: "#7c3aed" },
+  { bar: "#0d9488", ring: "rgba(13,148,136,0.35)", tag: "#0d9488" },
+  { bar: "#db2777", ring: "rgba(219,39,119,0.35)", tag: "#db2777" },
+  { bar: "#d97706", ring: "rgba(217,119,6,0.35)",  tag: "#d97706" },
+  { bar: "#0891b2", ring: "rgba(8,145,178,0.35)",  tag: "#0891b2" },
+  { bar: "#16a34a", ring: "rgba(22,163,74,0.35)",  tag: "#16a34a" },
+  { bar: "#9333ea", ring: "rgba(147,51,234,0.35)", tag: "#9333ea" },
 ];
 
-const CARD_W = 240;   // px width of each card including gap
-const CARD_GAP = 20;
-const SCROLL_SPEED = 0.7; // px per frame
-const PAUSE_ON_HOVER = true;
+const CARD_W    = 220;
+const CARD_H    = 280;
+const GAP       = 18;
+const SPEED     = 0.55;
 
-interface FacultyCarouselProps {
-  faculty: Faculty[];
+/** Generates avatar text from name */
+function initials(name: string) {
+  return name.split(" ").filter(Boolean).slice(0, 2).map(p => p[0]).join("").toUpperCase();
 }
 
+interface FacultyCarouselProps { faculty: Faculty[] }
+
 export default function FacultyCarousel({ faculty }: FacultyCarouselProps) {
-  const trackRef = useRef<HTMLDivElement>(null);
-  const xRef = useRef(0);
-  const rafRef = useRef<number>(0);
-  const isPaused = useRef(false);
-  const [selected, setSelected] = useState<(Faculty & { accent: typeof CARD_ACCENTS[0] }) | null>(null);
+  const trackRef  = useRef<HTMLDivElement>(null);
+  const xRef      = useRef(0);
+  const rafRef    = useRef<number>(0);
+  const paused    = useRef(false);
+  const [selected, setSelected] = useState<{ member: Faculty; accent: typeof ACCENTS[0]; idx: number } | null>(null);
 
-  /* Tripled list for seamless infinite loop */
+  /* Triple the list for seamless loop */
   const items = [...faculty, ...faculty, ...faculty].map((f, i) => ({
-    ...f,
-    accent: CARD_ACCENTS[i % CARD_ACCENTS.length],
-    uid: i,
+    ...f, accent: ACCENTS[i % ACCENTS.length], uid: i,
   }));
-
-  const totalW = faculty.length * (CARD_W + CARD_GAP);
+  const loopW = faculty.length * (CARD_W + GAP);
 
   const scroll = useCallback(() => {
-    if (!isPaused.current) {
-      xRef.current += SCROLL_SPEED;
-      if (xRef.current >= totalW) xRef.current -= totalW;
-      if (trackRef.current) {
-        trackRef.current.style.transform = `translateX(-${xRef.current}px)`;
-      }
+    if (!paused.current) {
+      xRef.current += SPEED;
+      if (xRef.current >= loopW) xRef.current -= loopW;
+      if (trackRef.current) trackRef.current.style.transform = `translateX(-${xRef.current}px)`;
     }
     rafRef.current = requestAnimationFrame(scroll);
-  }, [totalW]);
+  }, [loopW]);
 
   useEffect(() => {
     rafRef.current = requestAnimationFrame(scroll);
     return () => cancelAnimationFrame(rafRef.current);
   }, [scroll]);
 
-  /* Keyboard close */
   useEffect(() => {
     if (!selected) return;
     const h = (e: KeyboardEvent) => e.key === "Escape" && setSelected(null);
@@ -67,68 +63,92 @@ export default function FacultyCarousel({ faculty }: FacultyCarouselProps) {
     return () => { window.removeEventListener("keydown", h); document.body.style.overflow = ""; };
   }, [selected]);
 
-  /* Manual prev/next while modal open */
-  const openIdx = selected ? faculty.findIndex(f => f.name === selected.name) : -1;
-  const goNext = () => { const n = (openIdx + 1) % faculty.length; const f = faculty[n]; setSelected({ ...f, accent: CARD_ACCENTS[n % CARD_ACCENTS.length] }); };
-  const goPrev = () => { const n = (openIdx - 1 + faculty.length) % faculty.length; const f = faculty[n]; setSelected({ ...f, accent: CARD_ACCENTS[n % CARD_ACCENTS.length] }); };
+  const open = (member: Faculty, i: number) =>
+    setSelected({ member, accent: ACCENTS[i % ACCENTS.length], idx: i });
+
+  const goDir = (dir: 1 | -1) => {
+    if (!selected) return;
+    const next = (selected.idx + dir + faculty.length) % faculty.length;
+    open(faculty[next], next);
+  };
 
   return (
     <>
-      {/* ── Carousel strip ── */}
+      {/* ── Carousel ── */}
       <div
         className="relative overflow-hidden"
-        onMouseEnter={() => PAUSE_ON_HOVER && (isPaused.current = true)}
-        onMouseLeave={() => PAUSE_ON_HOVER && (isPaused.current = false)}
+        onMouseEnter={() => { paused.current = true; }}
+        onMouseLeave={() => { paused.current = false; }}
+        style={{ height: CARD_H + 16 }}
       >
-        {/* Left/right fade gradients */}
-        <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-20 bg-gradient-to-r from-slate-50 to-transparent" />
-        <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-20 bg-gradient-to-l from-slate-50 to-transparent" />
+        {/* Edge fades */}
+        <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16 bg-gradient-to-r from-slate-50 to-transparent" />
+        <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16 bg-gradient-to-l from-slate-50 to-transparent" />
 
         <div
           ref={trackRef}
-          className="flex will-change-transform"
-          style={{ gap: CARD_GAP, width: `${items.length * (CARD_W + CARD_GAP)}px` }}
+          className="absolute top-2 flex will-change-transform"
+          style={{ gap: GAP, left: 0 }}
         >
           {items.map((member) => (
             <button
               key={member.uid}
               type="button"
-              onClick={() => setSelected({ ...member })}
-              className="group relative shrink-0 cursor-pointer overflow-hidden rounded-2xl text-left transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl"
-              style={{ width: CARD_W, height: 300 }}
+              onClick={() => open(member, member.uid % faculty.length)}
+              className="group relative shrink-0 overflow-hidden rounded-2xl bg-white text-left shadow-sm border border-slate-100 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl"
+              style={{
+                width: CARD_W,
+                height: CARD_H,
+                boxShadow: "0 2px 12px -4px rgba(15,23,42,0.10)",
+              }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLElement).style.boxShadow =
+                  `0 0 0 2px ${member.accent.bar}, 0 12px 32px -8px ${member.accent.ring}, 0 4px 16px -4px rgba(15,23,42,0.15)`;
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLElement).style.boxShadow = "0 2px 12px -4px rgba(15,23,42,0.10)";
+              }}
             >
-              {/* Coloured gradient bg */}
-              <div className={`absolute inset-0 bg-gradient-to-br ${member.accent.bg} opacity-90 transition-opacity duration-300 group-hover:opacity-100`} />
+              {/* Top coloured accent bar */}
+              <div
+                className="h-1.5 w-full"
+                style={{ background: member.accent.bar }}
+              />
 
-              {/* Photo */}
-              <div className="absolute inset-0 flex items-center justify-center pt-6">
-                <div className={`h-28 w-28 overflow-hidden rounded-full ring-4 ${member.accent.ring} ring-offset-2 shadow-xl`}
-                  style={{ ringOffsetColor: "transparent" }}>
-                  <Image
-                    src={member.photo}
-                    alt={member.name}
-                    width={112}
-                    height={112}
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                  />
+              {/* Avatar — large initials circle with accent colour */}
+              <div className="flex flex-col items-center pt-8 pb-5 px-4">
+                <div
+                  className="flex h-20 w-20 items-center justify-center rounded-full text-white text-2xl font-black shadow-lg transition-transform duration-300 group-hover:scale-105"
+                  style={{ background: `linear-gradient(135deg, ${member.accent.bar}dd, ${member.accent.bar}88)` }}
+                >
+                  {initials(member.name)}
                 </div>
-              </div>
 
-              {/* Info overlay at bottom */}
-              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent px-4 pb-4 pt-12">
-                <p className="text-xs font-bold uppercase tracking-widest text-white/70">
-                  {member.specialization}
-                </p>
-                <p className="mt-0.5 text-base font-black text-white leading-tight">
+                <p className="mt-4 text-center text-sm font-bold text-slate-900 leading-tight">
                   {member.name}
                 </p>
-                <p className="mt-1 text-xs text-white/60">{member.qualification}</p>
+                <p className="mt-1 text-center text-xs font-medium text-slate-500">
+                  {member.qualification}
+                </p>
+
+                {/* Specialization pill */}
+                <span
+                  className="mt-3 rounded-full px-3 py-1 text-[10px] font-bold text-white"
+                  style={{ background: member.accent.bar }}
+                >
+                  {member.specialization}
+                </span>
+
+                {/* Experience */}
+                <p className="mt-3 text-xs text-slate-400 font-medium">
+                  {member.experience}+ yrs experience
+                </p>
               </div>
 
-              {/* Hover "click" hint */}
-              <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-semibold text-white backdrop-blur-sm">
-                  View Profile
+              {/* Hover hint */}
+              <div className="absolute inset-x-0 bottom-0 flex justify-center pb-3 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                <span className="rounded-full bg-slate-900/10 px-3 py-1 text-[10px] font-semibold text-slate-700 backdrop-blur-sm">
+                  View Profile →
                 </span>
               </div>
             </button>
@@ -136,86 +156,76 @@ export default function FacultyCarousel({ faculty }: FacultyCarouselProps) {
         </div>
       </div>
 
-      {/* ── Zoom modal ── */}
+      {/* ── Modal ── */}
       {selected && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-md"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-md"
           onClick={() => setSelected(null)}
         >
           <div
-            className="relative w-full max-w-md overflow-hidden rounded-3xl shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
+            className="relative w-full max-w-sm overflow-hidden rounded-3xl bg-white shadow-2xl animate-[fadeSlideUp_0.35s_ease-out_both]"
+            onClick={e => e.stopPropagation()}
           >
-            {/* Top coloured header */}
-            <div className={`relative h-52 bg-gradient-to-br ${selected.accent.bg} flex items-center justify-center`}>
-              <div className={`h-32 w-32 overflow-hidden rounded-full ring-4 ${selected.accent.ring} ring-offset-2 shadow-2xl`}>
-                <Image
-                  src={selected.photo}
-                  alt={selected.name}
-                  width={128}
-                  height={128}
-                  className="h-full w-full object-cover"
-                />
+            {/* Coloured header */}
+            <div
+              className="relative flex flex-col items-center pt-10 pb-7 px-6"
+              style={{ background: `linear-gradient(145deg, ${selected.accent.bar}22, ${selected.accent.bar}08)` }}
+            >
+              <div
+                className="flex h-24 w-24 items-center justify-center rounded-full text-white text-3xl font-black shadow-xl"
+                style={{ background: `linear-gradient(135deg, ${selected.accent.bar}, ${selected.accent.bar}bb)` }}
+              >
+                {initials(selected.member.name)}
               </div>
+              <h3 className="mt-4 text-xl font-black text-slate-900 text-center">
+                {selected.member.name}
+              </h3>
+              <span
+                className="mt-2 rounded-full px-4 py-1 text-xs font-bold text-white"
+                style={{ background: selected.accent.bar }}
+              >
+                {selected.member.qualification}
+              </span>
+
               {/* Close */}
               <button
                 type="button"
                 onClick={() => setSelected(null)}
-                className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-black/25 text-white transition hover:bg-black/45"
+                className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-black/10 text-slate-700 transition hover:bg-black/20"
                 aria-label="Close"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            {/* Body */}
-            <div className="bg-white px-8 py-6">
-              <h3 className="text-2xl font-black text-slate-900">{selected.name}</h3>
-              <span className={`mt-2 inline-block rounded-full ${selected.accent.label} px-3 py-1 text-xs font-bold text-white shadow-sm`}>
-                {selected.qualification}
-              </span>
+            {/* Info rows */}
+            <div className="px-6 pb-6 pt-4 space-y-2.5">
+              {[
+                { Icon: Cpu,          label: "Specialization", value: selected.member.specialization },
+                { Icon: Briefcase,    label: "Experience",     value: `${selected.member.experience}+ Years` },
+                { Icon: GraduationCap,label: "Qualification",  value: selected.member.qualification },
+              ].map(({ Icon, label, value }) => (
+                <div key={label} className="flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3">
+                  <Icon className="h-4 w-4 shrink-0" style={{ color: selected.accent.bar }} />
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">{label}</p>
+                    <p className="text-sm font-bold text-slate-800">{value}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
 
-              <div className="mt-5 space-y-3">
-                <div className="flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3">
-                  <Cpu className="h-4 w-4 shrink-0 text-blue-500" />
-                  <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Specialization</p>
-                    <p className="text-sm font-bold text-slate-800">{selected.specialization}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3">
-                  <Briefcase className="h-4 w-4 shrink-0 text-blue-500" />
-                  <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Experience</p>
-                    <p className="text-sm font-bold text-slate-800">{selected.experience}+ Years</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3">
-                  <GraduationCap className="h-4 w-4 shrink-0 text-blue-500" />
-                  <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Qualification</p>
-                    <p className="text-sm font-bold text-slate-800">{selected.qualification}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Prev / Next */}
-              <div className="mt-6 flex gap-3">
-                <button
-                  type="button"
-                  onClick={goPrev}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700"
-                >
-                  <ChevronLeft className="h-4 w-4" /> Prev
-                </button>
-                <button
-                  type="button"
-                  onClick={goNext}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-blue-600 py-2.5 text-sm font-semibold text-white shadow-md shadow-blue-600/30 transition hover:bg-blue-700"
-                >
-                  Next <ChevronRight className="h-4 w-4" />
-                </button>
-              </div>
+            {/* Nav buttons */}
+            <div className="flex gap-3 px-6 pb-6">
+              <button type="button" onClick={() => goDir(-1)}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-slate-200 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-blue-300 hover:bg-blue-50">
+                <ChevronLeft className="h-4 w-4" /> Prev
+              </button>
+              <button type="button" onClick={() => goDir(1)}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-semibold text-white transition"
+                style={{ background: selected.accent.bar }}>
+                Next <ChevronRight className="h-4 w-4" />
+              </button>
             </div>
           </div>
         </div>

@@ -3,19 +3,15 @@
 @tailwind utilities;
 
 /* ============================================================
-   BASE LAYER
+   BASE
    ============================================================ */
 @layer base {
   * { @apply border-slate-200; }
-
   html { scroll-behavior: smooth; }
-
   body {
     @apply bg-slate-50 text-slate-800 antialiased;
     background-color: #f8fafc;
   }
-
-  /* ── Scrollbar ── */
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: #e2e8f0; }
   ::-webkit-scrollbar-thumb {
@@ -23,17 +19,12 @@
     background: linear-gradient(to bottom, #3b82f6, #1d4ed8);
   }
   ::-webkit-scrollbar-thumb:hover { background: #2563eb; }
-
   ::selection { @apply bg-blue-200 text-blue-900; }
 }
 
 /* ============================================================
    KEYFRAMES
    ============================================================ */
-@keyframes fadeSlideUp {
-  from { opacity: 0; transform: translateY(22px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
 @keyframes heroFadeIn {
   from { opacity: 0; transform: translateY(18px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -55,17 +46,19 @@
   50%  { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
 }
-@keyframes cardReveal {
-  from { opacity: 0; transform: translateY(16px) scale(0.98); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
+/* Staggered reveal — used for PO cards, syllabus rows, achievement cards */
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
-@keyframes glowPulse {
-  0%, 100% { box-shadow: var(--glow-rest); }
-  50%       { box-shadow: var(--glow-pulse); }
+/* Modal pop */
+@keyframes modalPop {
+  from { opacity: 0; transform: scale(0.93) translateY(12px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
 }
 
 /* ============================================================
-   COMPONENT LAYER
+   COMPONENTS
    ============================================================ */
 @layer components {
 
@@ -74,13 +67,11 @@
     animation: pageEnter 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
-  /* ── Hero animations ── */
+  /* ── Hero ── */
   .hero-fadein {
     opacity: 0;
     animation: heroFadeIn 0.75s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   }
-
-  /* ── Gradient headline ── */
   .hero-gradient-text {
     background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 35%, #38bdf8 65%, #93c5fd 100%);
     background-size: 300% 300%;
@@ -89,8 +80,6 @@
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
-
-  /* ── Hero primary button ── */
   .hero-btn-primary {
     background: linear-gradient(135deg, #2563eb, #3b82f6);
     box-shadow: 0 8px 28px -6px #2563eb70;
@@ -101,7 +90,6 @@
     box-shadow: 0 0 0 4px #2563eb20, 0 16px 40px -8px #2563eb90;
   }
   .hero-btn-primary:active { transform: scale(0.96); }
-
   .hero-btn-shine {
     pointer-events: none;
     position: absolute;
@@ -117,20 +105,24 @@
     background: transparent;
   }
 
-  /* ─────────────────────────────────────────────
-     PREMIUM CARD  — base + coloured hover glow
-     ───────────────────────────────────────────── */
+  /* ─────────────────────────────────────────────────────────
+     PREMIUM CARD
+     Clean white card. On hover: blue ring appears + lifts.
+     ───────────────────────────────────────────────────────── */
   .premium-card {
-    @apply relative overflow-hidden rounded-2xl border border-slate-100/90 bg-white/90 backdrop-blur-sm transition-all duration-300;
-    box-shadow: 0 2px 14px -6px rgba(15, 23, 42, 0.10);
+    @apply relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white/90 backdrop-blur-sm;
+    box-shadow: 0 2px 12px -4px rgba(15, 23, 42, 0.08);
+    transition: transform 0.28s cubic-bezier(0.22,1,0.36,1),
+                box-shadow 0.28s cubic-bezier(0.22,1,0.36,1),
+                border-color 0.22s ease;
   }
 
-  /* Shimmer sweep */
+  /* Shimmer sweep on hover */
   .premium-card::before {
     content: "";
     position: absolute;
     inset: 0;
-    background: linear-gradient(118deg, transparent 25%, rgba(96,165,250,0.10) 50%, transparent 75%);
+    background: linear-gradient(115deg, transparent 25%, rgba(59,130,246,0.07) 50%, transparent 75%);
     transform: translateX(-130%);
     transition: transform 0.5s ease;
     pointer-events: none;
@@ -138,46 +130,36 @@
   }
   .premium-card:hover::before { transform: translateX(130%); }
 
-  /* Vivid blue hover lift + glow */
+  /* Hover state: blue glowing ring */
   .premium-card:hover {
-    transform: translateY(-4px) scale(1.01);
+    transform: translateY(-4px);
     border-color: #93c5fd;
     box-shadow:
-      0 0 0 1.5px #93c5fd,
-      0 0 20px 2px rgba(59, 130, 246, 0.18),
-      0 14px 35px -12px rgba(37, 99, 235, 0.30);
+      0 0 0 2px #bfdbfe,
+      0 0 22px 4px rgba(59, 130, 246, 0.14),
+      0 16px 40px -12px rgba(37, 99, 235, 0.22);
   }
 
-  /* ── Coloured card accent variants ── */
-  /* Apply .card-blue, .card-violet etc. to premium-card for tinted left border */
-  .card-blue   { border-left: 3px solid #3b82f6;  background: linear-gradient(to right, #eff6ff 0%, #ffffff 40%); }
-  .card-violet { border-left: 3px solid #8b5cf6;  background: linear-gradient(to right, #f5f3ff 0%, #ffffff 40%); }
-  .card-rose   { border-left: 3px solid #f43f5e;  background: linear-gradient(to right, #fff1f2 0%, #ffffff 40%); }
-  .card-teal   { border-left: 3px solid #14b8a6;  background: linear-gradient(to right, #f0fdfa 0%, #ffffff 40%); }
-  .card-amber  { border-left: 3px solid #f59e0b;  background: linear-gradient(to right, #fffbeb 0%, #ffffff 40%); }
-
-  .card-blue:hover   { border-color: #3b82f6; box-shadow: 0 0 0 1.5px #93c5fd, 0 0 24px 4px rgba(59,130,246,0.20), 0 12px 30px -10px rgba(37,99,235,0.28); }
-  .card-violet:hover { border-color: #8b5cf6; box-shadow: 0 0 0 1.5px #c4b5fd, 0 0 24px 4px rgba(139,92,246,0.20), 0 12px 30px -10px rgba(109,40,217,0.28); }
-  .card-rose:hover   { border-color: #f43f5e; box-shadow: 0 0 0 1.5px #fda4af, 0 0 24px 4px rgba(244,63,94,0.20), 0 12px 30px -10px rgba(225,29,72,0.28); }
-  .card-teal:hover   { border-color: #14b8a6; box-shadow: 0 0 0 1.5px #99f6e4, 0 0 24px 4px rgba(20,184,166,0.20), 0 12px 30px -10px rgba(13,148,136,0.28); }
-  .card-amber:hover  { border-color: #f59e0b; box-shadow: 0 0 0 1.5px #fde68a, 0 0 24px 4px rgba(245,158,11,0.20), 0 12px 30px -10px rgba(217,119,6,0.28); }
-
-  /* ── Card reveal animation ── */
-  .card-reveal {
+  /* ── Staggered fade-slide-up (PO cards, syllabus items, stat cards) ── */
+  .reveal-item {
     opacity: 0;
-    animation: cardReveal 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    animation: fadeSlideUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   }
 
-  /* ── Hover glow (stat cards) ── */
-  .hover-glow { @apply transition-all duration-300; }
+  /* ── Modal animation ── */
+  .modal-pop {
+    animation: modalPop 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  /* ── Hover glow (stat cards, icon cards) ── */
   .hover-glow:hover {
     box-shadow:
-      0 0 0 2px #93c5fd,
-      0 0 18px 3px rgba(59, 130, 246, 0.22),
-      0 10px 28px -10px rgba(37, 99, 235, 0.28);
+      0 0 0 2px #bfdbfe,
+      0 0 18px 4px rgba(59, 130, 246, 0.18),
+      0 12px 30px -10px rgba(37, 99, 235, 0.22);
   }
 
-  /* ── Glass dark card ── */
+  /* ── Glass dark (HOD hero section) ── */
   .glass-dark {
     @apply relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md transition-all duration-300;
     box-shadow: 0 8px 32px rgba(0,0,0,0.35);
@@ -199,18 +181,6 @@
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
     overflow: hidden;
-  }
-
-  /* ── Float input ── */
-  .float-input {
-    @apply w-full rounded-xl border border-slate-200 bg-white px-4 pb-2 pt-6 text-slate-800 outline-none transition placeholder:text-transparent focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20;
-  }
-  .float-label {
-    @apply pointer-events-none absolute left-4 top-4 text-sm text-slate-400 transition-all duration-200
-    peer-focus:top-2 peer-focus:text-xs peer-focus:text-blue-600
-    peer-[:not(:placeholder-shown)]:top-2
-    peer-[:not(:placeholder-shown)]:text-xs
-    peer-[:not(:placeholder-shown)]:text-blue-600;
   }
 
   /* ── Dot grid ── */
