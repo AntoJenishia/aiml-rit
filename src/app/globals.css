@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Expose Space Grotesk as a utility */
+.font-display { font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif; }
+
 /* ============================================================
    BASE
    ============================================================ */
@@ -9,8 +12,10 @@
   * { @apply border-slate-200; }
   html { scroll-behavior: smooth; }
   body {
-    @apply bg-slate-50 text-slate-800 antialiased;
-    background-color: #f8fafc;
+    @apply text-slate-800 antialiased;
+    /* Subtle blue-tinted gradient — not flat white */
+    background: linear-gradient(160deg, #f8faff 0%, #eef2ff 35%, #f5f8ff 65%, #f8faff 100%);
+    background-attachment: fixed;
   }
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: #e2e8f0; }
