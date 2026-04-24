@@ -1,73 +1,58 @@
-import { Building2, GraduationCap } from "lucide-react";
+"use client";
+
+import { Building2, GraduationCap, Trophy } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import clsx from "clsx";
 import type { Achievement, AchievementCategory } from "@/lib/types";
 
 interface AchievementCardProps {
   achievement: Achievement;
+  index?: number;
 }
 
-const ACCENT_CLASS: Record<AchievementCategory, string> = {
-  student: "bg-gradient-to-b from-blue-500 to-violet-500",
-  department: "bg-gradient-to-b from-amber-500 to-orange-500"
-};
-
-const CATEGORY_ICON: Record<AchievementCategory, typeof GraduationCap> = {
+const CATEGORY_ICON = {
   student: GraduationCap,
-  department: Building2
+  department: Building2,
 };
 
-const CATEGORY_ICON_BG: Record<AchievementCategory, string> = {
-  student: "from-blue-500 to-violet-500",
-  department: "from-amber-500 to-orange-500"
-};
-
-const GLASS_CARD_CLASS =
-  "bg-white/70 backdrop-blur-sm border border-white/50 shadow-xl shadow-blue-100/40 rounded-2xl";
-
-export default function AchievementCard({ achievement }: AchievementCardProps) {
-  const prefersReducedMotion = useReducedMotion();
+export default function AchievementCard({ achievement, index = 0 }: AchievementCardProps) {
+  const reduced = useReducedMotion();
   const Icon = CATEGORY_ICON[achievement.category];
 
   return (
     <motion.div
-      className={clsx(GLASS_CARD_CLASS, "group relative overflow-hidden p-6 will-change-transform")}
-      whileHover={prefersReducedMotion ? undefined : { y: -4, scale: 1.02 }}
-      transition={prefersReducedMotion ? { duration: 0 } : { type: "spring", stiffness: 260, damping: 22 }}
+      className="glass-card card-accent group relative p-7"
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-40px" }}
+      transition={reduced ? { duration: 0 } : { duration: 0.5, delay: index * 0.05, ease: "easeOut" }}
+      whileHover={reduced ? undefined : { y: -5, scale: 1.02 }}
     >
-      <div className={clsx("absolute left-0 top-0 h-full w-1", ACCENT_CLASS[achievement.category])} aria-hidden="true" />
-
-      <div
-        className={clsx(
-          "pointer-events-none absolute inset-0 opacity-0",
-          "bg-[linear-gradient(110deg,transparent,rgba(255,255,255,0.55),transparent)]",
-          "bg-[length:200%_100%] group-hover:opacity-100",
-          "motion-safe:group-hover:animate-shimmer"
-        )}
-        aria-hidden="true"
-      />
-
-      <div className="relative pl-3">
-        <div className="flex items-start gap-4">
-          <div
-            className={clsx(
-              "flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br text-white",
-              CATEGORY_ICON_BG[achievement.category]
-            )}
-          >
-            <Icon className="h-5 w-5" aria-hidden="true" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <p className="text-lg font-bold text-slate-900">{achievement.title}</p>
-              <span className="rounded-full bg-blue-50 px-2 py-0.5 font-mono text-xs text-blue-700">
-                {achievement.year}
-              </span>
-            </div>
-            <p className="mt-3 text-sm leading-relaxed text-slate-600">{achievement.description}</p>
-          </div>
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 transition-transform duration-300 group-hover:scale-110 group-hover:bg-blue-600 group-hover:text-white">
+          <Icon className="h-6 w-6" aria-hidden="true" />
+        </div>
+        <div className="flex flex-col items-end">
+          <span className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+            {achievement.category}
+          </span>
+          <span className="mt-2 font-mono text-xs font-bold text-blue-600">
+            {achievement.year}
+          </span>
         </div>
       </div>
+
+      <div className="mt-6">
+        <h3 className="text-lg font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
+          {achievement.title}
+        </h3>
+        <p className="mt-3 text-sm leading-relaxed text-slate-500 line-clamp-3">
+          {achievement.description}
+        </p>
+      </div>
+
+      {/* Decorative icon in background */}
+      <Trophy className="absolute -bottom-2 -right-2 h-16 w-16 text-blue-600/5 transition-transform duration-500 group-hover:scale-125 group-hover:rotate-12" aria-hidden="true" />
     </motion.div>
   );
 }

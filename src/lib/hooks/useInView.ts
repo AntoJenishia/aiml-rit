@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MutableRefObject } from "react";
 
 interface UseInViewOptions {
   threshold?: number;
@@ -7,14 +7,12 @@ interface UseInViewOptions {
   once?: boolean;
 }
 
-/**
- * Custom hook that uses IntersectionObserver to detect when an element enters the viewport.
- * Zero external dependencies — no Framer Motion required.
- */
-export function useInView(options: UseInViewOptions = {}) {
-  const { threshold = 0.1, rootMargin = "-60px", once = true } = options;
+export function useInView<T extends HTMLElement = HTMLElement>(
+  options: UseInViewOptions = {}
+): [MutableRefObject<T | null>, boolean] {
+  const { threshold = 0.15, rootMargin = "0px 0px -15% 0px", once = true } = options;
   const ref = useRef<HTMLElement | null>(null);
-  const [inView, setInView] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
     const el = ref.current;
@@ -23,10 +21,10 @@ export function useInView(options: UseInViewOptions = {}) {
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          setInView(true);
+          setIsVisible(true);
           if (once) observer.disconnect();
         } else if (!once) {
-          setInView(false);
+          setIsVisible(false);
         }
       },
       { threshold, rootMargin }
@@ -36,23 +34,5 @@ export function useInView(options: UseInViewOptions = {}) {
     return () => observer.disconnect();
   }, [threshold, rootMargin, once]);
 
-  return { ref, inView };
-}
-
-/**
- * Convenience hook that adds/removes a CSS class on the observed element.
- * Attach the returned `ref` to the element; the class is added when it enters view.
- */
-export function useRevealOnScroll(className = "visible", options: UseInViewOptions = {}) {
-  const { ref, inView } = useInView(options);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    if (inView) {
-      el.classList.add(className);
-    }
-  }, [inView, className, ref]);
-
-  return ref;
+  return [ref as MutableRefObject<T | null>, isVisible];
 }

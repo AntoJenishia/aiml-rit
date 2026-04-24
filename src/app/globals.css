@@ -2,219 +2,243 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Base resets ─────────────────────────────────────────── */
+/* ============================================================
+   BASE LAYER
+   ============================================================ */
 @layer base {
-  *,
-  *::before,
-  *::after {
-    box-sizing: border-box;
+  * {
+    @apply border-slate-200;
   }
 
   html {
     scroll-behavior: smooth;
-    -webkit-text-size-adjust: 100%;
   }
 
   body {
-    @apply bg-[#f8fafc] text-[#1e293b] antialiased;
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    @apply bg-slate-50 text-slate-800 antialiased;
+    /* Slightly warm off-white so the neural net shows nicely */
+    background-color: #f8fafc;
   }
 
-  /* Scrollbar — WebKit */
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-  ::-webkit-scrollbar-track {
-    @apply bg-slate-100;
-  }
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: #e2e8f0; }
   ::-webkit-scrollbar-thumb {
-    @apply rounded-full bg-blue-300;
+    border-radius: 99px;
+    background: linear-gradient(to bottom, #3b82f6, #1d4ed8);
   }
-  ::-webkit-scrollbar-thumb:hover {
-    @apply bg-blue-500;
-  }
+  ::-webkit-scrollbar-thumb:hover { background: #2563eb; }
 
-  /* Selection */
-  ::selection {
-    @apply bg-blue-200 text-blue-900;
-  }
-
-  /* Focus-visible outline */
-  :focus-visible {
-    @apply outline-2 outline-offset-2 outline-blue-500;
-  }
-
-  img,
-  video {
-    max-width: 100%;
-    display: block;
-  }
+  ::selection { @apply bg-blue-200 text-blue-900; }
 }
 
-/* ── Components ─────────────────────────────────────────── */
+/* ============================================================
+   KEYFRAMES
+   ============================================================ */
+
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes heroFadeIn {
+  from { opacity: 0; transform: translateY(22px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pageEnter {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+@keyframes shimmer {
+  0%   { transform: translateX(-120%) skewX(-12deg); }
+  100% { transform: translateX(220%) skewX(-12deg); }
+}
+
+@keyframes gradientFlow {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes cardReveal {
+  from { opacity: 0; transform: translateY(20px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes pulseRing {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.0); }
+  50%       { box-shadow: 0 0 0 6px rgba(37, 99, 235, 0.12); }
+}
+
+/* ============================================================
+   COMPONENT LAYER
+   ============================================================ */
 @layer components {
-  /* Page route progress bar */
-  .progress-bar {
-    @apply fixed top-0 left-0 h-0.5 bg-blue-600 z-[9999] transition-all duration-300;
+
+  /* ── Page transition ── */
+  .page-enter-active {
+    animation: pageEnter 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
-  /* Frosted glass card */
-  .glass-card {
-    @apply bg-white border border-slate-100 shadow-sm rounded-2xl;
+  /* ── Hero animations ── */
+  .hero-fadein {
+    opacity: 0;
+    animation: heroFadeIn 0.75s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   }
 
-  /* Blue top-border accent card */
-  .accent-card {
-    @apply bg-white border border-slate-100 shadow-sm rounded-2xl border-t-4 border-t-blue-600;
+  /* ── Gradient headline text ── */
+  .hero-gradient-text {
+    background: linear-gradient(
+      135deg,
+      #60a5fa 0%,
+      #a78bfa 35%,
+      #38bdf8 65%,
+      #93c5fd 100%
+    );
+    background-size: 300% 300%;
+    animation: gradientFlow 5s ease infinite;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 
-  /* Floating label wrapper */
-  .floating-label-group {
-    @apply relative;
+  /* ── Hero primary button ── */
+  .hero-btn-primary {
+    background: linear-gradient(135deg, #2563eb, #3b82f6);
+    box-shadow: 0 8px 28px -6px #2563eb70;
+    transition: transform 0.2s ease, box-shadow 0.3s ease;
+  }
+  .hero-btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 0 4px #2563eb20, 0 16px 40px -8px #2563eb90;
+  }
+  .hero-btn-primary:active { transform: scale(0.96); }
+
+  .hero-btn-shine {
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      100deg,
+      transparent 20%,
+      rgba(255,255,255,0.35) 50%,
+      transparent 80%
+    );
+    transform: translateX(-120%) skewX(-12deg);
+    animation: shimmer 2.8s ease-in-out infinite;
   }
 
-  .floating-input {
-    @apply w-full rounded-xl border border-slate-200 bg-white px-4 pt-5 pb-2 text-sm text-slate-900
-    placeholder:opacity-0 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500
-    transition-all duration-200;
+  /* ── Page surface (light pages) ── */
+  .page-surface {
+    @apply relative isolate;
+    /* Transparent so the NeuralNetCanvas shows through */
+    background: transparent;
   }
 
-  .floating-textarea {
-    @apply w-full rounded-xl border border-slate-200 bg-white px-4 pt-5 pb-2 text-sm text-slate-900
-    placeholder:opacity-0 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500
-    resize-none transition-all duration-200;
+  /* ── Premium card — light variant ── */
+  .premium-card {
+    @apply relative overflow-hidden rounded-2xl border border-slate-100/80 bg-white/90 backdrop-blur-sm transition-all duration-300;
+    box-shadow: 0 4px 20px -8px rgba(15, 23, 42, 0.12);
   }
 
-  .floating-label {
-    @apply pointer-events-none absolute left-4 top-3.5 text-sm text-slate-400
-    transition-all duration-200;
-  }
-
-  .floating-input:focus ~ .floating-label,
-  .floating-input:not(:placeholder-shown) ~ .floating-label,
-  .floating-textarea:focus ~ .floating-label,
-  .floating-textarea:not(:placeholder-shown) ~ .floating-label {
-    @apply top-1 text-[10px] text-blue-600 font-medium tracking-wide;
-  }
-
-  /* Nav link underline hover animation */
-  .nav-link {
-    @apply relative text-slate-600 text-sm font-medium transition-colors duration-200 hover:text-blue-600;
-  }
-
-  .nav-link::after {
+  /* Shimmer sweep on hover */
+  .premium-card::before {
     content: "";
-    @apply absolute bottom-0 left-0 h-0.5 w-full bg-blue-600 scale-x-0 transition-transform duration-200 origin-left;
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(120deg, transparent 30%, #60a5fa14 55%, transparent 80%);
+    transform: translateX(-120%);
+    transition: transform 0.55s ease;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .premium-card:hover::before { transform: translateX(120%); }
+
+  .premium-card:hover {
+    transform: translateY(-5px);
+    border-color: #bfdbfe;
+    box-shadow:
+      0 0 0 1.5px #bfdbfe,
+      0 16px 40px -16px rgba(37, 99, 235, 0.28),
+      0 6px 18px -8px rgba(15, 23, 42, 0.20);
   }
 
-  .nav-link:hover::after {
-    @apply scale-x-100;
+  /* ── Card reveal animation (staggered) ── */
+  .card-reveal {
+    opacity: 0;
+    animation: cardReveal 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   }
 
-  .nav-link.active {
-    @apply text-blue-600 font-semibold;
+  /* ── Hover glow (used on stat cards etc.) ── */
+  .hover-glow {
+    @apply transition-all duration-300;
+  }
+  .hover-glow:hover {
+    box-shadow:
+      0 0 0 1.5px #bfdbfe,
+      0 10px 30px -10px rgba(37, 99, 235, 0.25);
+    animation: pulseRing 2s ease-in-out infinite;
   }
 
-  .nav-link.active::after {
-    @apply scale-x-100;
+  /* ── Glass dark card (used in dark sections) ── */
+  .glass-dark {
+    @apply relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md transition-all duration-300;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  }
+  .glass-dark:hover {
+    border-color: rgba(96, 165, 250, 0.4);
+    box-shadow: 0 0 0 1px rgba(96,165,250,0.3), 0 12px 40px rgba(37, 99, 235, 0.22);
   }
 
-  /* Section fade-up reveal */
-  .reveal {
-    @apply opacity-0 translate-y-6 transition-all duration-700 ease-out;
-  }
-
-  .reveal.visible {
-    @apply opacity-100 translate-y-0;
-  }
-
-  /* Marquee wrapper — no overflow on parent */
-  .marquee-container {
-    @apply flex overflow-hidden select-none;
-  }
-
+  /* ── Marquee ── */
   .marquee-track {
-    @apply flex shrink-0 animate-marquee;
+    @apply flex shrink-0 items-center gap-8;
+    animation: marquee 28s linear infinite;
   }
 
-  /* Line-clamp utilities */
+  /* ── Line clamp ── */
   .line-clamp-2 {
     display: -webkit-box;
+    -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
     overflow: hidden;
   }
 
-  .line-clamp-3 {
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+  /* ── Float input ── */
+  .float-input {
+    @apply w-full rounded-xl border border-slate-200 bg-white px-4 pb-2 pt-6 text-slate-800 outline-none transition placeholder:text-transparent focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20;
   }
 
-  /* Event tag badge colors */
-  .tag-workshop {
-    @apply bg-blue-100 text-blue-700;
+  .float-label {
+    @apply pointer-events-none absolute left-4 top-4 text-sm text-slate-400 transition-all duration-200
+    peer-focus:top-2 peer-focus:text-xs peer-focus:text-blue-600
+    peer-[:not(:placeholder-shown)]:top-2
+    peer-[:not(:placeholder-shown)]:text-xs
+    peer-[:not(:placeholder-shown)]:text-blue-600;
   }
-  .tag-hackathon {
-    @apply bg-orange-100 text-orange-700;
-  }
-  .tag-seminar {
-    @apply bg-purple-100 text-purple-700;
-  }
-  .tag-guest-lecture {
-    @apply bg-teal-100 text-teal-700;
-  }
-  .tag-fdp {
-    @apply bg-green-100 text-green-700;
-  }
-}
 
-/* ── Utilities ──────────────────────────────────────────── */
-@layer utilities {
-  /* Dot-grid background pattern */
+  /* ── Dot grid (used in dark hero sections) ── */
   .dot-grid {
-    background-image: radial-gradient(circle, rgba(255,255,255,0.15) 1px, transparent 1px);
-    background-size: 24px 24px;
+    background-image: radial-gradient(circle, #2563eb22 1px, transparent 1px);
+    background-size: 32px 32px;
   }
 
-  /* Gradient text */
-  .text-gradient-blue {
-    @apply bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent;
+  /* ── PO number badge (small, subtle) ── */
+  .po-number {
+    @apply pointer-events-none absolute -left-0.5 top-0 text-2xl font-black leading-none text-blue-100 select-none;
   }
 
-  .text-gradient-navy {
-    @apply bg-gradient-to-r from-[#1e3a8a] to-[#2563eb] bg-clip-text text-transparent;
-  }
-
-  /* Animate delays for stagger effects */
-  .delay-100 { animation-delay: 100ms; }
-  .delay-200 { animation-delay: 200ms; }
-  .delay-300 { animation-delay: 300ms; }
-  .delay-400 { animation-delay: 400ms; }
-  .delay-500 { animation-delay: 500ms; }
-  .delay-600 { animation-delay: 600ms; }
-  .delay-700 { animation-delay: 700ms; }
-  .delay-800 { animation-delay: 800ms; }
-
-  /* Archive card image hover overlay */
-  .archive-overlay {
-    @apply absolute inset-0 bg-black/50 opacity-0 flex items-center justify-center
-    transition-opacity duration-300;
-  }
-
-  .group:hover .archive-overlay {
-    @apply opacity-100;
-  }
-
-  /* Blue bottom slide rule on faculty cards */
-  .card-slide-rule::after {
-    content: "";
-    @apply absolute bottom-0 left-0 h-0.5 w-full bg-blue-600 scale-x-0 transition-transform duration-200 origin-left;
-  }
-
-  .card-slide-rule:hover::after {
-    @apply scale-x-100;
-  }
+  /* ── Event tags ── */
+  .tag-workshop  { @apply bg-violet-100 text-violet-700; }
+  .tag-hackathon { @apply bg-rose-100 text-rose-700; }
+  .tag-seminar   { @apply bg-teal-100 text-teal-700; }
+  .tag-guest     { @apply bg-amber-100 text-amber-700; }
+  .tag-fdp       { @apply bg-sky-100 text-sky-700; }
 }

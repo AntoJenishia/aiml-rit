@@ -1,57 +1,70 @@
 "use client";
 
-import { hodData, hodPageData } from "@/data/hod";
+import { hodData } from "@/data/hod";
 import Image from "next/image";
-import Link from "next/link";
-import { Mail } from "lucide-react";
+import { Mail, Quote } from "lucide-react";
+import RevealSection from "@/components/RevealSection";
+import ParticleCanvas from "@/components/ParticleCanvas";
+import clsx from "clsx";
 
 export default function HodPage() {
   return (
     <div>
-      {/* ─── Navy HOD Spotlight ─── */}
-      <section className="bg-[#1e3a8a] py-16 sm:py-20">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid gap-10 lg:grid-cols-5 lg:gap-14 items-center">
-            {/* Left: Photo */}
-            <div className="lg:col-span-2 flex justify-center">
-              <div className="h-44 w-44 sm:h-52 sm:w-52 overflow-hidden rounded-full ring-4 ring-white ring-offset-2 ring-offset-[#1e3a8a] shadow-2xl">
+      <section
+        className="relative overflow-hidden bg-[#0a0f1e] py-24"
+      >
+        {/* Subtle particle canvas — same as hero but muted white tones */}
+        <ParticleCanvas subtle />
+        {/* Ambient glow */}
+        <div
+          className="pointer-events-none absolute -right-20 -top-20 h-96 w-96 rounded-full opacity-15 blur-[130px]"
+          style={{ background: "radial-gradient(circle, #2563eb 0%, transparent 70%)" }}
+          aria-hidden="true"
+        />
+        <div
+          className="pointer-events-none absolute bottom-0 left-0 h-64 w-64 rounded-full opacity-8 blur-[100px]"
+          style={{ background: "#7c3aed" }}
+          aria-hidden="true"
+        />
+        <div className="mx-auto max-w-7xl px-6">
+          <div className="grid items-center gap-12 lg:grid-cols-2">
+            <div className="flex justify-center lg:justify-start">
+              <div className="relative inline-block">
                 <Image
                   src={hodData.photo}
                   alt={hodData.name}
-                  width={208}
-                  height={208}
-                  className="h-full w-full object-cover"
+                  width={256}
+                  height={320}
+                  className="h-80 w-64 rounded-2xl object-cover transition-transform duration-500 hover:scale-[1.02]"
                   priority
                 />
+                <div className="absolute inset-0 rounded-2xl ring-2 ring-blue-400/50 ring-offset-4 ring-offset-[#0a0f1e]" />
+                <div className="absolute -bottom-4 -right-4 -z-10 h-full w-full rounded-2xl bg-blue-600/20" />
               </div>
             </div>
 
-            {/* Right: Info */}
-            <div className="lg:col-span-3">
-              <p className="text-xs font-semibold uppercase tracking-widest text-blue-300">
-                {hodPageData.heroSubtitle}
+            <div>
+              <p className="text-xs uppercase tracking-widest text-blue-300">HEAD OF DEPARTMENT</p>
+              <h1 className="mt-2 text-3xl font-black text-white lg:text-4xl">{hodData.name}</h1>
+              <p className="mb-6 text-blue-300">{hodData.designation}</p>
+              <p className="mb-2 text-blue-400/40">
+                <Quote className="h-12 w-12" />
               </p>
-              <h1 className="mt-2 text-3xl font-extrabold text-white sm:text-4xl">{hodData.name}</h1>
-              <p className="mt-2 text-base font-medium text-[#93c5fd]">{hodData.designation}</p>
-
-              {/* Message */}
-              <div className="relative mt-6">
-                <span className="pointer-events-none absolute -top-4 -left-3 text-7xl font-extrabold text-[#93c5fd] opacity-20 select-none" aria-hidden="true">
-                  &ldquo;
-                </span>
-                <p className="relative text-base italic leading-8 text-blue-100">{hodData.message}</p>
-              </div>
-
-              {/* Quick stat chips */}
-              <div className="mt-8 flex flex-wrap gap-2">
-                <span className="rounded-full bg-white/10 px-4 py-1.5 text-sm font-medium text-white">
-                  {hodData.experience} Experience
-                </span>
-                <span className="rounded-full bg-white/10 px-4 py-1.5 text-sm font-medium text-white">
-                  {hodData.qualification}
-                </span>
-                <span className="rounded-full bg-white/10 px-4 py-1.5 text-sm font-medium text-white">
-                  {hodData.highlights.find((h) => h.label === "Publications")?.value ?? "35+"} Publications
+              <p className="text-lg italic leading-relaxed text-blue-100">{hodData.message}</p>
+              <div className="mt-8 flex flex-wrap gap-3">
+                {[hodData.qualification, hodData.experience, hodData.specialization].map((chip) => (
+                  <span
+                    key={chip}
+                    className="rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs text-white backdrop-blur-sm transition-all hover:bg-white/20"
+                  >
+                    {chip}
+                  </span>
+                ))}
+                <span
+                  className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs text-white backdrop-blur-sm transition-all hover:bg-white/20"
+                >
+                  <Mail className="h-3.5 w-3.5" />
+                  {hodData.email}
                 </span>
               </div>
             </div>
@@ -59,78 +72,50 @@ export default function HodPage() {
         </div>
       </section>
 
-      {/* ─── Highlights ─── */}
-      <section className="bg-[#f8fafc] py-16">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <h2 className="text-center text-2xl font-extrabold tracking-tight text-[#1e3a8a] sm:text-3xl">
-            {hodPageData.highlightsSectionTitle}
-          </h2>
-          <div className="mx-auto mt-3 h-1 w-16 rounded-full bg-[#2563eb]" aria-hidden="true" />
-
-          <div className="mt-10 grid gap-5 grid-cols-2 lg:grid-cols-4">
-            {hodData.highlights.map((item) => (
+      <section className="bg-transparent py-24">
+        <div className="mx-auto max-w-7xl px-6">
+          <RevealSection>
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.15em] text-blue-600">LEADERSHIP IMPACT</p>
+            <h2 className="text-3xl font-extrabold tracking-tight text-[#1e3a8a] lg:text-4xl">Track Record &amp; Recognition</h2>
+            <p className="mb-14 mt-4 max-w-3xl text-base leading-7 text-slate-500">
+              Highlights of academic leadership, mentoring, and departmental growth outcomes.
+            </p>
+          </RevealSection>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            {hodData.highlights.map((item, i) => (
               <div
                 key={item.label}
-                className="bg-white rounded-2xl border border-slate-100 shadow-sm border-t-4 border-t-blue-600 p-6 text-center transition-all duration-200 hover:shadow-lg hover:-translate-y-1"
+                className="card-reveal premium-card hover-glow group p-6 text-center"
+                style={{ animationDelay: `${i * 90}ms` }}
               >
-                <p className="text-4xl font-extrabold text-[#1e3a8a]">{item.value}</p>
-                <p className="mt-2 text-xs font-semibold uppercase tracking-widest text-[#64748b]">{item.label}</p>
+                <p className="font-mono text-4xl font-black text-[#1e3a8a] transition-colors duration-300 group-hover:text-blue-600">{item.value}</p>
+                <p className="mt-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{item.label}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ─── Expertise ─── */}
-      <section className="bg-white py-16">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <h2 className="text-center text-2xl font-extrabold tracking-tight text-[#1e3a8a] sm:text-3xl">
-            {hodPageData.expertiseSectionTitle}
-          </h2>
-          <div className="mx-auto mt-3 h-1 w-16 rounded-full bg-[#2563eb]" aria-hidden="true" />
-
-          <div className="mt-10 flex flex-wrap justify-center gap-3">
-            {hodData.expertise.map((text) => (
-              <span
-                key={text}
-                className="rounded-full border border-blue-200 bg-blue-50 px-5 py-2.5 text-sm font-medium text-[#1e3a8a] transition-all duration-200 hover:bg-[#2563eb] hover:text-white hover:border-transparent"
+      <section className="bg-transparent py-24">
+        <div className="mx-auto max-w-7xl px-6">
+          <RevealSection>
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.15em] text-blue-600">AREAS OF EXPERTISE</p>
+            <h2 className="text-3xl font-extrabold tracking-tight text-[#1e3a8a] lg:text-4xl">Research &amp; Academic Focus</h2>
+            <p className="mb-14 mt-4 max-w-3xl text-base leading-7 text-slate-500">
+              Specialized domains driving curriculum innovation, publications, and student projects.
+            </p>
+          </RevealSection>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {hodData.expertise.map((item, i) => (
+              <div
+                key={item}
+                className="card-reveal premium-card group flex items-center justify-between px-6 py-5"
+                style={{ animationDelay: `${i * 65}ms` }}
               >
-                {text}
-              </span>
+                <p className="text-lg font-bold text-slate-800 transition-colors duration-300 group-hover:text-blue-700">{item}</p>
+                <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-blue-500 transition-all duration-300 group-hover:scale-125 group-hover:bg-blue-600 group-hover:shadow-[0_0_8px_3px_rgba(37,99,235,0.35)]" />
+              </div>
             ))}
-          </div>
-
-          {/* Contact */}
-          <div className="mt-10 flex justify-center">
-            <a
-              href={`mailto:${hodData.email}`}
-              className="inline-flex items-center gap-2 text-sm font-medium text-[#2563eb] hover:text-[#1e3a8a] transition-colors"
-            >
-              <Mail className="h-4 w-4" aria-hidden="true" />
-              {hodData.email}
-            </a>
-          </div>
-        </div>
-      </section>
-
-      {/* ─── CTA ─── */}
-      <section className="bg-[#1e3a8a] py-16">
-        <div className="mx-auto max-w-3xl px-4 text-center sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-extrabold text-white">{hodPageData.ctaTitle}</h2>
-          <p className="mt-4 text-blue-200">{hodPageData.ctaSubtitle}</p>
-          <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Link
-              href={hodPageData.ctaPrimaryHref}
-              className="inline-flex items-center justify-center rounded-xl bg-white px-8 py-3 text-sm font-semibold text-[#1e3a8a] transition-all duration-200 hover:bg-blue-50 active:scale-95"
-            >
-              {hodPageData.ctaPrimaryText}
-            </Link>
-            <Link
-              href={hodPageData.ctaSecondaryHref}
-              className="inline-flex items-center justify-center rounded-xl border-2 border-white/40 px-8 py-3 text-sm font-semibold text-white transition-all duration-200 hover:bg-white/10 active:scale-95"
-            >
-              {hodPageData.ctaSecondaryText}
-            </Link>
           </div>
         </div>
       </section>
