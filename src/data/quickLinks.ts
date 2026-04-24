@@ -118,7 +118,7 @@ export const contactData: ContactData = {
   formSubtitle: "Share your query and we will respond at the earliest.",
   addressLines: [
     "Department of AIML, Rajalakshmi Institute of Technology",
-    "Kuthambakkam,Chembarabakkam, Chennai, Tamil Nadu 600024",
+    "Kuthambakkam,Chembarabakkam, Chennai, Tamil Nadu 600124",
     "India"
   ],
   phoneLabel: "Phone",

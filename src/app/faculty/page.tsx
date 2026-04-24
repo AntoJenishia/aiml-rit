@@ -24,13 +24,6 @@ export default function FacultyPage() {
           <FacultyCarousel faculty={faculty} />
         </div>
       </RevealSection>
-
-      {/* Caption */}
-      <div className="mx-auto max-w-7xl px-6 pb-12 pt-4">
-        <p className="text-xs text-slate-400">
-          Click any card to view full profile · Auto-scrolls continuously · Pauses on hover
-        </p>
-      </div>
     </div>
   );
 }

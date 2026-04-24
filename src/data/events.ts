@@ -54,8 +54,8 @@ export const events: Event[] = [
 export const archiveEvents: ArchiveEvent[] = [
   {
     id: "arch-1",
-    title: "AI Innovation Summit 2024",
-    year: 2024,
+    title: "AI Innovation Summit 2026",
+    year: 2026,
     category: "Seminar",
     description: "A flagship departmental event featuring keynotes from industry leaders on the future of generative AI, responsible AI practices, and emerging career paths.",
     imageUrl: "https://picsum.photos/seed/arch1/600/400",
@@ -63,8 +63,8 @@ export const archiveEvents: ArchiveEvent[] = [
   },
   {
     id: "arch-2",
-    title: "HackAIthon 2024 — 36-Hour Sprint",
-    year: 2024,
+    title: "HackAIthon 2025 — 36-Hour Sprint",
+    year: 2025,
     category: "Hackathon",
     description: "Students built AI prototypes tackling healthcare accessibility, climate prediction, and smart agriculture in a non-stop 36-hour coding marathon.",
     imageUrl: "https://picsum.photos/seed/arch2/600/400",
@@ -73,7 +73,7 @@ export const archiveEvents: ArchiveEvent[] = [
   {
     id: "arch-3",
     title: "Deep Learning Workshop with TensorFlow",
-    year: 2023,
+    year: 2024,
     category: "Workshop",
     description: "Intensive hands-on workshop covering CNNs, transfer learning, and model deployment pipelines using TensorFlow and Keras.",
     imageUrl: "https://picsum.photos/seed/arch3/600/400",
