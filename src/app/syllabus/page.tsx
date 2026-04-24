@@ -23,8 +23,8 @@ export default function SyllabusPage() {
 
   return (
     <div className="page-surface">
-      <div className="mx-auto max-w-7xl px-6 py-24">
-        <div className="grid gap-14">
+      <div className="mx-auto max-w-7xl px-6 py-12">
+        <div className="grid gap-8">
           <SectionHeading
             eyebrow={syllabusPageData.pageHero.badgeLabel}
             title={syllabusPageData.pageHero.title}

@@ -13,8 +13,8 @@ export default function AchievementsPage() {
 
   return (
     <div className="page-surface">
-      <div className="mx-auto max-w-7xl px-6 py-24">
-        <div className="grid gap-24">
+      <div className="mx-auto max-w-7xl px-6 py-12">
+        <div className="grid gap-12">
           <SectionHeading
             eyebrow={achievementsPageData.pageHero.badgeLabel}
             title={achievementsPageData.pageHero.title}

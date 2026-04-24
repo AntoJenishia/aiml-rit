@@ -30,8 +30,8 @@ export default function ContactPage() {
 
   return (
     <div className="page-surface">
-      <div className="mx-auto max-w-7xl px-6 py-24">
-        <div className="grid gap-16">
+      <div className="mx-auto max-w-7xl px-6 py-12">
+        <div className="grid gap-8">
           <SectionHeading
             eyebrow={contactData.pageTitle}
             title={contactData.pageHeroTitle}

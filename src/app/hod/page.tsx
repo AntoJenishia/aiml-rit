@@ -11,7 +11,7 @@ export default function HodPage() {
   return (
     <div>
       <section
-        className="relative overflow-hidden bg-[#0a0f1e] py-24"
+        className="relative overflow-hidden bg-[#0a0f1e] py-14"
       >
         {/* Subtle particle canvas — same as hero but muted white tones */}
         <ParticleCanvas subtle />
@@ -72,7 +72,7 @@ export default function HodPage() {
         </div>
       </section>
 
-      <section className="bg-transparent py-24">
+      <section className="bg-transparent py-14">
         <div className="mx-auto max-w-7xl px-6">
           <RevealSection>
             <p className="mb-3 text-xs font-semibold uppercase tracking-[0.15em] text-blue-600">LEADERSHIP IMPACT</p>
@@ -96,7 +96,7 @@ export default function HodPage() {
         </div>
       </section>
 
-      <section className="bg-transparent py-24">
+      <section className="bg-transparent py-14">
         <div className="mx-auto max-w-7xl px-6">
           <RevealSection>
             <p className="mb-3 text-xs font-semibold uppercase tracking-[0.15em] text-blue-600">AREAS OF EXPERTISE</p>

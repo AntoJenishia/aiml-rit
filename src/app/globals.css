@@ -6,17 +6,12 @@
    BASE LAYER
    ============================================================ */
 @layer base {
-  * {
-    @apply border-slate-200;
-  }
+  * { @apply border-slate-200; }
 
-  html {
-    scroll-behavior: smooth;
-  }
+  html { scroll-behavior: smooth; }
 
   body {
     @apply bg-slate-50 text-slate-800 antialiased;
-    /* Slightly warm off-white so the neural net shows nicely */
     background-color: #f8fafc;
   }
 
@@ -35,46 +30,38 @@
 /* ============================================================
    KEYFRAMES
    ============================================================ */
-
 @keyframes fadeSlideUp {
-  from { opacity: 0; transform: translateY(28px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes heroFadeIn {
   from { opacity: 0; transform: translateY(22px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-
-@keyframes pageEnter {
-  from { opacity: 0; transform: translateY(14px); }
+@keyframes heroFadeIn {
+  from { opacity: 0; transform: translateY(18px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-
+@keyframes pageEnter {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 @keyframes marquee {
   from { transform: translateX(0); }
   to   { transform: translateX(-50%); }
 }
-
 @keyframes shimmer {
   0%   { transform: translateX(-120%) skewX(-12deg); }
   100% { transform: translateX(220%) skewX(-12deg); }
 }
-
 @keyframes gradientFlow {
   0%   { background-position: 0% 50%; }
   50%  { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
 }
-
 @keyframes cardReveal {
-  from { opacity: 0; transform: translateY(20px) scale(0.98); }
+  from { opacity: 0; transform: translateY(16px) scale(0.98); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
-
-@keyframes pulseRing {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.0); }
-  50%       { box-shadow: 0 0 0 6px rgba(37, 99, 235, 0.12); }
+@keyframes glowPulse {
+  0%, 100% { box-shadow: var(--glow-rest); }
+  50%       { box-shadow: var(--glow-pulse); }
 }
 
 /* ============================================================
@@ -84,7 +71,7 @@
 
   /* ── Page transition ── */
   .page-enter-active {
-    animation: pageEnter 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: pageEnter 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
   /* ── Hero animations ── */
@@ -93,15 +80,9 @@
     animation: heroFadeIn 0.75s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   }
 
-  /* ── Gradient headline text ── */
+  /* ── Gradient headline ── */
   .hero-gradient-text {
-    background: linear-gradient(
-      135deg,
-      #60a5fa 0%,
-      #a78bfa 35%,
-      #38bdf8 65%,
-      #93c5fd 100%
-    );
+    background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 35%, #38bdf8 65%, #93c5fd 100%);
     background-size: 300% 300%;
     animation: gradientFlow 5s ease infinite;
     -webkit-background-clip: text;
@@ -125,76 +106,85 @@
     pointer-events: none;
     position: absolute;
     inset: 0;
-    background: linear-gradient(
-      100deg,
-      transparent 20%,
-      rgba(255,255,255,0.35) 50%,
-      transparent 80%
-    );
+    background: linear-gradient(100deg, transparent 20%, rgba(255,255,255,0.35) 50%, transparent 80%);
     transform: translateX(-120%) skewX(-12deg);
     animation: shimmer 2.8s ease-in-out infinite;
   }
 
-  /* ── Page surface (light pages) ── */
+  /* ── Page surface ── */
   .page-surface {
     @apply relative isolate;
-    /* Transparent so the NeuralNetCanvas shows through */
     background: transparent;
   }
 
-  /* ── Premium card — light variant ── */
+  /* ─────────────────────────────────────────────
+     PREMIUM CARD  — base + coloured hover glow
+     ───────────────────────────────────────────── */
   .premium-card {
-    @apply relative overflow-hidden rounded-2xl border border-slate-100/80 bg-white/90 backdrop-blur-sm transition-all duration-300;
-    box-shadow: 0 4px 20px -8px rgba(15, 23, 42, 0.12);
+    @apply relative overflow-hidden rounded-2xl border border-slate-100/90 bg-white/90 backdrop-blur-sm transition-all duration-300;
+    box-shadow: 0 2px 14px -6px rgba(15, 23, 42, 0.10);
   }
 
-  /* Shimmer sweep on hover */
+  /* Shimmer sweep */
   .premium-card::before {
     content: "";
     position: absolute;
     inset: 0;
-    background: linear-gradient(120deg, transparent 30%, #60a5fa14 55%, transparent 80%);
-    transform: translateX(-120%);
-    transition: transform 0.55s ease;
+    background: linear-gradient(118deg, transparent 25%, rgba(96,165,250,0.10) 50%, transparent 75%);
+    transform: translateX(-130%);
+    transition: transform 0.5s ease;
     pointer-events: none;
     z-index: 1;
   }
-  .premium-card:hover::before { transform: translateX(120%); }
+  .premium-card:hover::before { transform: translateX(130%); }
 
+  /* Vivid blue hover lift + glow */
   .premium-card:hover {
-    transform: translateY(-5px);
-    border-color: #bfdbfe;
+    transform: translateY(-4px) scale(1.01);
+    border-color: #93c5fd;
     box-shadow:
-      0 0 0 1.5px #bfdbfe,
-      0 16px 40px -16px rgba(37, 99, 235, 0.28),
-      0 6px 18px -8px rgba(15, 23, 42, 0.20);
+      0 0 0 1.5px #93c5fd,
+      0 0 20px 2px rgba(59, 130, 246, 0.18),
+      0 14px 35px -12px rgba(37, 99, 235, 0.30);
   }
 
-  /* ── Card reveal animation (staggered) ── */
+  /* ── Coloured card accent variants ── */
+  /* Apply .card-blue, .card-violet etc. to premium-card for tinted left border */
+  .card-blue   { border-left: 3px solid #3b82f6;  background: linear-gradient(to right, #eff6ff 0%, #ffffff 40%); }
+  .card-violet { border-left: 3px solid #8b5cf6;  background: linear-gradient(to right, #f5f3ff 0%, #ffffff 40%); }
+  .card-rose   { border-left: 3px solid #f43f5e;  background: linear-gradient(to right, #fff1f2 0%, #ffffff 40%); }
+  .card-teal   { border-left: 3px solid #14b8a6;  background: linear-gradient(to right, #f0fdfa 0%, #ffffff 40%); }
+  .card-amber  { border-left: 3px solid #f59e0b;  background: linear-gradient(to right, #fffbeb 0%, #ffffff 40%); }
+
+  .card-blue:hover   { border-color: #3b82f6; box-shadow: 0 0 0 1.5px #93c5fd, 0 0 24px 4px rgba(59,130,246,0.20), 0 12px 30px -10px rgba(37,99,235,0.28); }
+  .card-violet:hover { border-color: #8b5cf6; box-shadow: 0 0 0 1.5px #c4b5fd, 0 0 24px 4px rgba(139,92,246,0.20), 0 12px 30px -10px rgba(109,40,217,0.28); }
+  .card-rose:hover   { border-color: #f43f5e; box-shadow: 0 0 0 1.5px #fda4af, 0 0 24px 4px rgba(244,63,94,0.20), 0 12px 30px -10px rgba(225,29,72,0.28); }
+  .card-teal:hover   { border-color: #14b8a6; box-shadow: 0 0 0 1.5px #99f6e4, 0 0 24px 4px rgba(20,184,166,0.20), 0 12px 30px -10px rgba(13,148,136,0.28); }
+  .card-amber:hover  { border-color: #f59e0b; box-shadow: 0 0 0 1.5px #fde68a, 0 0 24px 4px rgba(245,158,11,0.20), 0 12px 30px -10px rgba(217,119,6,0.28); }
+
+  /* ── Card reveal animation ── */
   .card-reveal {
     opacity: 0;
-    animation: cardReveal 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    animation: cardReveal 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   }
 
-  /* ── Hover glow (used on stat cards etc.) ── */
-  .hover-glow {
-    @apply transition-all duration-300;
-  }
+  /* ── Hover glow (stat cards) ── */
+  .hover-glow { @apply transition-all duration-300; }
   .hover-glow:hover {
     box-shadow:
-      0 0 0 1.5px #bfdbfe,
-      0 10px 30px -10px rgba(37, 99, 235, 0.25);
-    animation: pulseRing 2s ease-in-out infinite;
+      0 0 0 2px #93c5fd,
+      0 0 18px 3px rgba(59, 130, 246, 0.22),
+      0 10px 28px -10px rgba(37, 99, 235, 0.28);
   }
 
-  /* ── Glass dark card (used in dark sections) ── */
+  /* ── Glass dark card ── */
   .glass-dark {
     @apply relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md transition-all duration-300;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.35);
   }
   .glass-dark:hover {
-    border-color: rgba(96, 165, 250, 0.4);
-    box-shadow: 0 0 0 1px rgba(96,165,250,0.3), 0 12px 40px rgba(37, 99, 235, 0.22);
+    border-color: rgba(96,165,250,0.4);
+    box-shadow: 0 0 0 1px rgba(96,165,250,0.3), 0 12px 40px rgba(37,99,235,0.22);
   }
 
   /* ── Marquee ── */
@@ -215,7 +205,6 @@
   .float-input {
     @apply w-full rounded-xl border border-slate-200 bg-white px-4 pb-2 pt-6 text-slate-800 outline-none transition placeholder:text-transparent focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20;
   }
-
   .float-label {
     @apply pointer-events-none absolute left-4 top-4 text-sm text-slate-400 transition-all duration-200
     peer-focus:top-2 peer-focus:text-xs peer-focus:text-blue-600
@@ -224,15 +213,10 @@
     peer-[:not(:placeholder-shown)]:text-blue-600;
   }
 
-  /* ── Dot grid (used in dark hero sections) ── */
+  /* ── Dot grid ── */
   .dot-grid {
     background-image: radial-gradient(circle, #2563eb22 1px, transparent 1px);
     background-size: 32px 32px;
-  }
-
-  /* ── PO number badge (small, subtle) ── */
-  .po-number {
-    @apply pointer-events-none absolute -left-0.5 top-0 text-2xl font-black leading-none text-blue-100 select-none;
   }
 
   /* ── Event tags ── */
