@@ -1,52 +1,49 @@
+"use client";
+
 import { motion, useReducedMotion } from "framer-motion";
 import clsx from "clsx";
-
-type HeadingAlign = "left" | "center";
 
 interface SectionHeadingProps {
   title: string;
   subtitle?: string;
-  align?: HeadingAlign;
+  align?: "left" | "center";
+  eyebrow?: string;
 }
 
-export default function SectionHeading({ title, subtitle, align = "left" }: SectionHeadingProps) {
-  const prefersReducedMotion = useReducedMotion();
+export default function SectionHeading({ title, subtitle, align = "left", eyebrow }: SectionHeadingProps) {
+  const reduced = useReducedMotion();
 
   return (
-    <div className={clsx(align === "center" ? "text-center" : "text-left")}>
-      <h2
-        className={clsx(
-          "bg-gradient-to-r from-blue-900 via-blue-600 to-violet-600 bg-clip-text text-transparent",
-          "text-2xl font-extrabold tracking-tight sm:text-3xl"
-        )}
-      >
+    <motion.div
+      className={clsx(align === "center" ? "text-center" : "text-left")}
+      initial={{ opacity: 0, y: 24 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-60px" }}
+      transition={reduced ? { duration: 0 } : { duration: 0.6, ease: "easeOut" }}
+    >
+      {eyebrow && (
+        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.1em] text-blue-600">{eyebrow}</p>
+      )}
+      <h2 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl lg:text-4xl">
         {title}
       </h2>
-
       <motion.div
         aria-hidden="true"
         className={clsx(
-          "mt-3 h-1 w-16 rounded-full bg-gradient-to-r from-blue-500 to-violet-500",
-          align === "center" ? "mx-auto" : "mx-0"
+          "mt-3 h-1 w-14 rounded-full bg-gradient-to-r from-blue-500 to-blue-600",
+          align === "center" ? "mx-auto" : ""
         )}
         initial={{ scaleX: 0 }}
         whileInView={{ scaleX: 1 }}
         viewport={{ once: true }}
-        transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.6, delay: 0.2 }}
+        transition={reduced ? { duration: 0 } : { duration: 0.5, delay: 0.2 }}
         style={{ transformOrigin: align === "center" ? "center" : "left" }}
       />
-
-      {subtitle ? (
-        <motion.p
-          className="mt-4 text-sm leading-relaxed text-slate-600 sm:text-base"
-          initial={{ opacity: 0, y: 8 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.6, delay: 0.3, ease: "easeOut" }}
-        >
+      {subtitle && (
+        <p className="mt-4 max-w-2xl text-sm leading-relaxed text-slate-500 sm:text-base">
           {subtitle}
-        </motion.p>
-      ) : null}
-    </div>
+        </p>
+      )}
+    </motion.div>
   );
 }

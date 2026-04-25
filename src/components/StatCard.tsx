@@ -1,6 +1,7 @@
+"use client";
+
 import type { LucideIcon } from "lucide-react";
 import { motion, useInView, useReducedMotion } from "framer-motion";
-import clsx from "clsx";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motionTokens } from "@/data/quickLinks";
 
@@ -9,72 +10,55 @@ interface StatCardProps {
   label: string;
   value: string;
   suffix?: string;
+  index?: number;
 }
 
-const GLASS_CARD_CLASS =
-  "bg-white/70 backdrop-blur-sm border border-white/50 shadow-xl shadow-blue-100/40 rounded-2xl";
+export default function StatCard({ icon: Icon, label, value, suffix, index = 0 }: StatCardProps) {
+  const reduced = useReducedMotion();
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, margin: "-60px" });
+  const [display, setDisplay] = useState(0);
 
-export default function StatCard({ icon: Icon, label, value, suffix }: StatCardProps) {
-  const prefersReducedMotion = useReducedMotion();
-  const ref = useRef<HTMLDivElement | null>(null);
-  const inView = useInView(ref, { once: true, margin: "-80px" });
-  const [displayValue, setDisplayValue] = useState<number>(0);
-
-  const targetValue = useMemo(() => {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : 0;
+  const target = useMemo(() => {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : 0;
   }, [value]);
 
   useEffect(() => {
     if (!inView) return;
-    if (prefersReducedMotion) {
-      setDisplayValue(targetValue);
-      return;
-    }
+    if (reduced) { setDisplay(target); return; }
 
-    const durationMs = motionTokens.countUpDurationMs;
+    const dur = motionTokens.countUpDurationMs;
     const start = performance.now();
-
-    let rafId = 0;
+    let raf = 0;
     const tick = (now: number) => {
-      const t = Math.min(1, (now - start) / durationMs);
-      const next = Math.round(targetValue * t);
-      setDisplayValue(next);
-      if (t < 1) rafId = requestAnimationFrame(tick);
+      const t = Math.min(1, (now - start) / dur);
+      const eased = 1 - Math.pow(1 - t, 3); // ease-out cubic
+      setDisplay(Math.round(target * eased));
+      if (t < 1) raf = requestAnimationFrame(tick);
     };
-
-    rafId = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafId);
-  }, [inView, prefersReducedMotion, targetValue]);
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [inView, target, reduced]);
 
   return (
     <motion.div
       ref={ref}
-      className={clsx(
-        GLASS_CARD_CLASS,
-        "p-6",
-        "transition-shadow duration-300",
-        "will-change-transform"
-      )}
-      whileHover={prefersReducedMotion ? undefined : { y: -6, scale: 1.02 }}
-      transition={
-        prefersReducedMotion
-          ? { duration: 0 }
-          : { type: "spring", stiffness: 300, damping: 22 }
-      }
+      className="glass-card card-accent p-8 text-center cursor-default"
+      initial={{ opacity: 0, y: 30 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-60px" }}
+      transition={reduced ? { duration: 0 } : { duration: 0.5, delay: index * 0.1, ease: "easeOut" }}
+      whileHover={reduced ? undefined : { y: -6, scale: 1.02 }}
     >
-      <div className="flex items-center gap-4">
-        <div className="rounded-xl bg-gradient-to-br from-blue-500 to-violet-500 p-3 text-white shadow-lg shadow-blue-200/40">
-          <Icon className="h-6 w-6" aria-hidden="true" />
-        </div>
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">{label}</p>
-          <p className="mt-1 text-3xl font-extrabold text-slate-900">
-            {displayValue}
-            {suffix ?? ""}
-          </p>
-        </div>
+      {/* Blue top accent is from the card-accent::after pseudo */}
+      <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+        <Icon className="h-6 w-6" aria-hidden="true" />
       </div>
+      <p className="text-4xl font-extrabold tracking-tight text-slate-900">
+        {display}{suffix ?? ""}
+      </p>
+      <p className="mt-2 text-xs font-semibold uppercase tracking-[0.1em] text-slate-400">{label}</p>
     </motion.div>
   );
 }

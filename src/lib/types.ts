@@ -217,3 +217,13 @@ export interface MotionTokens {
   cardStaggerDelay: number;
   countUpDurationMs: number;
 }
+
+export interface ArchiveEvent {
+  id: string;
+  title: string;
+  year: number;
+  category: EventTag;
+  description: string;
+  imageUrl: string;
+  highlights: string[];
+}

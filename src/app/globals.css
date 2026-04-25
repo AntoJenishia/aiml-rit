@@ -2,3 +2,202 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Expose Space Grotesk as a utility */
+.font-display { font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif; }
+
+/* ============================================================
+   BASE
+   ============================================================ */
+@layer base {
+  * { @apply border-slate-200; }
+  html { scroll-behavior: smooth; }
+  body {
+    @apply text-slate-800 antialiased;
+    /* Subtle blue-tinted gradient — not flat white */
+    background: linear-gradient(160deg, #f8faff 0%, #eef2ff 35%, #f5f8ff 65%, #f8faff 100%);
+    background-attachment: fixed;
+  }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: #e2e8f0; }
+  ::-webkit-scrollbar-thumb {
+    border-radius: 99px;
+    background: linear-gradient(to bottom, #3b82f6, #1d4ed8);
+  }
+  ::-webkit-scrollbar-thumb:hover { background: #2563eb; }
+  ::selection { @apply bg-blue-200 text-blue-900; }
+}
+
+/* ============================================================
+   KEYFRAMES
+   ============================================================ */
+@keyframes heroFadeIn {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes pageEnter {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+@keyframes shimmer {
+  0%   { transform: translateX(-120%) skewX(-12deg); }
+  100% { transform: translateX(220%) skewX(-12deg); }
+}
+@keyframes gradientFlow {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+/* Staggered reveal — used for PO cards, syllabus rows, achievement cards */
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+/* Modal pop */
+@keyframes modalPop {
+  from { opacity: 0; transform: scale(0.93) translateY(12px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ============================================================
+   COMPONENTS
+   ============================================================ */
+@layer components {
+
+  /* ── Page transition ── */
+  .page-enter-active {
+    animation: pageEnter 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  /* ── Hero ── */
+  .hero-fadein {
+    opacity: 0;
+    animation: heroFadeIn 0.75s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+  .hero-gradient-text {
+    background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 35%, #38bdf8 65%, #93c5fd 100%);
+    background-size: 300% 300%;
+    animation: gradientFlow 5s ease infinite;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero-btn-primary {
+    background: linear-gradient(135deg, #2563eb, #3b82f6);
+    box-shadow: 0 8px 28px -6px #2563eb70;
+    transition: transform 0.2s ease, box-shadow 0.3s ease;
+  }
+  .hero-btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 0 4px #2563eb20, 0 16px 40px -8px #2563eb90;
+  }
+  .hero-btn-primary:active { transform: scale(0.96); }
+  .hero-btn-shine {
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(100deg, transparent 20%, rgba(255,255,255,0.35) 50%, transparent 80%);
+    transform: translateX(-120%) skewX(-12deg);
+    animation: shimmer 2.8s ease-in-out infinite;
+  }
+
+  /* ── Page surface ── */
+  .page-surface {
+    @apply relative isolate;
+    background: transparent;
+  }
+
+  /* ─────────────────────────────────────────────────────────
+     PREMIUM CARD
+     Clean white card. On hover: blue ring appears + lifts.
+     ───────────────────────────────────────────────────────── */
+  .premium-card {
+    @apply relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white/90 backdrop-blur-sm;
+    box-shadow: 0 2px 12px -4px rgba(15, 23, 42, 0.08);
+    transition: transform 0.28s cubic-bezier(0.22,1,0.36,1),
+                box-shadow 0.28s cubic-bezier(0.22,1,0.36,1),
+                border-color 0.22s ease;
+  }
+
+  /* Shimmer sweep on hover */
+  .premium-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(115deg, transparent 25%, rgba(59,130,246,0.07) 50%, transparent 75%);
+    transform: translateX(-130%);
+    transition: transform 0.5s ease;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .premium-card:hover::before { transform: translateX(130%); }
+
+  /* Hover state: blue glowing ring */
+  .premium-card:hover {
+    transform: translateY(-4px);
+    border-color: #93c5fd;
+    box-shadow:
+      0 0 0 2px #bfdbfe,
+      0 0 22px 4px rgba(59, 130, 246, 0.14),
+      0 16px 40px -12px rgba(37, 99, 235, 0.22);
+  }
+
+  /* ── Staggered fade-slide-up (PO cards, syllabus items, stat cards) ── */
+  .reveal-item {
+    opacity: 0;
+    animation: fadeSlideUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+
+  /* ── Modal animation ── */
+  .modal-pop {
+    animation: modalPop 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  /* ── Hover glow (stat cards, icon cards) ── */
+  .hover-glow:hover {
+    box-shadow:
+      0 0 0 2px #bfdbfe,
+      0 0 18px 4px rgba(59, 130, 246, 0.18),
+      0 12px 30px -10px rgba(37, 99, 235, 0.22);
+  }
+
+  /* ── Glass dark (HOD hero section) ── */
+  .glass-dark {
+    @apply relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md transition-all duration-300;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+  }
+  .glass-dark:hover {
+    border-color: rgba(96,165,250,0.4);
+    box-shadow: 0 0 0 1px rgba(96,165,250,0.3), 0 12px 40px rgba(37,99,235,0.22);
+  }
+
+  /* ── Marquee ── */
+  .marquee-track {
+    @apply flex shrink-0 items-center gap-8;
+    animation: marquee 28s linear infinite;
+  }
+
+  /* ── Line clamp ── */
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
+
+  /* ── Dot grid ── */
+  .dot-grid {
+    background-image: radial-gradient(circle, #2563eb22 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+
+  /* ── Event tags ── */
+  .tag-workshop  { @apply bg-violet-100 text-violet-700; }
+  .tag-hackathon { @apply bg-rose-100 text-rose-700; }
+  .tag-seminar   { @apply bg-teal-100 text-teal-700; }
+  .tag-guest     { @apply bg-amber-100 text-amber-700; }
+  .tag-fdp       { @apply bg-sky-100 text-sky-700; }
+}

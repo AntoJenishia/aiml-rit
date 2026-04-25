@@ -1,258 +1,140 @@
 "use client";
 
+import { contactData } from "@/data/quickLinks";
 import SectionHeading from "@/components/SectionHeading";
-import { contactData, motionTokens } from "@/data/quickLinks";
-import clsx from "clsx";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { CheckCircle2, Loader2, Mail, Phone } from "lucide-react";
+import RevealSection from "@/components/RevealSection";
+import CardReveal from "@/components/CardReveal";
+import { Mail, Phone, MapPin, Send, CheckCircle2, Loader2 } from "lucide-react";
 import { useState } from "react";
 
-interface FormState {
-  name: string;
-  email: string;
-  message: string;
-}
+const INFO_ITEMS = [
+  { Icon: MapPin, key: "address",  color: "text-blue-600",    bg: "bg-blue-50"   },
+  { Icon: Phone,  key: "phone",    color: "text-emerald-600", bg: "bg-emerald-50" },
+  { Icon: Mail,   key: "email",    color: "text-violet-600",  bg: "bg-violet-50"  },
+] as const;
 
-const initialState: FormState = { name: "", email: "", message: "" };
+interface FormState { name: string; email: string; message: string; }
+const initial: FormState = { name: "", email: "", message: "" };
 
 export default function ContactPage() {
-  const [form, setForm] = useState<FormState>(initialState);
-  const [submitted, setSubmitted] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const prefersReducedMotion = useReducedMotion();
+  const [form, setForm]     = useState<FormState>(initial);
+  const [status, setStatus] = useState<"idle"|"submitting"|"success">("idle");
 
-  const onChange = (key: keyof FormState) => (value: string) => {
-    setSubmitted(false);
-    setForm((prev) => ({ ...prev, [key]: value }));
-  };
-
-  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
-    setSubmitted(false);
-
-    window.setTimeout(() => {
-      setIsSubmitting(false);
-      setSubmitted(true);
-      setForm(initialState);
-    }, prefersReducedMotion ? 0 : 650);
+    setStatus("submitting");
+    setTimeout(() => {
+      setStatus("success");
+      setForm(initial);
+      setTimeout(() => setStatus("idle"), 5000);
+    }, 1400);
   };
+
+  const infoValues = [
+    contactData.addressLines.join(", "),
+    contactData.phone,
+    contactData.email,
+  ];
+  const infoLabels = ["Address", contactData.phoneLabel, contactData.emailLabel];
 
   return (
-    <div className="grid gap-10">
-      <motion.section
-        className="relative flex h-48 items-center overflow-hidden rounded-3xl bg-gradient-to-br from-blue-950 via-blue-900 to-violet-900 px-8"
-        initial={{ opacity: 0, y: motionTokens.sectionFadeInY }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.6, ease: "easeOut" }}
-      >
-        <div className="relative z-10">
-          <p className="text-xs font-semibold uppercase tracking-widest text-blue-300">{contactData.pageTitle}</p>
-          <h1 className="mt-2 text-3xl font-extrabold text-white sm:text-4xl">{contactData.pageHeroTitle}</h1>
-          <p className="mt-3 max-w-3xl text-sm leading-relaxed text-blue-200/80 sm:text-base">
-            {contactData.pageHeroSubtitle}
-          </p>
-        </div>
-      </motion.section>
+    <div className="page-surface">
+      <div className="mx-auto max-w-7xl px-6 py-12">
+        <div className="grid gap-10">
 
-      <SectionHeading title={contactData.pageTitle} subtitle={contactData.pageHeroSubtitle} />
+          <RevealSection>
+            <SectionHeading eyebrow={contactData.pageTitle}
+              title={contactData.pageHeroTitle}
+              subtitle={contactData.pageHeroSubtitle} />
+          </RevealSection>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <motion.section
-          className={clsx(
-            "bg-white/70 backdrop-blur-sm border border-white/50 shadow-xl shadow-blue-100/40 rounded-2xl",
-            "p-8"
-          )}
-          initial={{ opacity: 0, y: motionTokens.sectionFadeInY }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-80px" }}
-          transition={prefersReducedMotion ? { duration: 0 } : { duration: motionTokens.sectionFadeInDuration, ease: "easeOut" }}
-        >
-          <h3 className="text-lg font-bold text-slate-900">{contactData.officeTitle}</h3>
-          <div className="mt-4 space-y-3 text-sm leading-relaxed text-slate-600">
-            <p>{contactData.addressLines.join(", ")}</p>
-            <div className="flex items-center gap-2">
-              <Phone className="h-4 w-4 text-blue-700" aria-hidden="true" />
-              <span className="font-semibold text-slate-900">{contactData.phoneLabel}:</span>
-              <span>{contactData.phone}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Mail className="h-4 w-4 text-blue-700" aria-hidden="true" />
-              <span className="font-semibold text-slate-900">{contactData.emailLabel}:</span>
-              <a className="font-medium text-blue-600 hover:text-blue-800" href={`mailto:${contactData.email}`}>
-                {contactData.email}
-              </a>
-            </div>
-          </div>
-
-          <div className="mt-6 overflow-hidden rounded-2xl ring-1 ring-white/60">
-            <iframe
-              title={contactData.mapEmbedTitle}
-              src={contactData.mapEmbedUrl}
-              width="100%"
-              height="260"
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-              className="block w-full"
-            />
-          </div>
-        </motion.section>
-
-        <motion.section
-          className={clsx(
-            "bg-white/70 backdrop-blur-sm border border-white/50 shadow-xl shadow-blue-100/40 rounded-2xl",
-            "p-8"
-          )}
-          initial={{ opacity: 0, y: motionTokens.sectionFadeInY }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-80px" }}
-          transition={prefersReducedMotion ? { duration: 0 } : { duration: motionTokens.sectionFadeInDuration, ease: "easeOut" }}
-        >
-          <h3 className="text-lg font-bold text-slate-900">{contactData.formTitle}</h3>
-          <p className="mt-2 text-sm leading-relaxed text-slate-600">{contactData.formSubtitle}</p>
-
-          <form className="mt-6 grid gap-4" onSubmit={onSubmit}>
-            <FloatingField
-              value={form.name}
-              onChange={(v) => onChange("name")(v)}
-              label={contactData.formNameLabel}
-              placeholder={contactData.formNamePlaceholder}
-              type="text"
-            />
-            <FloatingField
-              value={form.email}
-              onChange={(v) => onChange("email")(v)}
-              label={contactData.formEmailLabel}
-              placeholder={contactData.formEmailPlaceholder}
-              type="email"
-            />
-            <FloatingTextArea
-              value={form.message}
-              onChange={(v) => onChange("message")(v)}
-              label={contactData.formMessageLabel}
-              placeholder={contactData.formMessagePlaceholder}
-            />
-
-            <motion.button
-              type="submit"
-              className={clsx(
-                "w-full rounded-full px-8 py-3 font-semibold text-white",
-                "bg-gradient-to-r from-blue-600 to-violet-600 shadow-xl shadow-blue-200/30",
-                "disabled:opacity-60"
-              )}
-              disabled={isSubmitting}
-              whileHover={prefersReducedMotion || isSubmitting ? undefined : { scale: 1.02 }}
-              whileTap={prefersReducedMotion || isSubmitting ? undefined : { scale: 0.98 }}
-              transition={prefersReducedMotion ? { duration: 0 } : { type: "spring", stiffness: 300, damping: 20 }}
-            >
-              <span className="inline-flex items-center justify-center gap-2">
-                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
-                {isSubmitting ? contactData.submittingText : contactData.submitText}
-              </span>
-            </motion.button>
-
-            <AnimatePresence initial={false}>
-              {submitted ? (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95, y: 6 }}
-                  transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.35, ease: "easeOut" }}
-                  className="rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50 p-6"
-                >
-                  <div className="flex items-start gap-3">
-                    <CheckCircle2 className="mt-0.5 h-5 w-5 text-emerald-500" aria-hidden="true" />
+          <div className="grid gap-6 lg:grid-cols-3">
+            {/* Info cards */}
+            <div className="space-y-4 lg:col-span-1">
+              {INFO_ITEMS.map(({ Icon, key, color, bg }, i) => (
+                <CardReveal key={key} delay={i * 80}>
+                  <div className="premium-card group flex items-start gap-4 p-5">
+                    <span className={`flex shrink-0 rounded-xl ${bg} ${color} p-3 transition-transform duration-300 group-hover:scale-110`}>
+                      <Icon className="h-4 w-4" />
+                    </span>
                     <div>
-                      <p className="font-semibold text-emerald-800">{contactData.successTitle}</p>
-                      <p className="mt-1 text-sm leading-relaxed text-emerald-700">{contactData.successText}</p>
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">{infoLabels[i]}</p>
+                      <p className="mt-0.5 text-sm font-medium text-slate-800">{infoValues[i]}</p>
                     </div>
                   </div>
-                </motion.div>
-              ) : null}
-            </AnimatePresence>
-          </form>
-        </motion.section>
+                </CardReveal>
+              ))}
+            </div>
+
+            {/* Form */}
+            <CardReveal delay={120} className="lg:col-span-2">
+              <div className="premium-card rounded-3xl p-8">
+                <h3 className="text-lg font-bold text-[#1e3a8a]">{contactData.formTitle}</h3>
+                <p className="mt-1 text-sm text-slate-500">{contactData.formSubtitle}</p>
+
+                <form className="mt-7 space-y-5" onSubmit={submit}>
+                  <div className="grid gap-5 sm:grid-cols-2">
+                    {[
+                      { id: "name",  label: contactData.formNameLabel,  type: "text",  val: form.name,  key: "name"  },
+                      { id: "email", label: contactData.formEmailLabel, type: "email", val: form.email, key: "email" },
+                    ].map(({ id, label, type, val, key }) => (
+                      <div key={key} className="relative">
+                        <input id={id} type={type} required placeholder=" "
+                          className="peer w-full rounded-xl border border-slate-200 bg-white/80 px-4 pb-2 pt-6 text-sm text-slate-800 outline-none backdrop-blur-sm transition-all placeholder:text-transparent focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                          value={val}
+                          onChange={e => setForm({ ...form, [key]: e.target.value })} />
+                        <label htmlFor={id}
+                          className="absolute left-4 top-4 text-sm text-slate-400 transition-all duration-200 peer-focus:top-2 peer-focus:text-xs peer-focus:text-blue-600 peer-[:not(:placeholder-shown)]:top-2 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-blue-600">
+                          {label}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="relative">
+                    <textarea id="message" rows={5} required placeholder=" "
+                      className="peer w-full rounded-xl border border-slate-200 bg-white/80 px-4 pb-2 pt-6 text-sm text-slate-800 outline-none backdrop-blur-sm transition-all placeholder:text-transparent focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                      value={form.message}
+                      onChange={e => setForm({ ...form, message: e.target.value })} />
+                    <label htmlFor="message"
+                      className="absolute left-4 top-4 text-sm text-slate-400 transition-all duration-200 peer-focus:top-2 peer-focus:text-xs peer-focus:text-blue-600 peer-[:not(:placeholder-shown)]:top-2 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-blue-600">
+                      {contactData.formMessageLabel}
+                    </label>
+                  </div>
+
+                  <button type="submit" disabled={status === "submitting"}
+                    className="hero-btn-primary relative w-full overflow-hidden rounded-xl py-3.5 text-sm font-semibold text-white disabled:opacity-70">
+                    <span className="hero-btn-shine" aria-hidden="true" />
+                    <span className="relative flex items-center justify-center gap-2">
+                      {status === "submitting"
+                        ? <><Loader2 className="h-4 w-4 animate-spin" />{contactData.submittingText}</>
+                        : <><Send className="h-4 w-4" />{contactData.submitText}</>}
+                    </span>
+                  </button>
+
+                  {status === "success" && (
+                    <div className="flex items-center gap-3 rounded-xl bg-blue-50 p-4 text-blue-700">
+                      <CheckCircle2 className="h-5 w-5 shrink-0" />
+                      <div>
+                        <p className="text-sm font-semibold">{contactData.successTitle}</p>
+                        <p className="text-xs">{contactData.successText}</p>
+                      </div>
+                    </div>
+                  )}
+                </form>
+              </div>
+            </CardReveal>
+          </div>
+
+          <CardReveal delay={150}>
+            <div className="overflow-hidden rounded-2xl border border-slate-200/80 shadow-sm">
+              <iframe title={contactData.mapEmbedTitle} src={contactData.mapEmbedUrl}
+                width="100%" height="260" style={{ border: 0 }}
+                allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
+            </div>
+          </CardReveal>
+        </div>
       </div>
     </div>
-  );
-}
-
-function FloatingField({
-  label,
-  placeholder,
-  type,
-  value,
-  onChange
-}: {
-  label: string;
-  placeholder: string;
-  type: "text" | "email";
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <label className="relative">
-      <input
-        className={clsx(
-          "peer w-full rounded-xl border border-slate-200 bg-white/80 px-4 py-3 text-sm text-slate-900",
-          "backdrop-blur-sm outline-none transition-all duration-200",
-          "placeholder:text-transparent focus:border-transparent focus:ring-2 focus:ring-blue-500"
-        )}
-        placeholder={placeholder}
-        type={type}
-        value={value}
-        required
-        onChange={(e) => onChange(e.target.value)}
-      />
-      <span
-        className={clsx(
-          "pointer-events-none absolute left-4 top-3 text-sm text-slate-500 transition-all duration-200",
-          "peer-placeholder-shown:top-3 peer-placeholder-shown:text-sm peer-placeholder-shown:text-slate-500",
-          "peer-focus:-top-2 peer-focus:text-xs peer-focus:text-blue-700",
-          value.length > 0 && "-top-2 text-xs text-blue-700"
-        )}
-      >
-        {label}
-      </span>
-    </label>
-  );
-}
-
-function FloatingTextArea({
-  label,
-  placeholder,
-  value,
-  onChange
-}: {
-  label: string;
-  placeholder: string;
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <label className="relative">
-      <textarea
-        className={clsx(
-          "peer w-full resize-none rounded-xl border border-slate-200 bg-white/80 px-4 py-3 text-sm text-slate-900",
-          "backdrop-blur-sm outline-none transition-all duration-200",
-          "placeholder:text-transparent focus:border-transparent focus:ring-2 focus:ring-blue-500"
-        )}
-        placeholder={placeholder}
-        rows={5}
-        value={value}
-        required
-        onChange={(e) => onChange(e.target.value)}
-      />
-      <span
-        className={clsx(
-          "pointer-events-none absolute left-4 top-3 text-sm text-slate-500 transition-all duration-200",
-          "peer-placeholder-shown:top-3 peer-placeholder-shown:text-sm peer-placeholder-shown:text-slate-500",
-          "peer-focus:-top-2 peer-focus:text-xs peer-focus:text-blue-700",
-          value.length > 0 && "-top-2 text-xs text-blue-700"
-        )}
-      >
-        {label}
-      </span>
-    </label>
   );
 }
