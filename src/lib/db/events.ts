@@ -1,9 +1,3 @@
-import {
-  collection, addDoc, getDocs, deleteDoc,
-  doc, query, orderBy, serverTimestamp,
-} from "firebase/firestore"
-import { db } from "@/lib/firebase"
-
 export interface AdminEvent {
   id?: string
   title: string
@@ -11,30 +5,29 @@ export interface AdminEvent {
   description: string
   tag: string
   createdBy: string
-  createdAt: Date | null
-}
-
-function withTimeout<T>(promise: Promise<T>, ms = 10000): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error("Firestore timeout")), ms)
-    ),
-  ])
 }
 
 export async function getAdminEvents(): Promise<AdminEvent[]> {
-  const q = query(collection(db, "admin_events"), orderBy("date", "desc"))
-  const snap = await withTimeout(getDocs(q))
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as AdminEvent))
+  const res = await fetch("/api/events", { cache: "no-store" })
+  if (!res.ok) throw new Error(`Failed: ${res.status}`)
+  return res.json()
 }
 
-export async function addAdminEvent(data: Omit<AdminEvent, "id" | "createdAt">) {
-  return withTimeout(
-    addDoc(collection(db, "admin_events"), { ...data, createdAt: serverTimestamp() })
-  )
+export async function addAdminEvent(data: Omit<AdminEvent, "id">) {
+  const res = await fetch("/api/events", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) throw new Error(`Failed: ${res.status}`)
+  return res.json()
 }
 
 export async function deleteAdminEvent(id: string) {
-  return withTimeout(deleteDoc(doc(db, "admin_events", id)))
+  const res = await fetch("/api/events", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id }),
+  })
+  if (!res.ok) throw new Error(`Failed: ${res.status}`)
 }
