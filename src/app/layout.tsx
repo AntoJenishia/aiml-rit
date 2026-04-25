@@ -21,6 +21,9 @@ export const metadata: Metadata = {
   },
   description:
     "Department of Artificial Intelligence & Machine Learning — RIT College of Engineering, Chennai.",
+  icons: {
+    icon: "/favicon.jpg",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

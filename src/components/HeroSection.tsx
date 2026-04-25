@@ -25,31 +25,9 @@ export default function HeroSection({
   return (
     <section className="relative flex min-h-screen flex-col overflow-hidden bg-[#0a0f1e]">
 
-      {/* ── Full-width header image ── */}
-      <div className="relative w-full flex-shrink-0 overflow-hidden" style={{ height: "clamp(80px, 14vw, 160px)" }}>
-        <Image
-          src="/rit-header.png"
-          alt="RIT College of Engineering"
-          fill
-          priority
-          className="object-cover object-center"
-          sizes="100vw"
-        />
-        {/* Soft fade at the bottom so it blends into the dark hero */}
-        <div
-          className="absolute inset-x-0 bottom-0 h-16"
-          style={{ background: "linear-gradient(to bottom, transparent, #0a0f1e)" }}
-        />
-      </div>
 
-      {/* ── Announcements bar ── */}
-      <div className="relative z-20 border-b border-white/10 bg-white/5 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-2.5 text-[11px] font-semibold uppercase tracking-[0.15em] text-blue-100">
-          <span>AIML Department — RIT</span>
-          <span className="hidden sm:inline">Admissions Open 2026</span>
-          <span>Innovate • Build • Lead</span>
-        </div>
-      </div>
+
+
 
       {/* ── Particle dot background (cursor-reactive) ── */}
       <ParticleCanvas className="pointer-events-auto" />
@@ -128,20 +106,7 @@ export default function HeroSection({
           )}
         </div>
 
-        {/* Floating tech pills */}
-        <div
-          className="hero-fadein mt-14 flex flex-wrap gap-2.5"
-          style={{ animationDelay: "720ms" }}
-        >
-          {["TensorFlow", "PyTorch", "LangChain", "OpenCV", "Hugging Face", "CUDA"].map((t) => (
-            <span
-              key={t}
-              className="rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-blue-300 backdrop-blur-sm transition hover:border-blue-500/50 hover:bg-blue-600/10 hover:text-blue-200"
-            >
-              {t}
-            </span>
-          ))}
-        </div>
+
       </div>
 
       {/* ── Scroll indicator ── */}

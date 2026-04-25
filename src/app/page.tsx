@@ -11,11 +11,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useInView } from "@/lib/hooks/useInView";
 import type { LucideIcon } from "lucide-react";
 
-const MARQUEE_ITEMS = [
-  "TensorFlow","PyTorch","Scikit-learn","OpenCV",
-  "Hugging Face","LangChain","CUDA","Keras",
-  "JAX","Pandas","NLTK","Stable Diffusion",
-];
+
 
 function StatCard({ icon: Icon, label, value, suffix, delay = 0 }: {
   icon: LucideIcon; label: string; value: string; suffix?: string; delay?: number;
@@ -103,20 +99,7 @@ export default function HomePage() {
         secondaryCtaHref={homeData.secondaryCtaHref}
       />
 
-      {/* Marquee */}
-      <div className="select-none overflow-hidden border-y border-slate-200/60 bg-white/70 py-3.5 backdrop-blur-sm">
-        <div className="flex">
-          {[0, 1].map((k) => (
-            <div key={k} className="marquee-track" aria-hidden={k === 1}>
-              {[...MARQUEE_ITEMS, ...MARQUEE_ITEMS].map((item, i) => (
-                <span key={i} className="flex shrink-0 items-center whitespace-nowrap text-xs font-medium text-slate-400">
-                  {item}<span className="mx-4 text-blue-300" aria-hidden="true">·</span>
-                </span>
-              ))}
-            </div>
-          ))}
-        </div>
-      </div>
+
 
       {/* ── Stats ── */}
       <section className="py-16">
