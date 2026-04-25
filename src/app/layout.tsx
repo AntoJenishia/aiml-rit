@@ -1,11 +1,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import Footer from "@/components/Footer";
-import Navbar from "@/components/Navbar";
-import NeuralNetCanvas from "@/components/NeuralNetCanvas";
-import BackgroundGlows from "@/components/BackgroundGlows";
-import PageWrapper from "@/components/PageWrapper";
+import SessionProvider from "@/components/SessionProvider";
+import PublicChrome from "@/components/PublicChrome";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -39,13 +36,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className={`${inter.variable} font-sans overflow-x-hidden antialiased`}>
-        <BackgroundGlows />
-        <NeuralNetCanvas />
-        <Navbar />
-        <main className="relative z-10 min-h-screen">
-          <PageWrapper>{children}</PageWrapper>
-        </main>
-        <Footer />
+        <SessionProvider>
+          {/*
+            PublicChrome reads the current pathname and conditionally renders
+            Navbar / Footer / animated backgrounds only on public routes.
+            Auth routes (/login) and protected routes (/dashboard, /admin, /profile)
+            get their own self-contained layouts — no double chrome.
+          */}
+          <PublicChrome>{children}</PublicChrome>
+        </SessionProvider>
       </body>
     </html>
   );

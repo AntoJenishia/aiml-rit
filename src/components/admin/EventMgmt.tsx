@@ -1,0 +1,204 @@
+"use client"
+import { useEffect, useState } from "react"
+import { CalendarDays, Plus, Trash2, X, AlertTriangle, RefreshCw } from "lucide-react"
+import { getAdminEvents, addAdminEvent, deleteAdminEvent, type AdminEvent } from "@/lib/db/events"
+import { useUser } from "@/lib/hooks/useUser"
+
+const TAGS = ["Workshop", "Hackathon", "Guest Lecture", "Seminar", "FDP"]
+
+const TAG_COLORS: Record<string, string> = {
+  "Workshop":      "bg-violet-100 text-violet-700 border-violet-200",
+  "Hackathon":     "bg-rose-100   text-rose-700   border-rose-200",
+  "Guest Lecture": "bg-amber-100  text-amber-700  border-amber-200",
+  "Seminar":       "bg-teal-100   text-teal-700   border-teal-200",
+  "FDP":           "bg-sky-100    text-sky-700    border-sky-200",
+}
+
+const SETUP_HINT = "Firestore database not set up. Go to Firebase Console → Firestore Database → Create database (test mode)."
+
+export default function EventMgmt() {
+  const { name } = useUser()
+  const [items, setItems]       = useState<AdminEvent[]>([])
+  const [loading, setLoading]   = useState(true)
+  const [error, setError]       = useState<string | null>(null)
+  const [showForm, setShowForm] = useState(false)
+  const [form, setForm]         = useState({ title: "", date: "", description: "", tag: "Workshop" })
+  const [saving, setSaving]     = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+
+  const load = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      setItems(await getAdminEvents())
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load events.")
+      setItems([])
+    }
+    setLoading(false)
+  }
+
+  useEffect(() => { load() }, [])
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!form.title.trim() || !form.date) return
+    setSaving(true)
+    setSaveError(null)
+    try {
+      await addAdminEvent({ ...form, createdBy: name })
+      setForm({ title: "", date: "", description: "", tag: "Workshop" })
+      setShowForm(false)
+      await load()
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : "Failed to save. Check Firestore.")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Delete this event?")) return
+    try {
+      await deleteAdminEvent(id)
+      setItems((prev) => prev.filter((ev) => ev.id !== id))
+    } catch {
+      alert("Delete failed. Check Firestore connection.")
+    }
+  }
+
+  return (
+    <div className="p-8 max-w-4xl">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+            <CalendarDays className="h-6 w-6 text-blue-500" /> Event Management
+          </h1>
+          <p className="text-slate-500 text-sm mt-0.5">Create and manage department events</p>
+        </div>
+        <button onClick={() => setShowForm(true)}
+          className="flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 hover:bg-blue-700 transition-all active:scale-95">
+          <Plus className="h-4 w-4" /> New Event
+        </button>
+      </div>
+
+      {/* Firestore error banner */}
+      {error && (
+        <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 p-4 flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-red-700">Firestore not connected</p>
+            <p className="text-xs text-red-600 mt-0.5">{SETUP_HINT}</p>
+          </div>
+          <button onClick={load} className="flex items-center gap-1 text-xs font-semibold text-red-600 hover:text-red-800">
+            <RefreshCw className="h-3.5 w-3.5" /> Retry
+          </button>
+        </div>
+      )}
+
+      {/* Form modal */}
+      {showForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-slate-800">New Event</h2>
+              <button onClick={() => { setShowForm(false); setSaveError(null) }} className="text-slate-400 hover:text-slate-600">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Title</label>
+                <input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
+                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  placeholder="Event title…" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Date</label>
+                  <input required type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Category</label>
+                  <select value={form.tag} onChange={(e) => setForm({ ...form, tag: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+                    {TAGS.map((t) => <option key={t}>{t}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Description</label>
+                <textarea rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none"
+                  placeholder="Brief description…" />
+              </div>
+
+              {saveError && (
+                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-red-500 shrink-0" />
+                  <p className="text-xs text-red-600">{saveError}</p>
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-1">
+                <button type="button" onClick={() => { setShowForm(false); setSaveError(null) }}
+                  className="flex-1 rounded-xl border border-slate-200 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-all">
+                  Cancel
+                </button>
+                <button type="submit" disabled={saving}
+                  className="flex-1 rounded-xl bg-blue-600 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60 transition-all">
+                  {saving ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                      Saving…
+                    </span>
+                  ) : "Create Event"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* List */}
+      {loading ? (
+        <div className="flex flex-col items-center justify-center h-40 gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-200 border-t-blue-500" />
+          <p className="text-xs text-slate-400">Loading from Firestore…</p>
+        </div>
+      ) : items.length === 0 && !error ? (
+        <div className="rounded-2xl border-2 border-dashed border-slate-200 p-12 text-center">
+          <CalendarDays className="h-10 w-10 text-slate-300 mx-auto mb-3" />
+          <p className="text-slate-500 font-medium">No events yet</p>
+          <p className="text-slate-400 text-sm mt-1">Click &quot;New Event&quot; to create one</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {items.map((ev) => (
+            <div key={ev.id} className="rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-sm flex gap-4">
+              <div className="h-10 w-10 rounded-xl bg-blue-100 flex items-center justify-center shrink-0">
+                <CalendarDays className="h-5 w-5 text-blue-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="font-semibold text-slate-800 text-sm">{ev.title}</h3>
+                  <button onClick={() => handleDelete(ev.id!)} className="text-slate-300 hover:text-red-500 transition-colors shrink-0">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+                {ev.description && <p className="text-slate-500 text-xs mt-1 line-clamp-2">{ev.description}</p>}
+                <div className="flex items-center gap-2 mt-2">
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${TAG_COLORS[ev.tag] ?? "bg-slate-100 text-slate-600 border-slate-200"}`}>
+                    {ev.tag}
+                  </span>
+                  <span className="text-[10px] text-slate-400">{ev.date}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
