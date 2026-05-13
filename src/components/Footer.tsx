@@ -111,7 +111,7 @@ export default function Footer() {
       {/* Bottom bar */}
       <div className="relative border-t border-white/[0.06]">
         <div className="mx-auto max-w-7xl px-6 py-5 text-center text-xs text-blue-400/60">
-          © {new Date().getFullYear()} AIML Department · RIT College of Engineering · All rights reserved
+          © {new Date().getFullYear()} AIML Department · Rajalakshmi Institute of Technology · All rights reserved
         </div>
       </div>
     </footer>

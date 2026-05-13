@@ -5,18 +5,36 @@ import { db } from "./firebase"
 
 export type UserRole = "student" | "staff" | "hod" | "guest"
 
+/**
+ * Accepted email formats:
+ *   HOD     — hod.aids@ritchennai.edu.in          (exact match)
+ *   Student — name.regno@aiml.ritchennai.edu.in   (e.g. john.7376222cs101@aiml.ritchennai.edu.in)
+ *   Staff   — name@ritchennai.edu.in               (e.g. john@ritchennai.edu.in)
+ */
 export function getRole(email: string): UserRole {
   if (!email) return "guest"
-
+  // ── DEV BYPASS ── remove before production ──────────────────
+  if (email === "antojenishia@gmail.com") return "staff"
+  // ────────────────────────────────────────────────────────────
   // ── DEV BYPASS ── remove before production ──────────────────
   if (email === "antojenishiadev@gmail.com") return "hod"
   // ────────────────────────────────────────────────────────────
-
+  // ── DEV BYPASS ── remove before production ──────────────────
+  if (email === "antojenishiadev@gmail.com") return "staff"
+  // ────────────────────────────────────────────────────────────
+  // HOD — single exact email
   if (email === "hod.aids@ritchennai.edu.in") return "hod"
-  // Students use @aiml.ritchennai.edu.in (e.g. name.reg@aiml.ritchennai.edu.in)
-  if (email.endsWith("@aiml.ritchennai.edu.in")) return "student"
-  // Staff / faculty use @ritchennai.edu.in
-  if (email.endsWith("@ritchennai.edu.in")) return "staff"
+
+  // Student — format: <name>.<regno>@aiml.ritchennai.edu.in
+  // Local part must be two dot-separated segments (letters/digits, no other dots)
+  const studentPattern = /^[a-zA-Z]+\.[a-zA-Z0-9]+@aiml\.ritchennai\.edu\.in$/
+  if (studentPattern.test(email)) return "student"
+
+  // Staff — format: <name>@ritchennai.edu.in
+  // Local part is a single word (letters only, no dots), NOT on the aiml subdomain
+  const staffPattern = /^[a-zA-Z]+@ritchennai\.edu\.in$/
+  if (staffPattern.test(email)) return "staff"
+
   return "guest"
 }
 

@@ -13,7 +13,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   const body = await req.json()
-  const ref  = await addDoc(collection(db, "admin_events"), { ...body, createdAt: serverTimestamp() })
+  const ref = await addDoc(collection(db, "admin_events"), { ...body, createdAt: serverTimestamp() })
   return NextResponse.json({ id: ref.id })
 }
 

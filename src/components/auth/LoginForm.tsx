@@ -76,13 +76,18 @@ export default function LoginForm() {
                   style={{ background:"linear-gradient(135deg,#1e3a8a 0%,#2563eb 55%,#818cf8 100%)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text" }}>
                   Student &amp; Staff<br />Portal
                 </h1>
-                <p className="text-slate-500 text-sm mt-3 font-medium">Sign in with your RIT institutional Google account</p>
+                <p className="text-slate-500 text-sm mt-3 font-medium">Sign in with your RIT college Google account</p>
               </div>
 
               {error && (
                 <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
                   <p className="text-sm font-semibold text-red-700">Access Denied</p>
-                  <p className="text-xs text-red-500 mt-0.5">Only @ritchennai.edu.in accounts are allowed.</p>
+                  <p className="text-xs text-red-500 mt-1">Only the following college email formats are accepted:</p>
+                  <ul className="mt-1.5 space-y-0.5 text-xs text-red-400 list-none">
+                    <li><span className="font-mono">name.regno@aiml.ritchennai.edu.in</span> — Students</li>
+                    <li><span className="font-mono">name@ritchennai.edu.in</span> — Teaching Staff</li>
+                    <li><span className="font-mono">hod.aids@ritchennai.edu.in</span> — HOD</li>
+                  </ul>
                 </div>
               )}
 
@@ -120,7 +125,7 @@ export default function LoginForm() {
 
             <div className="border-t border-slate-100 px-8 py-3 flex items-center justify-center gap-1.5 text-slate-400 text-[11px] bg-slate-50/60 rounded-b-2xl">
               <Shield className="h-3 w-3" />
-              <span>RIT institutional email required · Secured by Google OAuth 2.0</span>
+              <span>RIT college email required · Secured by Google OAuth 2.0</span>
             </div>
           </div>
 
