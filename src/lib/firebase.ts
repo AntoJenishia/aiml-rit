@@ -1,6 +1,6 @@
-import { initializeApp, getApps, getApp } from "firebase/app"
+import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app"
 import { getAuth } from "firebase/auth"
-import { getFirestore } from "firebase/firestore"
+import { getFirestore, connectFirestoreEmulator, type Firestore } from "firebase/firestore"
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -12,8 +12,8 @@ const firebaseConfig = {
 }
 
 // Prevent multiple Firebase app initializations in Next.js hot reload
-const app = getApps().length ? getApp() : initializeApp(firebaseConfig)
+const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig)
 
 export const auth = getAuth(app)
-export const db = getFirestore(app)
+export const db: Firestore = getFirestore(app)
 export default app

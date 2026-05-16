@@ -2,6 +2,7 @@ import type { NextAuthOptions } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
 import { doc, setDoc, getDoc } from "firebase/firestore"
 import { db } from "./firebase"
+import { parseStudentEmail } from "./parseStudentEmail"
 
 export type UserRole = "student" | "staff" | "hod" | "guest"
 
@@ -67,14 +68,33 @@ export const authOptions: NextAuthOptions = {
         const userRef = doc(db, "users", user.id!)
         const snap = await getDoc(userRef)
         if (!snap.exists()) {
-          await setDoc(userRef, {
+          // Base user document
+          const userData: Record<string, unknown> = {
             email,
             name: user.name ?? "",
             role,
             photoURL: user.image ?? "",
             createdAt: new Date(),
             lastLogin: new Date(),
-          })
+          }
+
+          // If student, parse email and add profile fields
+          if (role === "student") {
+            const parsed = parseStudentEmail(email)
+            if (parsed) {
+              userData.department = parsed.department
+              userData.deptCode = parsed.deptCode
+              userData.batch = parsed.batch
+              userData.currentYear = parsed.currentYear
+              userData.rollNumber = parsed.rollNumber
+              // Keep Google account name (user.name) — don't overwrite with parsed email
+            }
+            userData.profileComplete = false // Require onboarding
+          } else {
+            userData.profileComplete = true // Staff/HOD skip onboarding
+          }
+
+          await setDoc(userRef, userData)
         } else {
           await setDoc(userRef, { lastLogin: new Date() }, { merge: true })
         }

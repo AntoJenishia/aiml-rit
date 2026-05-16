@@ -1,9 +1,14 @@
 "use client"
 import { useAuth } from "@/lib/hooks/useAuth"
+import { useUser } from "@/lib/hooks/useUser"
 import Image from "next/image"
 import Link from "next/link"
-import { useState } from "react"
-import { Mail, Shield, User, ArrowLeft, Pencil, Check, X } from "lucide-react"
+import { useEffect, useState } from "react"
+import {
+  Mail, Shield, User, ArrowLeft, Check, Hash, BookOpen,
+  Calendar, GraduationCap, QrCode, Loader2,
+} from "lucide-react"
+import type { FirestoreUser } from "@/lib/db/users"
 
 const ROLE_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
   student: { label: "Student",            color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200" },
@@ -14,12 +19,48 @@ const ROLE_CONFIG: Record<string, { label: string; color: string; bg: string; bo
 
 export default function ProfilePage() {
   const { user, isLoading } = useAuth()
+  const { uid, role } = useUser()
 
-  const [editing, setEditing]       = useState(false)
-  const [displayName, setDisplayName] = useState("")
-  const [saved, setSaved]           = useState(false)
+  const [profile, setProfile]           = useState<FirestoreUser | null>(null)
+  const [loadingProfile, setLoadingProfile] = useState(true)
+  const [regNumber, setRegNumber]       = useState("")
+  const [editingReg, setEditingReg]     = useState(false)
+  const [savingReg, setSavingReg]       = useState(false)
+  const [savedToast, setSavedToast]     = useState(false)
 
-  if (isLoading) {
+  // Fetch full profile from Firestore via API route
+  useEffect(() => {
+    if (!uid) return
+    fetch(`/api/users?uid=${uid}`)
+      .then((res) => res.ok ? res.json() : null)
+      .then((p) => {
+        setProfile(p)
+        if (p?.registerNumber) setRegNumber(p.registerNumber)
+        setLoadingProfile(false)
+      }).catch(() => setLoadingProfile(false))
+  }, [uid])
+
+  const handleSaveReg = async () => {
+    if (!regNumber.trim() || !uid) return
+    setSavingReg(true)
+    try {
+      const res = await fetch("/api/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uid, registerNumber: regNumber.trim() }),
+      })
+      if (!res.ok) throw new Error("Failed")
+      setProfile((prev) => prev ? { ...prev, registerNumber: regNumber.trim() } : prev)
+      setEditingReg(false)
+      setSavedToast(true)
+      setTimeout(() => setSavedToast(false), 3000)
+    } catch {
+      alert("Failed to save. Try again.")
+    }
+    setSavingReg(false)
+  }
+
+  if (isLoading || loadingProfile) {
     return (
       <div className="min-h-screen flex items-center justify-center"
         style={{ background: "linear-gradient(160deg, #f8faff 0%, #eef2ff 50%, #f5f8ff 100%)" }}>
@@ -28,27 +69,10 @@ export default function ProfilePage() {
     )
   }
 
-  const role = user?.role ?? "guest"
-  const rc   = ROLE_CONFIG[role] ?? ROLE_CONFIG.guest
-  const name = displayName || user?.name || ""
-
-  const handleEdit = () => {
-    setDisplayName(user?.name ?? "")
-    setEditing(true)
-    setSaved(false)
-  }
-
-  const handleSave = () => {
-    // In production: persist to Firestore with updateDoc on the users collection
-    setEditing(false)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 3000)
-  }
-
-  const handleCancel = () => {
-    setDisplayName("")
-    setEditing(false)
-  }
+  const rc = ROLE_CONFIG[role] ?? ROLE_CONFIG.guest
+  const name = profile?.name || user?.name || ""
+  const isStudent = role === "student"
+  const hasRegNumber = !!profile?.registerNumber
 
   return (
     <div className="min-h-screen p-4 md:p-8"
@@ -62,9 +86,9 @@ export default function ProfilePage() {
         </Link>
 
         {/* Saved toast */}
-        {saved && (
+        {savedToast && (
           <div className="mb-4 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
-            <Check className="h-4 w-4" /> Display name updated successfully
+            <Check className="h-4 w-4" /> Register number saved successfully
           </div>
         )}
 
@@ -75,9 +99,9 @@ export default function ProfilePage() {
           <div className="h-20 sm:h-32 w-full"
             style={{ background: "linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #7c3aed 100%)" }} />
 
-          {/* Avatar + edit button */}
+          {/* Avatar */}
           <div className="px-4 sm:px-8 pb-6 sm:pb-8">
-            <div className="-mt-10 sm:-mt-12 mb-4 flex flex-col sm:flex-row sm:items-end gap-3 sm:justify-between">
+            <div className="-mt-10 sm:-mt-12 mb-4 flex items-end gap-3">
               <div className="relative">
                 {user?.image ? (
                   <Image src={user.image} alt={name} width={72} height={72}
@@ -88,71 +112,75 @@ export default function ProfilePage() {
                   </div>
                 )}
               </div>
-
-              {!editing ? (
-                <button onClick={handleEdit}
-                  className="flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 min-h-[44px] text-sm font-medium text-slate-600 hover:bg-slate-50 hover:border-blue-300 transition-all">
-                  <Pencil className="h-3.5 w-3.5" /> Edit Profile
-                </button>
-              ) : (
-                <div className="flex gap-2">
-                  <button onClick={handleCancel}
-                    className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 min-h-[44px] text-xs font-medium text-slate-500 hover:bg-slate-50 transition-all">
-                    <X className="h-3.5 w-3.5" /> Cancel
-                  </button>
-                  <button onClick={handleSave}
-                    className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-3 py-2 min-h-[44px] text-xs font-semibold text-white shadow-md shadow-blue-500/30 hover:bg-blue-700 transition-all">
-                    <Check className="h-3.5 w-3.5" /> Save
-                  </button>
-                </div>
-              )}
             </div>
 
-            {/* Name — editable */}
+            {/* Name + role */}
             <div className="mb-6">
-              {editing ? (
-                <input
-                  autoFocus
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") handleCancel() }}
-                  className="text-2xl font-bold text-slate-800 w-full rounded-xl border-2 border-blue-400 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white"
-                />
-              ) : (
-                <h1 className="text-xl sm:text-2xl font-bold text-slate-800">{name}</h1>
-              )}
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-800">{name}</h1>
               <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full border mt-2 ${rc.color} ${rc.bg} ${rc.border}`}>
                 <Shield className="h-3 w-3" />
                 {rc.label}
               </span>
             </div>
 
-            {/* Details */}
+            {/* Details — all read-only */}
             <div className="space-y-3">
-              <div className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-3">
-                <Mail className="h-4 w-4 text-slate-400 shrink-0" />
-                <div>
-                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Email</p>
-                  <p className="text-sm font-medium text-slate-700 mt-0.5">{user?.email}</p>
-                </div>
-              </div>
+              <ReadOnlyField icon={Mail} label="Email" value={user?.email ?? "—"} />
 
-              <div className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-3">
-                <Shield className="h-4 w-4 text-slate-400 shrink-0" />
-                <div>
-                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Role</p>
-                  <p className="text-sm font-medium text-slate-700 mt-0.5 capitalize">{role}</p>
-                </div>
-              </div>
+              {isStudent && (
+                <>
+                  <ReadOnlyField icon={BookOpen} label="Department" value={profile?.department ?? "—"} />
+                  <ReadOnlyField icon={Calendar} label="Batch" value={profile?.batch ?? "—"} />
+                  <ReadOnlyField icon={GraduationCap} label="Current Year" value={profile?.currentYear ?? "—"} />
+                  <ReadOnlyField icon={Hash} label="Roll Number" value={profile?.rollNumber ?? "—"} />
+
+                  {/* Register Number — editable once */}
+                  <div className="rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <Hash className="h-4 w-4 text-slate-400 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Register Number</p>
+                        {hasRegNumber && !editingReg ? (
+                          <p className="text-sm font-medium text-slate-700 mt-0.5 font-mono">{profile?.registerNumber}</p>
+                        ) : (
+                          <div className="mt-1.5">
+                            <input
+                              value={regNumber}
+                              onChange={(e) => setRegNumber(e.target.value)}
+                              placeholder="e.g. 7376222CS101"
+                              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-base sm:text-sm min-h-[44px] font-medium text-slate-800 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                              disabled={hasRegNumber && !editingReg}
+                              autoFocus
+                            />
+                            <button
+                              onClick={handleSaveReg}
+                              disabled={!regNumber.trim() || savingReg}
+                              className="mt-2 flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 min-h-[44px] text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50 transition-all w-full sm:w-auto">
+                              {savingReg ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                              {savingReg ? "Saving…" : "Save Register Number"}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ID Card Status */}
+                  <ReadOnlyField
+                    icon={QrCode}
+                    label="ID Card"
+                    value={profile?.idCardData && profile.idCardData !== "manual-skip"
+                      ? "✓ Linked"
+                      : "Not linked"}
+                  />
+                </>
+              )}
+
+              {/* Role field */}
+              <ReadOnlyField icon={Shield} label="Role" value={role} capitalize />
 
               {user?.uid && (
-                <div className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-3">
-                  <User className="h-4 w-4 text-slate-400 shrink-0" />
-                  <div>
-                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">User ID</p>
-                    <p className="text-xs font-mono text-slate-500 mt-0.5 break-all">{user.uid}</p>
-                  </div>
-                </div>
+                <ReadOnlyField icon={User} label="User ID" value={user.uid} mono />
               )}
             </div>
 
@@ -168,6 +196,24 @@ export default function ProfilePage() {
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  )
+}
+
+function ReadOnlyField({
+  icon: Icon, label, value, mono, capitalize
+}: {
+  icon: React.ElementType; label: string; value: string; mono?: boolean; capitalize?: boolean
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-3">
+      <Icon className="h-4 w-4 text-slate-400 shrink-0" />
+      <div className="min-w-0">
+        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">{label}</p>
+        <p className={`text-sm font-medium text-slate-700 mt-0.5 ${mono ? "font-mono text-xs break-all" : ""} ${capitalize ? "capitalize" : ""}`}>
+          {value}
+        </p>
       </div>
     </div>
   )

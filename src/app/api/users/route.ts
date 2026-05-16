@@ -1,18 +1,45 @@
 import { NextResponse } from "next/server"
 import { db } from "@/lib/firebase"
 import {
-  collection, getDocs, doc, updateDoc,
+  collection, getDocs, getDoc, doc, setDoc,
   query, orderBy,
 } from "firebase/firestore"
 
-export async function GET() {
-  const snap = await getDocs(query(collection(db, "users"), orderBy("createdAt", "desc")))
-  const data = snap.docs.map((d) => ({ uid: d.id, ...d.data() }))
-  return NextResponse.json(data)
+export async function GET(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url)
+    const uid = searchParams.get("uid")
+
+    // Single user fetch
+    if (uid) {
+      const snap = await getDoc(doc(db, "users", uid))
+      if (!snap.exists()) {
+        return NextResponse.json(null, { status: 404 })
+      }
+      return NextResponse.json({ uid: snap.id, ...snap.data() })
+    }
+
+    // All users
+    const snap = await getDocs(query(collection(db, "users"), orderBy("createdAt", "desc")))
+    const data = snap.docs.map((d) => ({ uid: d.id, ...d.data() }))
+    return NextResponse.json(data)
+  } catch (e) {
+    console.error("[API /users GET]", e)
+    return NextResponse.json({ error: String(e) }, { status: 500 })
+  }
 }
 
 export async function PATCH(req: Request) {
-  const { uid, role } = await req.json()
-  await updateDoc(doc(db, "users", uid), { role })
-  return NextResponse.json({ ok: true })
+  try {
+    const body = await req.json()
+    const { uid, ...fields } = body
+    if (!uid) {
+      return NextResponse.json({ error: "uid required" }, { status: 400 })
+    }
+    await setDoc(doc(db, "users", uid), fields, { merge: true })
+    return NextResponse.json({ ok: true })
+  } catch (e) {
+    console.error("[API /users PATCH]", e)
+    return NextResponse.json({ error: String(e) }, { status: 500 })
+  }
 }
