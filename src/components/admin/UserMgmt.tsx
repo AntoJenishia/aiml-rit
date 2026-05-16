@@ -59,9 +59,9 @@ export default function UserMgmt() {
   )
 
   return (
-    <div className="p-8 max-w-5xl">
+    <div className="p-4 md:p-8 max-w-5xl overflow-x-hidden">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+        <h1 className="text-xl md:text-2xl font-bold text-slate-800 flex items-center gap-2">
           <Users className="h-6 w-6 text-blue-500" /> User Management
         </h1>
         <p className="text-slate-500 text-sm mt-0.5">
@@ -88,7 +88,7 @@ export default function UserMgmt() {
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
         <input value={search} onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by name or email…"
-          className="w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+          className="w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 py-2.5 text-base sm:text-sm min-h-[44px] focus:outline-none focus:ring-2 focus:ring-blue-400" />
       </div>
 
       {loading ? (
@@ -106,7 +106,8 @@ export default function UserMgmt() {
         </div>
       ) : (
         <div className="rounded-2xl border border-slate-200/80 bg-white/80 overflow-hidden shadow-sm">
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[640px]">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50/80">
                 <th className="text-left px-5 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wide">User</th>
@@ -145,7 +146,7 @@ export default function UserMgmt() {
                     ) : (
                       <select value={u.role}
                         onChange={(e) => handleRoleChange(u.uid, e.target.value as UserRole)}
-                        className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                        className="rounded-lg border border-slate-200 px-3 py-1.5 text-base sm:text-xs min-h-[44px] font-medium text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-400">
                         <option value="student">Student</option>
                         <option value="staff">Staff</option>
                         <option value="hod">HOD</option>
@@ -156,6 +157,7 @@ export default function UserMgmt() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
     </div>

@@ -128,7 +128,7 @@ export default function StudentDash() {
 
             {/* Courses */}
             <CardReveal delay={0}>
-              <div className="premium-card p-6">
+              <div className="premium-card p-4 sm:p-6">
                 <h2 className="text-base font-bold text-slate-700 mb-4 flex items-center gap-2">
                   <span className="h-6 w-6 rounded-lg bg-blue-600 flex items-center justify-center">
                     <BookOpen className="h-3.5 w-3.5 text-white" />
@@ -155,7 +155,7 @@ export default function StudentDash() {
 
             {/* Events */}
             <CardReveal delay={80}>
-              <div className="premium-card p-6">
+              <div className="premium-card p-4 sm:p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-base font-bold text-slate-700 flex items-center gap-2">
                     <span className="h-6 w-6 rounded-lg bg-indigo-600 flex items-center justify-center">
@@ -214,7 +214,7 @@ export default function StudentDash() {
           <div className="space-y-5">
             {/* Announcements */}
             <CardReveal delay={120}>
-              <div className="premium-card p-5">
+              <div className="premium-card p-4 sm:p-5">
                 <h2 className="text-base font-bold text-slate-700 mb-3 flex items-center gap-2">
                   <span className="h-6 w-6 rounded-lg bg-amber-500 flex items-center justify-center">
                     <Megaphone className="h-3.5 w-3.5 text-white" />
@@ -246,7 +246,7 @@ export default function StudentDash() {
 
             {/* Quick links */}
             <CardReveal delay={180}>
-              <div className="premium-card p-5">
+              <div className="premium-card p-4 sm:p-5">
                 <h2 className="text-base font-bold text-slate-700 mb-3">Quick Links</h2>
                 <div className="space-y-2">
                   {quickLinks.map((l) => (
@@ -281,7 +281,7 @@ export default function StudentDash() {
                   <Clock className="h-3.5 w-3.5" />{selectedEvent.date}
                 </div>
               </div>
-              <button onClick={() => setSelectedEvent(null)} className="text-slate-400 hover:text-slate-600 mt-1">
+              <button onClick={() => setSelectedEvent(null)} className="text-slate-400 hover:text-slate-600 mt-1 min-h-[44px] min-w-[44px] flex items-center justify-center">
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -291,7 +291,7 @@ export default function StudentDash() {
               )}
               <button
                 onClick={() => { toggleRegister(selectedEvent.id!); setSelectedEvent(null) }}
-                className={`w-full rounded-xl py-3 text-sm font-semibold transition-all active:scale-95
+                className={`w-full rounded-xl py-3 min-h-[44px] text-sm font-semibold transition-all active:scale-95
                   ${registered.has(selectedEvent.id!)
                     ? "bg-slate-100 text-slate-500 border border-slate-200"
                     : "hero-btn-primary text-white"}`}>

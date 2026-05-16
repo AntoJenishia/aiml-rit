@@ -42,9 +42,9 @@ export default function StaffDash() {
       <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
         {stats.map((s) => (
           <div key={s.label}
-            className={`rounded-2xl border p-5 transition-all hover:-translate-y-1 hover:shadow-lg ${colorMap[s.color]} bg-white/80`}>
+            className={`rounded-2xl border p-4 md:p-5 transition-all hover:-translate-y-1 hover:shadow-lg ${colorMap[s.color]} bg-white/80`}>
             <s.icon className="h-5 w-5 mb-3 opacity-70" />
-            <div className="text-3xl font-bold font-display">{s.value}</div>
+            <div className="text-2xl md:text-3xl font-bold font-display">{s.value}</div>
             <div className="text-xs font-medium mt-1 opacity-70">{s.label}</div>
           </div>
         ))}
@@ -52,7 +52,7 @@ export default function StaffDash() {
 
       <div className="grid lg:grid-cols-3 gap-4 md:gap-6">
         {/* Courses taught */}
-        <div className="lg:col-span-2 rounded-2xl border border-slate-200/80 bg-white/80 backdrop-blur-sm p-6 shadow-sm">
+        <div className="lg:col-span-2 rounded-2xl border border-slate-200/80 bg-white/80 backdrop-blur-sm p-4 md:p-6 shadow-sm">
           <h2 className="text-base font-bold text-slate-700 mb-4 flex items-center gap-2">
             <BookOpen className="h-4 w-4 text-blue-600" /> Courses Taught
           </h2>
@@ -79,7 +79,7 @@ export default function StaffDash() {
         {/* Sidebar */}
         <div className="space-y-4">
           {/* Announcements */}
-          <div className="rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-sm">
+          <div className="rounded-2xl border border-slate-200/80 bg-white/80 p-4 md:p-5 shadow-sm">
             <h2 className="text-base font-bold text-slate-700 mb-3 flex items-center gap-2">
               <Bell className="h-4 w-4 text-blue-600" /> Notice
             </h2>
@@ -94,7 +94,7 @@ export default function StaffDash() {
           </div>
 
           {/* Quick actions */}
-          <div className="rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-sm">
+          <div className="rounded-2xl border border-slate-200/80 bg-white/80 p-4 md:p-5 shadow-sm">
             <h2 className="text-base font-bold text-slate-700 mb-3">Quick Access</h2>
             <div className="space-y-2">
               {[

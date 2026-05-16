@@ -68,16 +68,16 @@ export default function EventMgmt() {
   }
 
   return (
-    <div className="p-8 max-w-4xl">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-4 md:p-8 max-w-4xl overflow-x-hidden">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-            <CalendarDays className="h-6 w-6 text-blue-500" /> Event Management
+          <h1 className="text-xl md:text-2xl font-bold text-slate-800 flex items-center gap-2">
+            <CalendarDays className="h-5 w-5 md:h-6 md:w-6 text-blue-500" /> Event Management
           </h1>
           <p className="text-slate-500 text-sm mt-0.5">Create and manage department events</p>
         </div>
         <button onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 hover:bg-blue-700 transition-all active:scale-95">
+          className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 min-h-[44px] text-sm font-semibold text-white shadow-lg shadow-blue-500/30 hover:bg-blue-700 transition-all active:scale-95 w-full sm:w-auto">
           <Plus className="h-4 w-4" /> New Event
         </button>
       </div>
@@ -98,11 +98,11 @@ export default function EventMgmt() {
 
       {/* Form modal */}
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl p-6">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4">
+          <div className="w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl bg-white shadow-2xl p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold text-slate-800">New Event</h2>
-              <button onClick={() => { setShowForm(false); setSaveError(null) }} className="text-slate-400 hover:text-slate-600">
+              <button onClick={() => { setShowForm(false); setSaveError(null) }} className="text-slate-400 hover:text-slate-600 min-h-[44px] min-w-[44px] flex items-center justify-center">
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -110,19 +110,19 @@ export default function EventMgmt() {
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Title</label>
                 <input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
-                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-base sm:text-sm min-h-[44px] focus:outline-none focus:ring-2 focus:ring-blue-400"
                   placeholder="Event title…" />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Date</label>
                   <input required type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-base sm:text-sm min-h-[44px] focus:outline-none focus:ring-2 focus:ring-blue-400" />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Category</label>
                   <select value={form.tag} onChange={(e) => setForm({ ...form, tag: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-base sm:text-sm min-h-[44px] focus:outline-none focus:ring-2 focus:ring-blue-400">
                     {TAGS.map((t) => <option key={t}>{t}</option>)}
                   </select>
                 </div>
@@ -130,7 +130,7 @@ export default function EventMgmt() {
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Description</label>
                 <textarea rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none"
+                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-base sm:text-sm min-h-[44px] focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none"
                   placeholder="Brief description…" />
               </div>
 
@@ -143,11 +143,11 @@ export default function EventMgmt() {
 
               <div className="flex gap-3 pt-1">
                 <button type="button" onClick={() => { setShowForm(false); setSaveError(null) }}
-                  className="flex-1 rounded-xl border border-slate-200 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-all">
+                  className="flex-1 rounded-xl border border-slate-200 py-2.5 min-h-[44px] text-sm font-medium text-slate-600 hover:bg-slate-50 transition-all">
                   Cancel
                 </button>
                 <button type="submit" disabled={saving}
-                  className="flex-1 rounded-xl bg-blue-600 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60 transition-all">
+                  className="flex-1 rounded-xl bg-blue-600 py-2.5 min-h-[44px] text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60 transition-all">
                   {saving ? (
                     <span className="flex items-center justify-center gap-2">
                       <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
@@ -183,7 +183,7 @@ export default function EventMgmt() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="font-semibold text-slate-800 text-sm">{ev.title}</h3>
-                  <button onClick={() => handleDelete(ev.id!)} className="text-slate-300 hover:text-red-500 transition-colors shrink-0">
+                  <button onClick={() => handleDelete(ev.id!)} className="text-slate-300 hover:text-red-500 transition-colors shrink-0 min-h-[44px] min-w-[44px] flex items-center justify-center">
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>

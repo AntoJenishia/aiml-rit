@@ -39,16 +39,16 @@ const colorMap: Record<string, string> = {
 
 export default function ReportsClient() {
   return (
-    <div className="p-8 max-w-5xl">
+    <div className="p-4 md:p-8 max-w-5xl overflow-x-hidden">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+        <h1 className="text-xl md:text-2xl font-bold text-slate-800 flex items-center gap-2">
           <BarChart3 className="h-6 w-6 text-blue-500" /> Reports &amp; Analytics
         </h1>
         <p className="text-slate-500 text-sm mt-0.5">Department performance overview</p>
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
         {summaryCards.map((c) => (
           <div key={c.label} className="rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-sm hover:-translate-y-1 hover:shadow-lg transition-all">
             <div className={`h-9 w-9 rounded-xl flex items-center justify-center mb-3 ${colorMap[c.color]}`}>
@@ -62,9 +62,10 @@ export default function ReportsClient() {
       </div>
 
       {/* Charts */}
-      <div className="grid lg:grid-cols-2 gap-6">
-        <div className="rounded-2xl border border-slate-200/80 bg-white/80 p-6 shadow-sm">
+      <div className="grid lg:grid-cols-2 gap-4 md:gap-6">
+        <div className="rounded-2xl border border-slate-200/80 bg-white/80 p-4 md:p-6 shadow-sm">
           <h2 className="text-sm font-bold text-slate-700 mb-4">Enrollment Trend (2025)</h2>
+          <div className="overflow-x-auto -mx-2 px-2">
           <ResponsiveContainer width="100%" height={220}>
             <LineChart data={monthlyData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
@@ -76,10 +77,12 @@ export default function ReportsClient() {
               <Line type="monotone" dataKey="staff"    stroke="#7c3aed" strokeWidth={2} dot={{ r: 3 }} name="Staff" />
             </LineChart>
           </ResponsiveContainer>
+          </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200/80 bg-white/80 p-6 shadow-sm">
+        <div className="rounded-2xl border border-slate-200/80 bg-white/80 p-4 md:p-6 shadow-sm">
           <h2 className="text-sm font-bold text-slate-700 mb-4">Events per Month (2025)</h2>
+          <div className="overflow-x-auto -mx-2 px-2">
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={eventData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
@@ -89,6 +92,7 @@ export default function ReportsClient() {
               <Bar dataKey="events" fill="#2563eb" radius={[6, 6, 0, 0]} name="Events" />
             </BarChart>
           </ResponsiveContainer>
+          </div>
         </div>
       </div>
     </div>
