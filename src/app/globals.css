@@ -201,3 +201,54 @@
   .tag-guest     { @apply bg-amber-100 text-amber-700; }
   .tag-fdp       { @apply bg-sky-100 text-sky-700; }
 }
+
+/* ============================================================
+   MOBILE RESPONSIVE UTILITIES
+   ============================================================ */
+
+/* Touch-friendly tap targets (44×44 minimum per WCAG guidelines) */
+@media (pointer: coarse) {
+  button,
+  a,
+  [role="button"],
+  input[type="submit"],
+  input[type="button"] {
+    min-height: 44px;
+  }
+}
+
+/* Small screen adjustments */
+@media (max-width: 639px) {
+  /* Prevent horizontal overflow */
+  body {
+    overflow-x: hidden;
+  }
+
+  /* Scale down premium cards on small screens */
+  .premium-card {
+    border-radius: 1rem;
+  }
+
+  /* Reduce glass card padding on mobile */
+  .glass-dark {
+    padding: 0.75rem;
+  }
+
+  /* Ensure dot grid is subtle on mobile */
+  .dot-grid {
+    background-size: 24px 24px;
+  }
+
+  /* Ensure images don't overflow */
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+/* Extra-small breakpoint (320px - 479px) */
+@media (min-width: 320px) and (max-width: 479px) {
+  .hero-gradient-text {
+    font-size: 1.75rem;
+  }
+}

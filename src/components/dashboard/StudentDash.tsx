@@ -80,14 +80,14 @@ export default function StudentDash() {
         <div className="absolute top-0 right-0 h-72 w-72 rounded-full opacity-20 blur-3xl pointer-events-none"
           style={{ background: "radial-gradient(circle,#60a5fa,transparent 70%)" }} />
 
-        <div className="relative z-10 px-6 py-8 lg:px-10">
+        <div className="relative z-10 px-4 py-6 sm:px-6 sm:py-8 lg:px-10">
           {/* Profile row */}
-          <div className="flex items-center gap-4 mb-8">
+          <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
             {image ? (
               <Image src={image} alt={name} width={64} height={64}
-                className="rounded-2xl ring-4 ring-white/20 shadow-xl" />
+                className="rounded-2xl ring-4 ring-white/20 shadow-xl w-12 h-12 sm:w-16 sm:h-16" />
             ) : (
-              <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-blue-400 to-indigo-500 ring-4 ring-white/20 shadow-xl flex items-center justify-center text-white text-2xl font-black">
+              <div className="h-12 w-12 sm:h-16 sm:w-16 rounded-2xl bg-gradient-to-br from-blue-400 to-indigo-500 ring-4 ring-white/20 shadow-xl flex items-center justify-center text-white text-xl sm:text-2xl font-black">
                 {name?.[0] ?? "S"}
               </div>
             )}
@@ -96,7 +96,7 @@ export default function StudentDash() {
                 <Sparkles className="h-3.5 w-3.5 text-amber-400" />
                 <span className="text-amber-400/90 text-xs font-bold uppercase tracking-widest capitalize">{role} Portal</span>
               </div>
-              <h1 className="text-2xl lg:text-3xl font-black text-white leading-tight">
+              <h1 className="text-lg sm:text-2xl lg:text-3xl font-black text-white leading-tight">
                 Welcome back, {name?.split(" ")[0]} 👋
               </h1>
               <p className="text-blue-200/60 text-sm mt-0.5">{email}</p>
@@ -104,7 +104,7 @@ export default function StudentDash() {
           </div>
 
           {/* Stat cards — glass-dark style (same as HOD section) */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 pb-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 pb-6 sm:pb-8">
             {stats.map((s, i) => (
               <div key={s.label} className="glass-dark p-4 hover-glow"
                 style={{ animationDelay: `${i * 80}ms` }}>
@@ -120,8 +120,8 @@ export default function StudentDash() {
       </div>
 
       {/* ── Content area ── */}
-      <div className="px-6 lg:px-10 py-8 max-w-6xl">
-        <div className="grid lg:grid-cols-3 gap-6">
+      <div className="px-4 sm:px-6 lg:px-10 py-4 sm:py-8 max-w-6xl">
+        <div className="grid lg:grid-cols-3 gap-4 sm:gap-6">
 
           {/* LEFT col */}
           <div className="lg:col-span-2 space-y-6">
@@ -195,7 +195,7 @@ export default function StudentDash() {
                               </div>
                             </div>
                             <button onClick={(e) => { e.stopPropagation(); toggleRegister(ev.id!) }}
-                              className={`shrink-0 flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all active:scale-95
+                              className={`shrink-0 flex items-center gap-1.5 rounded-lg px-3 py-1.5 min-h-[44px] text-xs font-semibold transition-all active:scale-95
                                 ${isReg ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/30"
                                         : "bg-indigo-100 text-indigo-700 hover:bg-indigo-600 hover:text-white"}`}>
                               {isReg ? <><CheckCircle2 className="h-3.5 w-3.5" />Registered</> : "Register"}
@@ -251,7 +251,7 @@ export default function StudentDash() {
                 <div className="space-y-2">
                   {quickLinks.map((l) => (
                     <Link key={l.label} href={l.href}
-                      className="flex items-center gap-3 text-sm font-medium text-slate-600 rounded-xl px-3 py-2.5 border border-slate-100 hover:border-blue-200 hover:bg-blue-50/60 hover:text-blue-700 hover:-translate-y-0.5 hover:shadow-sm transition-all duration-150">
+                      className="flex items-center gap-3 text-sm font-medium text-slate-600 rounded-xl px-3 py-2.5 min-h-[44px] border border-slate-100 hover:border-blue-200 hover:bg-blue-50/60 hover:text-blue-700 hover:-translate-y-0.5 hover:shadow-sm transition-all duration-150">
                       <span className={`h-7 w-7 rounded-lg flex items-center justify-center shrink-0 ${l.color}`}>
                         <l.icon className="h-3.5 w-3.5" />
                       </span>
@@ -267,9 +267,9 @@ export default function StudentDash() {
 
       {/* Event modal */}
       {selectedEvent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-0 sm:p-4"
           onClick={() => setSelectedEvent(null)}>
-          <div className="modal-pop w-full max-w-md rounded-2xl bg-white shadow-2xl overflow-hidden"
+          <div className="modal-pop w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl bg-white shadow-2xl overflow-hidden max-h-[85vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}>
             <div className="px-6 pt-6 pb-4 border-b border-slate-100 flex items-start justify-between gap-3">
               <div>

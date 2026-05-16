@@ -22,9 +22,9 @@ export default function StaffDash() {
   const { name, image } = useUser()
 
   return (
-    <div className="p-8 max-w-5xl">
+    <div className="p-4 md:p-8 max-w-5xl">
       {/* Header */}
-      <div className="mb-8 flex items-center gap-4">
+      <div className="mb-6 md:mb-8 flex flex-col sm:flex-row sm:items-center gap-4">
         {image ? (
           <Image src={image} alt={name} width={56} height={56} className="rounded-full ring-4 ring-blue-100" />
         ) : (
@@ -33,13 +33,13 @@ export default function StaffDash() {
           </div>
         )}
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Welcome, Dr. {name?.split(" ").pop()} 👋</h1>
+          <h1 className="text-xl md:text-2xl font-bold text-slate-800">Welcome, Dr. {name?.split(" ").pop()} 👋</h1>
           <p className="text-slate-500 text-sm mt-0.5">AI & Machine Learning — Staff Dashboard</p>
         </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
         {stats.map((s) => (
           <div key={s.label}
             className={`rounded-2xl border p-5 transition-all hover:-translate-y-1 hover:shadow-lg ${colorMap[s.color]} bg-white/80`}>
@@ -50,7 +50,7 @@ export default function StaffDash() {
         ))}
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6">
+      <div className="grid lg:grid-cols-3 gap-4 md:gap-6">
         {/* Courses taught */}
         <div className="lg:col-span-2 rounded-2xl border border-slate-200/80 bg-white/80 backdrop-blur-sm p-6 shadow-sm">
           <h2 className="text-base font-bold text-slate-700 mb-4 flex items-center gap-2">
@@ -102,7 +102,7 @@ export default function StaffDash() {
                 { label: "Faculty Page", href: "/faculty", icon: Users },
               ].map((l) => (
                 <Link key={l.label} href={l.href}
-                  className="flex items-center gap-2 text-sm font-medium text-slate-600 rounded-lg px-3 py-2 hover:bg-blue-50 hover:text-blue-700 transition-colors">
+                  className="flex items-center gap-2 text-sm font-medium text-slate-600 rounded-lg px-3 py-2 min-h-[44px] hover:bg-blue-50 hover:text-blue-700 transition-colors">
                   <l.icon className="h-4 w-4 text-blue-500" /> {l.label}
                 </Link>
               ))}

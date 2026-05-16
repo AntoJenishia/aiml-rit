@@ -53,7 +53,7 @@ export default function LoginForm() {
       </div>
 
       {/* Centered card */}
-      <div className="relative z-10 flex flex-1 items-center justify-center px-4 py-12">
+      <div className="relative z-10 flex flex-1 items-center justify-center px-3 sm:px-4 py-8 sm:py-12">
         <div className="w-full max-w-md">
           <div className="premium-card"
             style={{ boxShadow: "0 12px 48px -12px rgba(37,99,235,0.18),0 2px 8px -2px rgba(15,23,42,0.06)" }}>
@@ -62,7 +62,7 @@ export default function LoginForm() {
             <div className="absolute top-0 left-0 right-0 h-[2.5px] z-10 rounded-t-2xl"
               style={{ background:"linear-gradient(90deg,#2563eb,#818cf8,#60a5fa,#2563eb)", backgroundSize:"300%", animation:"gradientFlow 5s ease infinite" }} />
 
-            <div className="p-8 pb-6">
+            <div className="p-5 sm:p-8 pb-5 sm:pb-6">
               {/* Badge */}
               <div className="flex justify-center mb-6">
                 <span className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-blue-700">
@@ -72,7 +72,7 @@ export default function LoginForm() {
 
               {/* Heading */}
               <div className="text-center mb-7">
-                <h1 className="text-[2.6rem] font-black tracking-tight leading-[1.08]"
+                <h1 className="text-[2rem] sm:text-[2.6rem] font-black tracking-tight leading-[1.08]"
                   style={{ background:"linear-gradient(135deg,#1e3a8a 0%,#2563eb 55%,#818cf8 100%)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text" }}>
                   Student &amp; Staff<br />Portal
                 </h1>
@@ -101,7 +101,7 @@ export default function LoginForm() {
               <button
                 onClick={() => { setLoading(true); signIn("google", { callbackUrl: "/dashboard" }) }}
                 disabled={loading}
-                className="group hero-btn-primary relative w-full overflow-hidden flex items-center justify-center gap-3 rounded-xl py-4 px-6 font-semibold text-white active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed">
+                className="group hero-btn-primary relative w-full overflow-hidden flex items-center justify-center gap-3 rounded-xl py-4 px-6 min-h-[48px] font-semibold text-white active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed">
                 <span className="hero-btn-shine" />
                 <span className="h-6 w-6 shrink-0 rounded-full bg-white flex items-center justify-center">
                   <svg className="h-4 w-4" viewBox="0 0 24 24">

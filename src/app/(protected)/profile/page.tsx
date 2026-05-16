@@ -51,13 +51,13 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen p-8"
+    <div className="min-h-screen p-4 md:p-8"
       style={{ background: "linear-gradient(160deg, #f8faff 0%, #eef2ff 50%, #f5f8ff 100%)" }}>
       <div className="max-w-2xl mx-auto">
 
         {/* Back link */}
         <Link href="/dashboard"
-          className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-blue-600 mb-6 transition-colors">
+          className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-blue-600 mb-4 md:mb-6 transition-colors min-h-[44px]">
           <ArrowLeft className="h-4 w-4" /> Back to Dashboard
         </Link>
 
@@ -72,18 +72,18 @@ export default function ProfilePage() {
         <div className="rounded-3xl border border-slate-200/80 bg-white/80 backdrop-blur-sm shadow-lg overflow-hidden">
 
           {/* Cover gradient */}
-          <div className="h-32 w-full"
+          <div className="h-20 sm:h-32 w-full"
             style={{ background: "linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #7c3aed 100%)" }} />
 
           {/* Avatar + edit button */}
-          <div className="px-8 pb-8">
-            <div className="-mt-12 mb-4 flex items-end justify-between">
+          <div className="px-4 sm:px-8 pb-6 sm:pb-8">
+            <div className="-mt-10 sm:-mt-12 mb-4 flex flex-col sm:flex-row sm:items-end gap-3 sm:justify-between">
               <div className="relative">
                 {user?.image ? (
-                  <Image src={user.image} alt={name} width={80} height={80}
-                    className="rounded-2xl ring-4 ring-white shadow-xl" />
+                  <Image src={user.image} alt={name} width={72} height={72}
+                    className="rounded-2xl ring-4 ring-white shadow-xl w-16 h-16 sm:w-20 sm:h-20" />
                 ) : (
-                  <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 ring-4 ring-white shadow-xl flex items-center justify-center text-white text-2xl font-bold">
+                  <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 ring-4 ring-white shadow-xl flex items-center justify-center text-white text-xl sm:text-2xl font-bold">
                     {name?.[0] ?? <User className="h-8 w-8" />}
                   </div>
                 )}
@@ -91,17 +91,17 @@ export default function ProfilePage() {
 
               {!editing ? (
                 <button onClick={handleEdit}
-                  className="flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:border-blue-300 transition-all">
+                  className="flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 min-h-[44px] text-sm font-medium text-slate-600 hover:bg-slate-50 hover:border-blue-300 transition-all">
                   <Pencil className="h-3.5 w-3.5" /> Edit Profile
                 </button>
               ) : (
                 <div className="flex gap-2">
                   <button onClick={handleCancel}
-                    className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-500 hover:bg-slate-50 transition-all">
+                    className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 min-h-[44px] text-xs font-medium text-slate-500 hover:bg-slate-50 transition-all">
                     <X className="h-3.5 w-3.5" /> Cancel
                   </button>
                   <button onClick={handleSave}
-                    className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white shadow-md shadow-blue-500/30 hover:bg-blue-700 transition-all">
+                    className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-3 py-2 min-h-[44px] text-xs font-semibold text-white shadow-md shadow-blue-500/30 hover:bg-blue-700 transition-all">
                     <Check className="h-3.5 w-3.5" /> Save
                   </button>
                 </div>
@@ -119,7 +119,7 @@ export default function ProfilePage() {
                   className="text-2xl font-bold text-slate-800 w-full rounded-xl border-2 border-blue-400 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white"
                 />
               ) : (
-                <h1 className="text-2xl font-bold text-slate-800">{name}</h1>
+                <h1 className="text-xl sm:text-2xl font-bold text-slate-800">{name}</h1>
               )}
               <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full border mt-2 ${rc.color} ${rc.bg} ${rc.border}`}>
                 <Shield className="h-3 w-3" />

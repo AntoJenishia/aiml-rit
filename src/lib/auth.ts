@@ -43,6 +43,17 @@ export const authOptions: NextAuthOptions = {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      authorization: {
+        params: {
+          // ritchennai.edu.in is the parent Google Workspace domain.
+          // All dept subdomains (aiml, aids, ece, vlsi, cce, cse, mech)
+          // are part of this same Workspace org, so hd covers them all.
+          // If a user selects a non-RIT account, Google blocks the sign-in.
+          // Server-side getRole() provides a second enforcement layer.
+          hd: "ritchennai.edu.in",
+          prompt: "select_account",
+        },
+      },
     }),
   ],
   callbacks: {
@@ -95,5 +106,20 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+  },
+  // Ensure cookies work correctly in both dev (http) and prod (https)
+  cookies: {
+    sessionToken: {
+      name: process.env.NODE_ENV === "production"
+        ? "__Secure-next-auth.session-token"
+        : "next-auth.session-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
   },
 }

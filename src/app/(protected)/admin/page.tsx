@@ -27,18 +27,18 @@ export default function AdminPage() {
   const { name } = useUser()
 
   return (
-    <div className="p-8 max-w-5xl">
+    <div className="p-4 md:p-8 max-w-5xl">
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-1">
           <span className="text-xs font-bold uppercase tracking-widest text-amber-600 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-full">HOD</span>
         </div>
-        <h1 className="text-3xl font-bold text-slate-800">Admin Dashboard</h1>
-        <p className="text-slate-500 mt-1">Welcome back, {name} — here&apos;s a snapshot of the department.</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-slate-800">Admin Dashboard</h1>
+        <p className="text-slate-500 text-sm md:text-base mt-1">Welcome back, {name} — here&apos;s a snapshot of the department.</p>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
         {stats.map((s) => {
           const { card, badge } = colorMap[s.color]
           return (
@@ -57,14 +57,14 @@ export default function AdminPage() {
       </div>
 
       {/* Quick actions + recent */}
-      <div className="grid lg:grid-cols-3 gap-6">
+      <div className="grid lg:grid-cols-3 gap-4 md:gap-6">
         {/* Quick actions */}
         <div className="rounded-2xl border border-slate-200/80 bg-white/80 backdrop-blur-sm p-6 shadow-sm">
           <h2 className="text-base font-bold text-slate-700 mb-4">Quick Actions</h2>
           <div className="space-y-2">
             {quickActions.map((a) => (
               <Link key={a.label} href={a.href}
-                className="flex items-center gap-3 rounded-xl border border-slate-100 px-4 py-3 text-sm font-medium text-slate-600 transition-all hover:border-amber-300 hover:bg-amber-50 hover:text-amber-700">
+                className="flex items-center gap-3 rounded-xl border border-slate-100 px-4 py-3 min-h-[44px] text-sm font-medium text-slate-600 transition-all hover:border-amber-300 hover:bg-amber-50 hover:text-amber-700">
                 <a.icon className="h-4 w-4 text-amber-500 shrink-0" />
                 {a.label}
               </Link>
