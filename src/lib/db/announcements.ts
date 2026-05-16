@@ -23,6 +23,16 @@ export async function addAnnouncement(data: Omit<Announcement, "id" | "createdAt
   return res.json()
 }
 
+export async function updateAnnouncement(id: string, data: Partial<Announcement>) {
+  const res = await fetch("/api/announcements", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id, ...data }),
+  })
+  if (!res.ok) throw new Error(`Failed: ${res.status}`)
+  return res.json()
+}
+
 export async function deleteAnnouncement(id: string) {
   const res = await fetch("/api/announcements", {
     method: "DELETE",

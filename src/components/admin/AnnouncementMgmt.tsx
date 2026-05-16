@@ -1,7 +1,7 @@
 "use client"
 import { useState, useEffect } from "react"
-import { Plus, Trash2, Megaphone, X, AlertTriangle, RefreshCw } from "lucide-react"
-import { getAnnouncements, addAnnouncement, deleteAnnouncement, type Announcement } from "@/lib/db/announcements"
+import { Plus, Trash2, Megaphone, X, AlertTriangle, RefreshCw, Edit3 } from "lucide-react"
+import { getAnnouncements, addAnnouncement, updateAnnouncement, deleteAnnouncement, type Announcement } from "@/lib/db/announcements"
 import { useUser } from "@/lib/hooks/useUser"
 
 const TARGET_OPTIONS = [
@@ -18,6 +18,7 @@ export default function AnnouncementMgmt() {
   const [loading, setLoading]   = useState(true)
   const [error, setError]       = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
+  const [editItem, setEditItem] = useState<Announcement | null>(null)
   const [form, setForm]         = useState({ title: "", body: "", target: "all" as Announcement["target"] })
   const [saving, setSaving]     = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
@@ -36,15 +37,32 @@ export default function AnnouncementMgmt() {
 
   useEffect(() => { load() }, [])
 
+  const openCreateForm = () => {
+    setEditItem(null)
+    setForm({ title: "", body: "", target: "all" })
+    setShowForm(true)
+  }
+
+  const openEditForm = (a: Announcement) => {
+    setEditItem(a)
+    setForm({ title: a.title, body: a.body, target: a.target })
+    setShowForm(true)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.title.trim() || !form.body.trim()) return
     setSaving(true)
     setSaveError(null)
     try {
-      await addAnnouncement({ ...form, postedBy: name })
+      if (editItem?.id) {
+        await updateAnnouncement(editItem.id, form)
+      } else {
+        await addAnnouncement({ ...form, postedBy: name })
+      }
       setForm({ title: "", body: "", target: "all" })
       setShowForm(false)
+      setEditItem(null)
       await load()
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : "Failed to post. Check Firestore.")
@@ -72,7 +90,7 @@ export default function AnnouncementMgmt() {
           </h1>
           <p className="text-slate-500 text-sm mt-0.5">Broadcast messages to students and staff</p>
         </div>
-        <button onClick={() => setShowForm(true)}
+        <button onClick={openCreateForm}
           className="flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 min-h-[44px] text-sm font-semibold text-white shadow-lg shadow-amber-500/30 hover:bg-amber-600 transition-all active:scale-95 w-full sm:w-auto">
           <Plus className="h-4 w-4" /> New Announcement
         </button>
@@ -97,8 +115,8 @@ export default function AnnouncementMgmt() {
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4">
           <div className="w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl bg-white shadow-2xl p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-slate-800">New Announcement</h2>
-              <button onClick={() => { setShowForm(false); setSaveError(null) }} className="text-slate-400 hover:text-slate-600 min-h-[44px] min-w-[44px] flex items-center justify-center">
+              <h2 className="text-lg font-bold text-slate-800">{editItem ? "Edit Announcement" : "New Announcement"}</h2>
+              <button onClick={() => { setShowForm(false); setSaveError(null); setEditItem(null) }} className="text-slate-400 hover:text-slate-600 min-h-[44px] min-w-[44px] flex items-center justify-center">
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -131,7 +149,7 @@ export default function AnnouncementMgmt() {
               )}
 
               <div className="flex gap-3 pt-1">
-                <button type="button" onClick={() => { setShowForm(false); setSaveError(null) }}
+                <button type="button" onClick={() => { setShowForm(false); setSaveError(null); setEditItem(null) }}
                   className="flex-1 rounded-xl border border-slate-200 py-2.5 min-h-[44px] text-sm font-medium text-slate-600 hover:bg-slate-50 transition-all">
                   Cancel
                 </button>
@@ -142,7 +160,7 @@ export default function AnnouncementMgmt() {
                       <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
                       Posting…
                     </span>
-                  ) : "Post Announcement"}
+                  ) : editItem ? "Save Changes" : "Post Announcement"}
                 </button>
               </div>
             </form>
@@ -172,9 +190,14 @@ export default function AnnouncementMgmt() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="font-semibold text-slate-800 text-sm">{a.title}</h3>
-                  <button onClick={() => handleDelete(a.id!)} className="text-slate-300 hover:text-red-500 transition-colors shrink-0 min-h-[44px] min-w-[44px] flex items-center justify-center">
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button onClick={() => openEditForm(a)} className="text-slate-300 hover:text-blue-500 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center">
+                      <Edit3 className="h-4 w-4" />
+                    </button>
+                    <button onClick={() => handleDelete(a.id!)} className="text-slate-300 hover:text-red-500 transition-colors shrink-0 min-h-[44px] min-w-[44px] flex items-center justify-center">
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
                 <p className="text-slate-500 text-xs mt-1 line-clamp-2">{a.body}</p>
                 <div className="flex items-center gap-2 mt-2">

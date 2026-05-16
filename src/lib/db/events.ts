@@ -5,6 +5,8 @@ export interface AdminEvent {
   description: string
   tag: string
   createdBy: string
+  posterURL?: string
+  createdAt?: { seconds: number } | null
 }
 
 export async function getAdminEvents(): Promise<AdminEvent[]> {
@@ -18,6 +20,16 @@ export async function addAdminEvent(data: Omit<AdminEvent, "id">) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
+  })
+  if (!res.ok) throw new Error(`Failed: ${res.status}`)
+  return res.json()
+}
+
+export async function updateAdminEvent(id: string, data: Partial<AdminEvent>) {
+  const res = await fetch("/api/events", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id, ...data }),
   })
   if (!res.ok) throw new Error(`Failed: ${res.status}`)
   return res.json()

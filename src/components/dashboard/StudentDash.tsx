@@ -5,10 +5,11 @@ import Image from "next/image"
 import Link from "next/link"
 import {
   BookOpen, Bell, CalendarDays, Trophy, TrendingUp,
-  ExternalLink, CheckCircle2, Clock, Megaphone, X, Sparkles,
+  ExternalLink, CheckCircle2, Clock, Megaphone, X, Sparkles, Loader2,
 } from "lucide-react"
 import { getAnnouncements, type Announcement } from "@/lib/db/announcements"
 import { getAdminEvents, type AdminEvent } from "@/lib/db/events"
+import { getRegistrationsByUser, registerForEvent, unregisterFromEvent } from "@/lib/db/registrations"
 import CardReveal from "@/components/CardReveal"
 import ParticleCanvas from "@/components/ParticleCanvas"
 
@@ -42,10 +43,11 @@ const quickLinks = [
 ]
 
 export default function StudentDash() {
-  const { name, email, image, role } = useUser()
+  const { uid, name, email, image, role } = useUser()
   const [announcements, setAnnouncements] = useState<Announcement[]>([])
   const [events,        setEvents]        = useState<AdminEvent[]>([])
   const [registered,    setRegistered]    = useState<Set<string>>(new Set())
+  const [regLoading,    setRegLoading]    = useState<Set<string>>(new Set())
   const [loadingData,   setLoadingData]   = useState(true)
   const [selectedEvent, setSelectedEvent] = useState<AdminEvent | null>(null)
 
@@ -55,14 +57,32 @@ export default function StudentDash() {
         const [ann, ev] = await Promise.all([getAnnouncements(), getAdminEvents()])
         setAnnouncements(ann.filter((a) => a.target === "all" || a.target === "students"))
         setEvents(ev)
+
+        // Load existing registrations for this user
+        if (uid) {
+          const regs = await getRegistrationsByUser(uid)
+          setRegistered(new Set(regs.map((r) => r.eventId)))
+        }
       } catch { /* silently fail */ }
       setLoadingData(false)
     }
     load()
-  }, [])
+  }, [uid])
 
-  const toggleRegister = (id: string) =>
-    setRegistered((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+  const toggleRegister = async (eventId: string) => {
+    if (!uid || regLoading.has(eventId)) return
+    setRegLoading((prev) => new Set(prev).add(eventId))
+    try {
+      if (registered.has(eventId)) {
+        await unregisterFromEvent(eventId, uid)
+        setRegistered((prev) => { const n = new Set(prev); n.delete(eventId); return n })
+      } else {
+        await registerForEvent(eventId, uid, name, email)
+        setRegistered((prev) => new Set(prev).add(eventId))
+      }
+    } catch { /* silently fail */ }
+    setRegLoading((prev) => { const n = new Set(prev); n.delete(eventId); return n })
+  }
 
   return (
     <div className="min-h-full">
@@ -195,10 +215,12 @@ export default function StudentDash() {
                               </div>
                             </div>
                             <button onClick={(e) => { e.stopPropagation(); toggleRegister(ev.id!) }}
+                              disabled={regLoading.has(ev.id!)}
                               className={`shrink-0 flex items-center gap-1.5 rounded-lg px-3 py-1.5 min-h-[44px] text-xs font-semibold transition-all active:scale-95
                                 ${isReg ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/30"
                                         : "bg-indigo-100 text-indigo-700 hover:bg-indigo-600 hover:text-white"}`}>
-                              {isReg ? <><CheckCircle2 className="h-3.5 w-3.5" />Registered</> : "Register"}
+                              {regLoading.has(ev.id!) ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                : isReg ? <><CheckCircle2 className="h-3.5 w-3.5" />Registered</> : "Register"}
                             </button>
                           </div>
                         </div>
@@ -291,6 +313,7 @@ export default function StudentDash() {
               )}
               <button
                 onClick={() => { toggleRegister(selectedEvent.id!); setSelectedEvent(null) }}
+                disabled={regLoading.has(selectedEvent.id!)}
                 className={`w-full rounded-xl py-3 min-h-[44px] text-sm font-semibold transition-all active:scale-95
                   ${registered.has(selectedEvent.id!)
                     ? "bg-slate-100 text-slate-500 border border-slate-200"

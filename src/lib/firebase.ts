@@ -1,6 +1,7 @@
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app"
 import { getAuth } from "firebase/auth"
-import { getFirestore, connectFirestoreEmulator, type Firestore } from "firebase/firestore"
+import { getFirestore, type Firestore } from "firebase/firestore"
+import { getStorage } from "firebase/storage"
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -16,4 +17,5 @@ const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseCon
 
 export const auth = getAuth(app)
 export const db: Firestore = getFirestore(app)
+export const storage = getStorage(app)
 export default app

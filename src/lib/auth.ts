@@ -16,12 +16,7 @@ export function getRole(email: string): UserRole {
   if (!email) return "guest"
   // ── DEV BYPASS ── remove before production ──────────────────
   if (email === "antojenishia@gmail.com") return "staff"
-  // ────────────────────────────────────────────────────────────
-  // ── DEV BYPASS ── remove before production ──────────────────
   if (email === "antojenishiadev@gmail.com") return "hod"
-  // ────────────────────────────────────────────────────────────
-  // ── DEV BYPASS ── remove before production ──────────────────
-  if (email === "antojenishiadev@gmail.com") return "staff"
   // ────────────────────────────────────────────────────────────
   // HOD — single exact email
   if (email === "hod.aids@ritchennai.edu.in") return "hod"
@@ -46,12 +41,9 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
       authorization: {
         params: {
-          // ritchennai.edu.in is the parent Google Workspace domain.
-          // All dept subdomains (aiml, aids, ece, vlsi, cce, cse, mech)
-          // are part of this same Workspace org, so hd covers them all.
-          // If a user selects a non-RIT account, Google blocks the sign-in.
-          // Server-side getRole() provides a second enforcement layer.
-          hd: "ritchennai.edu.in",
+          // In production, restrict to RIT Workspace domain.
+          // In dev, allow personal Gmail for testing staff/HOD dashboards.
+          ...(process.env.NODE_ENV === "production" ? { hd: "ritchennai.edu.in" } : {}),
           prompt: "select_account",
         },
       },
