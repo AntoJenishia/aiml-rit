@@ -1,6 +1,7 @@
 "use client"
-import { useEffect, useState } from "react"
-import { CalendarDays, Plus, Trash2, X, AlertTriangle, RefreshCw, Edit3, Users, ChevronDown, ChevronUp } from "lucide-react"
+import { useEffect, useState, useRef } from "react"
+import Image from "next/image"
+import { CalendarDays, Plus, Trash2, X, AlertTriangle, RefreshCw, Edit3, Users, ChevronDown, ChevronUp, ImagePlus } from "lucide-react"
 import { getAdminEvents, addAdminEvent, updateAdminEvent, deleteAdminEvent, type AdminEvent } from "@/lib/db/events"
 import { getAllRegistrations, type EventRegistration } from "@/lib/db/registrations"
 import { useUser } from "@/lib/hooks/useUser"
@@ -24,9 +25,12 @@ export default function EventMgmt() {
   const [showForm, setShowForm] = useState(false)
   const [editItem, setEditItem] = useState<AdminEvent | null>(null)
   const [form, setForm]         = useState({ title: "", date: "", description: "", tag: "Workshop" })
+  const [posterFile, setPosterFile] = useState<File | null>(null)
+  const [posterPreview, setPosterPreview] = useState<string | null>(null)
   const [saving, setSaving]     = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [expandedEvents, setExpandedEvents] = useState<Set<string>>(new Set())
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const load = async () => {
     setLoading(true)
@@ -50,13 +54,24 @@ export default function EventMgmt() {
   const openCreateForm = () => {
     setEditItem(null)
     setForm({ title: "", date: "", description: "", tag: "Workshop" })
+    setPosterFile(null)
+    setPosterPreview(null)
     setShowForm(true)
   }
 
   const openEditForm = (ev: AdminEvent) => {
     setEditItem(ev)
     setForm({ title: ev.title, date: ev.date, description: ev.description, tag: ev.tag })
+    setPosterFile(null)
+    setPosterPreview(ev.posterURL || null)
     setShowForm(true)
+  }
+
+  const handlePosterSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setPosterFile(file)
+    setPosterPreview(URL.createObjectURL(file))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -65,12 +80,26 @@ export default function EventMgmt() {
     setSaving(true)
     setSaveError(null)
     try {
+      let posterURL = editItem?.posterURL || ""
+      // Upload poster if new file selected
+      if (posterFile) {
+        const fd = new FormData()
+        fd.append("file", posterFile)
+        fd.append("folder", "event-posters")
+        const res = await fetch("/api/upload", { method: "POST", body: fd })
+        if (!res.ok) throw new Error("Poster upload failed")
+        const { url } = await res.json()
+        posterURL = url
+      }
+
       if (editItem?.id) {
-        await updateAdminEvent(editItem.id, form)
+        await updateAdminEvent(editItem.id, { ...form, posterURL })
       } else {
-        await addAdminEvent({ ...form, createdBy: name })
+        await addAdminEvent({ ...form, posterURL, createdBy: name })
       }
       setForm({ title: "", date: "", description: "", tag: "Workshop" })
+      setPosterFile(null)
+      setPosterPreview(null)
       setShowForm(false)
       setEditItem(null)
       await load()
@@ -158,6 +187,30 @@ export default function EventMgmt() {
                   placeholder="Brief description…" />
               </div>
 
+              {/* Poster upload */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Event Poster</label>
+                <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePosterSelect} className="hidden" />
+                {posterPreview ? (
+                  <div className="relative rounded-xl overflow-hidden border border-slate-200 bg-slate-50">
+                    <img src={posterPreview} alt="Poster preview" className="w-full h-40 object-cover" />
+                    <button type="button" onClick={() => { setPosterFile(null); setPosterPreview(null); if (fileInputRef.current) fileInputRef.current.value = "" }}
+                      className="absolute top-2 right-2 h-7 w-7 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors">
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                    <button type="button" onClick={() => fileInputRef.current?.click()}
+                      className="absolute bottom-2 right-2 text-xs font-semibold bg-white/90 text-slate-700 px-3 py-1 rounded-lg hover:bg-white transition-colors">
+                      Change
+                    </button>
+                  </div>
+                ) : (
+                  <button type="button" onClick={() => fileInputRef.current?.click()}
+                    className="w-full rounded-xl border-2 border-dashed border-slate-200 py-6 flex flex-col items-center gap-2 hover:border-blue-300 hover:bg-blue-50/30 transition-all">
+                    <ImagePlus className="h-6 w-6 text-slate-400" />
+                    <span className="text-xs text-slate-400 font-medium">Click to upload poster image</span>
+                  </button>
+                )}
+              </div>
               {saveError && (
                 <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 flex items-center gap-2">
                   <AlertTriangle className="h-4 w-4 text-red-500 shrink-0" />
