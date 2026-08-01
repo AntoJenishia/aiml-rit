@@ -39,8 +39,8 @@ export default function ProfilePage() {
         if (p?.registerNumber) setRegNumber(p.registerNumber)
         
         // Fetch class incharge if student
-        if (p?.classId) {
-          fetch(`/api/users?classId=${p.classId}`)
+        if (p?.email) {
+          fetch(`/api/users?studentEmail=${p.email}`)
             .then((res) => res.ok ? res.json() : null)
             .then((incharge) => {
               if (incharge?.name) {

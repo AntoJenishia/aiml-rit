@@ -10,6 +10,7 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url)
     const uid     = searchParams.get("uid")
     const classId = searchParams.get("classId")
+    const studentEmail = searchParams.get("studentEmail")
 
     // Single user fetch
     if (uid) {
@@ -24,6 +25,27 @@ export async function GET(req: Request) {
     if (classId) {
       const q = query(collection(db, "users"),
         where("classId", "==", classId),
+        where("isClassIncharge", "==", true)
+      )
+      const snap = await getDocs(q)
+      if (snap.empty) return NextResponse.json(null, { status: 404 })
+      const d = snap.docs[0]
+      return NextResponse.json({ uid: d.id, ...d.data() })
+    }
+
+    // Find class incharge by studentEmail
+    if (studentEmail) {
+      // 1. Fetch student by email
+      const stuQuery = query(collection(db, "users"), where("email", "==", studentEmail))
+      const stuSnap = await getDocs(stuQuery)
+      if (stuSnap.empty) return NextResponse.json(null, { status: 404 })
+      
+      const studentData = stuSnap.docs[0].data()
+      if (!studentData.classId) return NextResponse.json(null, { status: 404 })
+
+      // 2. Fetch class incharge for this classId
+      const q = query(collection(db, "users"),
+        where("classId", "==", studentData.classId),
         where("isClassIncharge", "==", true)
       )
       const snap = await getDocs(q)
