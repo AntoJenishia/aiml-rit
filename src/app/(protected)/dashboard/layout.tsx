@@ -53,7 +53,9 @@ const getNavItems = (role?: string, isClassIncharge?: boolean) => {
   ]
 }
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+import { Suspense } from "react"
+
+function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth()
   const { isClassIncharge } = useUser()
   const pathname = usePathname()
@@ -203,5 +205,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       </main>
     </div>
+  )
+}
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={<div className="h-screen bg-[#F5F6FA] flex items-center justify-center">Loading...</div>}>
+      <DashboardLayoutInner>{children}</DashboardLayoutInner>
+    </Suspense>
   )
 }
