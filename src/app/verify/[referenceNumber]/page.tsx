@@ -42,9 +42,9 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
 export default async function VerifyPage({
   params,
 }: {
-  params: { referenceNumber: string }
+  params: Promise<{ referenceNumber: string }>
 }) {
-  const { referenceNumber } = params
+  const { referenceNumber } = await params
 
   // Lookup by referenceNumber
   const snap = await adminDb.collection("odRequests")
