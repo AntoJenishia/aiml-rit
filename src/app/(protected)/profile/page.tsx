@@ -27,6 +27,7 @@ export default function ProfilePage() {
   const [editingReg, setEditingReg]     = useState(false)
   const [savingReg, setSavingReg]       = useState(false)
   const [savedToast, setSavedToast]     = useState(false)
+  const [inchargeName, setInchargeName] = useState("Loading...")
 
   // Fetch full profile from Firestore via API route
   useEffect(() => {
@@ -36,6 +37,22 @@ export default function ProfilePage() {
       .then((p) => {
         setProfile(p)
         if (p?.registerNumber) setRegNumber(p.registerNumber)
+        
+        // Fetch class incharge if student
+        if (p?.classId) {
+          fetch(`/api/users?classId=${p.classId}`)
+            .then((res) => res.ok ? res.json() : null)
+            .then((incharge) => {
+              if (incharge?.name) {
+                setInchargeName(incharge.name)
+              } else {
+                setInchargeName("Not Assigned")
+              }
+            }).catch(() => setInchargeName("Not Assigned"))
+        } else {
+          setInchargeName("N/A")
+        }
+
         setLoadingProfile(false)
       }).catch(() => setLoadingProfile(false))
   }, [uid])
@@ -130,8 +147,8 @@ export default function ProfilePage() {
                   <ReadOnlyField icon={Calendar} label="Batch" value={profile?.batch ?? "—"} />
                   <ReadOnlyField icon={GraduationCap} label="Current Year" value={profile?.currentYear ?? "—"} />
                   
-                  {/* Mocked Class Incharge - Real wiring in Phase 3 */}
-                  <ReadOnlyField icon={User} label="Class Incharge" value="Dr. J. Alice" />
+                  {/* Dynamically Loaded Class Incharge */}
+                  <ReadOnlyField icon={User} label="Class Incharge" value={inchargeName} />
 
                   {/* Register Number — editable once */}
                   <div className="rounded-xl border border-[#E5E7EB] bg-[#F5F6FA] px-4 py-3">
