@@ -42,7 +42,7 @@ export const authOptions: NextAuthOptions = {
       authorization: {
         params: {
           // In production, restrict to RIT Workspace domain.
-          ...(process.env.NODE_ENV === "production" ? { hd: "ritchennai.edu.in" } : {}),
+          ...(process.env.NODE_ENV === "production" ? { hd: "aiml.ritchennai.edu.in" } : {}),
           prompt: "select_account",
         },
       },
@@ -76,17 +76,29 @@ export const authOptions: NextAuthOptions = {
 
           const authData = await res.json()
           if (!res.ok) {
-            console.error("Firebase REST Auth error:", authData.error.message)
+            console.error("[NextAuth] Firebase REST Auth error:", authData.error?.message || authData)
             return null
           }
 
           const uid = authData.localId
+          console.log(`[NextAuth] REST Auth successful for UID: ${uid}. Fetching Firestore profile...`)
 
           // 2. Fetch user profile from Firestore to get their actual role and name
-          const userDoc = await adminDb.collection("users").doc(uid).get()
-          if (!userDoc.exists) return null
+          let userDoc;
+          try {
+            userDoc = await adminDb.collection("users").doc(uid).get()
+          } catch (dbError) {
+            console.error(`[NextAuth] Firestore Admin SDK error fetching user ${uid}:`, dbError)
+            return null
+          }
+
+          if (!userDoc.exists) {
+            console.error(`[NextAuth] User ${uid} authenticated, but no Firestore document exists.`)
+            return null
+          }
           
           const userData = userDoc.data()!
+          console.log(`[NextAuth] Successfully retrieved user ${uid} from Firestore. Role: ${userData.role}`)
           
           // Return NextAuth user object
           return {

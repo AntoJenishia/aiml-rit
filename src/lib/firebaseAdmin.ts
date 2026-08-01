@@ -11,18 +11,48 @@ function getAdminApp() {
     return getApps()[0]
   }
 
+  let serviceAccount: ServiceAccount | undefined
+
+  // Try the explicit base64 variable first
   const base64Key = process.env.FIREBASE_SERVICE_ACCOUNT_BASE64
+  const legacyKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY
+
   if (base64Key) {
     try {
       const decoded = Buffer.from(base64Key, 'base64').toString('utf8')
-      const serviceAccount = JSON.parse(decoded) as ServiceAccount
+      serviceAccount = JSON.parse(decoded) as ServiceAccount
+      console.log("[Firebase Admin] Successfully parsed FIREBASE_SERVICE_ACCOUNT_BASE64")
+    } catch (err) {
+      console.error("[Firebase Admin] Failed to parse FIREBASE_SERVICE_ACCOUNT_BASE64:", err)
+    }
+  } else if (legacyKey) {
+    try {
+      // Check if it's base64 encoded (Vercel workaround)
+      if (!legacyKey.trim().startsWith('{')) {
+        const decoded = Buffer.from(legacyKey, 'base64').toString('utf8')
+        serviceAccount = JSON.parse(decoded) as ServiceAccount
+        console.log("[Firebase Admin] Successfully parsed FIREBASE_SERVICE_ACCOUNT_KEY as Base64")
+      } else {
+        serviceAccount = JSON.parse(legacyKey) as ServiceAccount
+        console.log("[Firebase Admin] Successfully parsed FIREBASE_SERVICE_ACCOUNT_KEY as raw JSON")
+      }
+    } catch (err) {
+      console.error("[Firebase Admin] Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY:", err)
+    }
+  } else {
+    console.warn("[Firebase Admin] No service account key found in environment variables.")
+  }
+
+  if (serviceAccount) {
+    try {
       return initializeApp({ credential: cert(serviceAccount) })
     } catch (err) {
-      console.error("Failed to parse FIREBASE_SERVICE_ACCOUNT_BASE64:", err)
+      console.error("[Firebase Admin] initializeApp threw an error with the parsed credential:", err)
     }
   }
 
   // Minimal fallback init with just the project ID
+  console.warn("[Firebase Admin] Falling back to unauthenticated initialization (Firestore reads may fail if locked down).")
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID
   return initializeApp({ projectId })
 }

@@ -15,3 +15,5 @@ aiml-rit-*.json
 firebase-key.json
 aiml_portal_implementation_plan.md
 antigravity_agent_prompt.md
+.vercel
+.env*
