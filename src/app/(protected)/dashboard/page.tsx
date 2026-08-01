@@ -16,8 +16,8 @@ export default function DashboardPage() {
     if (isLoading || !role) return
 
     // Staff and HOD go directly to their dashboards
-    if (role === "staff") { router.replace("/dashboard/staff"); return }
-    if (role === "hod") { router.replace("/admin"); return }
+    if (role === "staff") { router.replace("/dashboard/faculty"); return }
+    if (role === "hod") { router.replace("/dashboard/hod"); return }
 
     // Students: check if profile is complete via API route
     if (role === "student" && uid) {

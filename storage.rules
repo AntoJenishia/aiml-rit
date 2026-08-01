@@ -1,0 +1,61 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+    function isAuth()    { return request.auth != null; }
+    function uid()       { return request.auth.uid; }
+
+    // ── OD upfront proof uploads ──────────────────────────────────────────────
+    // Path: odProof/{studentUid}/{odId}/upfront/{filename}
+    match /odProof/{studentUid}/{odId}/upfront/{filename} {
+      allow read:  if isAuth();
+      allow write: if isAuth() && uid() == studentUid
+                   && request.resource.size < 10 * 1024 * 1024  // 10 MB max
+                   && request.resource.contentType.matches('image/.*|application/pdf');
+    }
+
+    // ── OD post-event proof uploads ───────────────────────────────────────────
+    // Path: odProof/{studentUid}/{odId}/postEvent/{filename}
+    match /odProof/{studentUid}/{odId}/postEvent/{filename} {
+      allow read:  if isAuth();
+      allow write: if isAuth() && uid() == studentUid
+                   && request.resource.size < 20 * 1024 * 1024  // 20 MB max
+                   && request.resource.contentType.matches('image/.*|application/pdf|video/.*');
+    }
+
+    // ── Generated OD PDFs ─────────────────────────────────────────────────────
+    // Path: odPdf/{odId}/{filename}  — written by server (Admin SDK), read by all auth users
+    match /odPdf/{odId}/{filename} {
+      allow read:  if isAuth();
+      allow write: if false;  // Admin SDK only
+    }
+
+    // ── Profile photos ────────────────────────────────────────────────────────
+    match /profilePhotos/{userUid}/{filename} {
+      allow read:  if isAuth();
+      allow write: if isAuth() && uid() == userUid
+                   && request.resource.size < 5 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+
+    // ── Event posters (HOD-created events) ───────────────────────────────────
+    match /eventPosters/{eventId}/{filename} {
+      allow read:  if isAuth();
+      allow write: if false;  // Admin SDK only (server-side event creation)
+    }
+
+    // ── Faculty highlight proof ───────────────────────────────────────────────
+    match /highlightProof/{facultyUid}/{highlightId}/{filename} {
+      allow read:  if isAuth();
+      allow write: if isAuth() && uid() == facultyUid
+                   && request.resource.size < 20 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*|application/pdf');
+    }
+
+    // ── Deny everything else ──────────────────────────────────────────────────
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

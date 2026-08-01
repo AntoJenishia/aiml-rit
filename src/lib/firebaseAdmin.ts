@@ -4,26 +4,25 @@ import { getFirestore } from "firebase-admin/firestore"
 /**
  * Firebase Admin SDK — for use in API routes and server-side code ONLY.
  *
- * Uses Application Default Credentials when GOOGLE_APPLICATION_CREDENTIALS is set,
- * otherwise falls back to project ID from env vars for minimal init.
+ * Decodes the base64 encoded service account JSON from environment variables.
  */
 function getAdminApp() {
   if (getApps().length > 0) {
     return getApps()[0]
   }
 
-  // If a service account key is provided via env var
-  const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_KEY
-  if (serviceAccountJson) {
+  const base64Key = process.env.FIREBASE_SERVICE_ACCOUNT_BASE64
+  if (base64Key) {
     try {
-      const serviceAccount = JSON.parse(serviceAccountJson) as ServiceAccount
+      const decoded = Buffer.from(base64Key, 'base64').toString('utf8')
+      const serviceAccount = JSON.parse(decoded) as ServiceAccount
       return initializeApp({ credential: cert(serviceAccount) })
-    } catch {
-      // Fall through to project ID init
+    } catch (err) {
+      console.error("Failed to parse FIREBASE_SERVICE_ACCOUNT_BASE64:", err)
     }
   }
 
-  // Minimal init with just the project ID
+  // Minimal fallback init with just the project ID
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID
   return initializeApp({ projectId })
 }

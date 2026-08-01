@@ -56,6 +56,11 @@ export default function Navbar() {
               <Link href="#" className="hover:text-blue-200">Admissions</Link>
               <Link href="#" className="hover:text-blue-200">Alumni</Link>
             </div>
+            <div className="flex items-center gap-3 border-r border-white/20 pr-4 text-[12px] font-bold uppercase tracking-wider">
+              <Link href="/login" className="flex items-center gap-1.5 text-blue-200 hover:text-white transition-colors">
+                Portal Login
+              </Link>
+            </div>
             <div className="flex items-center gap-3">
               <Youtube className="h-3.5 w-3.5 cursor-pointer transition hover:text-blue-200" />
               <Instagram className="h-3.5 w-3.5 cursor-pointer transition hover:text-blue-200" />
@@ -152,6 +157,12 @@ export default function Navbar() {
                 </Link>
               );
             })}
+            <Link
+              href="/login"
+              className="mt-2 flex items-center justify-center rounded-lg bg-blue-600 px-4 py-3 text-sm font-bold uppercase tracking-wide text-white transition-colors hover:bg-blue-700"
+            >
+              Portal Login
+            </Link>
             <div className="mt-4 grid grid-cols-2 gap-2 border-t border-slate-100 pt-4">
               <a href="mailto:mail@ritchennai.edu.in" className="flex items-center gap-2 text-[10px] font-bold text-slate-500">
                 <Mail className="h-3 w-3" /> EMAIL

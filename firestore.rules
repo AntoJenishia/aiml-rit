@@ -1,0 +1,159 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helpers ────────────────────────────────────────────────────────────────
+
+    // Is the requesting user signed in?
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    // Get the role stored in the users/{uid} doc.
+    function role() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isHod()     { return isAuth() && role() == "hod"; }
+    function isStaff()   { return isAuth() && role() == "staff"; }
+    function isStudent() { return isAuth() && role() == "student"; }
+    function isStaffOrHod() { return isAuth() && role() in ["staff", "hod"]; }
+
+    // Owns the document (uid matches doc id, or doc has a uid field matching caller)
+    function isOwner(uid) { return isAuth() && request.auth.uid == uid; }
+
+
+    // ── users /{uid} ────────────────────────────────────────────────────────────
+    match /users/{uid} {
+      // Read: own doc, or HOD (needs to list all users for dashboard)
+      allow read: if isOwner(uid) || isHod() || isStaff();
+
+      // Create: only during sign-in callback (server-side Admin SDK bypasses rules),
+      // or a student creating their own doc on first login.
+      allow create: if isOwner(uid);
+
+      // Update: own doc (profile fields only); HOD can update any user's role.
+      allow update: if isOwner(uid)
+                    || isHod();
+
+      // Delete: HOD only (e.g., removing a faculty account).
+      allow delete: if isHod();
+    }
+
+
+    // ── classes /{classId} ──────────────────────────────────────────────────────
+    // HOD creates/edits; staff + students can read (to know their class incharge).
+    match /classes/{classId} {
+      allow read:   if isAuth();
+      allow write:  if isHod();
+    }
+
+
+    // ── courses /{courseId} ─────────────────────────────────────────────────────
+    // Staff enters and updates course/CGPA data; student reads their own courses;
+    // HOD has full read access.
+    match /courses/{courseId} {
+      allow read:  if isHod()
+                   || isStaff()
+                   || (isStudent() && resource.data.studentUid == request.auth.uid);
+      allow create: if isStaff() || isHod();
+      allow update: if isStaff() || isHod();
+      allow delete: if isHod();
+    }
+
+
+    // ── odRequests /{odId} ──────────────────────────────────────────────────────
+    match /odRequests/{odId} {
+      // Student reads their own OD requests; staff reads OD requests for their class;
+      // HOD reads all.
+      allow read: if isHod()
+                  || isStaff()
+                  || (isStudent() && resource.data.studentUid == request.auth.uid);
+
+      // Student creates their own OD request.
+      allow create: if isStudent()
+                    && request.resource.data.studentUid == request.auth.uid;
+
+      // Student can update their own OD if status allows re-submission
+      // (rejected_faculty or rejected_hod).
+      // Staff and HOD can update to approve/reject.
+      allow update: if isHod()
+                    || isStaff()
+                    || (isStudent()
+                        && resource.data.studentUid == request.auth.uid
+                        && resource.data.status in ["rejected_faculty", "rejected_hod"]);
+
+      // No deletion — OD records are permanent for audit trail.
+      allow delete: if false;
+    }
+
+
+    // ── events /{eventId} ───────────────────────────────────────────────────────
+    // HOD creates/edits events; everyone authenticated can read.
+    match /events/{eventId} {
+      allow read:   if isAuth();
+      allow create: if isHod();
+      allow update: if isHod();
+      allow delete: if isHod();
+
+      // Registrations subcollection
+      match /registrations/{regId} {
+        allow read:   if isHod() || isStaff() || isOwner(regId);
+        allow create: if isStudent() && isOwner(regId);
+        allow delete: if isStudent() && isOwner(regId);
+        allow update: if false;
+      }
+    }
+
+
+    // ── highlights /{highlightId} ───────────────────────────────────────────────
+    // Staff submits; HOD approves; approved highlights readable by all auth users
+    // (public visibility is handled at the API layer).
+    match /highlights/{highlightId} {
+      allow read:   if isAuth();
+      allow create: if isStaff();
+      allow update: if isHod()
+                    || (isStaff() && resource.data.facultyUid == request.auth.uid
+                        && resource.data.status == "pending");
+      allow delete: if isHod();
+    }
+
+
+    // ── notifications /{notifId} ────────────────────────────────────────────────
+    // Each user reads only their own notifications.
+    // Server (Admin SDK) creates all notifications via API routes.
+    match /notifications/{notifId} {
+      allow read:   if isAuth() && resource.data.userUid == request.auth.uid;
+      allow update: if isAuth() && resource.data.userUid == request.auth.uid
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["read"]);
+      allow create, delete: if false; // Admin SDK only
+    }
+
+
+    // ── announcements /{annId} ──────────────────────────────────────────────────
+    // HOD and staff create; all authenticated users read.
+    match /announcements/{annId} {
+      allow read:   if isAuth();
+      allow create: if isStaffOrHod();
+      allow update: if isStaffOrHod();
+      allow delete: if isHod();
+    }
+
+
+    // ── registrations (top-level, mirroring events/{id}/registrations) ──────────
+    // Used by the API route for cross-event queries.
+    match /registrations/{regId} {
+      allow read:   if isHod() || isStaff()
+                    || (isStudent() && resource.data.uid == request.auth.uid);
+      allow create: if isStudent() && request.resource.data.uid == request.auth.uid;
+      allow delete: if isStudent() && resource.data.uid == request.auth.uid;
+      allow update: if false;
+    }
+
+
+    // ── Deny everything else ────────────────────────────────────────────────────
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

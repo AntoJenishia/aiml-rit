@@ -30,7 +30,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="md:hidden flex items-center justify-between px-4 py-3 bg-[#0f1e3d] border-b border-white/10">
         <Link href="/" className="block">
           <div className="relative h-8 w-32">
-            <Image src="/rit-header.png" alt="RIT AIML" fill className="object-contain object-left brightness-0 invert" />
+            <Image src="/rit-header.png" alt="RIT AIML" fill className="object-contain object-left" />
           </div>
         </Link>
         <button
@@ -61,8 +61,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="px-6 py-6 border-b border-white/10">
           <div className="flex items-center justify-between">
             <Link href="/" className="block flex-1">
-              <div className="relative h-10 w-full">
-                <Image src="/rit-header.png" alt="RIT AIML" fill className="object-contain object-left brightness-0 invert" />
+              <div className="relative h-10 w-full bg-white/10 rounded overflow-hidden p-1">
+                <Image src="/rit-header.png" alt="RIT AIML" fill className="object-contain object-left" />
               </div>
             </Link>
             <button
@@ -73,7 +73,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <X className="h-5 w-5" />
             </button>
           </div>
-          <p className="text-blue-300/60 text-xs mt-2 font-medium uppercase tracking-widest">Student Portal</p>
+          <p className="text-blue-300/60 text-xs mt-3 font-medium uppercase tracking-widest">
+            {user?.role === "hod" ? "HOD Portal" : user?.role === "staff" ? "Faculty Portal" : "Student Portal"}
+          </p>
         </div>
 
         {/* User info */}

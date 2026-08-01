@@ -1,10 +1,14 @@
 import type { NextAuthOptions } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
+import CredentialsProvider from "next-auth/providers/credentials"
 import { doc, setDoc, getDoc } from "firebase/firestore"
 import { db } from "./firebase"
+import { adminDb } from "./firebaseAdmin"
 import { parseStudentEmail } from "./parseStudentEmail"
 
 export type UserRole = "student" | "staff" | "hod" | "guest"
+
+const INTERNAL_DOMAIN = "@internal.aiml.rit"
 
 /**
  * Accepted email formats:
@@ -15,21 +19,17 @@ export type UserRole = "student" | "staff" | "hod" | "guest"
 export function getRole(email: string): UserRole {
   if (!email) return "guest"
   // ── DEV BYPASS ── remove before production ──────────────────
-  if (email === "antojenishia@gmail.com") return "staff"
   if (email === "antojenishiadev@gmail.com") return "hod"
   // ────────────────────────────────────────────────────────────
-  // HOD — single exact email
-  if (email === "hod.aids@ritchennai.edu.in") return "hod"
+
+  // Internal domain for faculty/HOD username logins
+  if (email.endsWith(INTERNAL_DOMAIN)) {
+    return "staff" // The actual role (staff vs hod) is fetched from Firestore during authorization
+  }
 
   // Student — format: <name>.<regno>@aiml.ritchennai.edu.in
-  // Local part must be two dot-separated segments (letters/digits, no other dots)
   const studentPattern = /^[a-zA-Z]+\.[a-zA-Z0-9]+@aiml\.ritchennai\.edu\.in$/
   if (studentPattern.test(email)) return "student"
-
-  // Staff — format: <name>@ritchennai.edu.in
-  // Local part is a single word (letters only, no dots), NOT on the aiml subdomain
-  const staffPattern = /^[a-zA-Z]+@ritchennai\.edu\.in$/
-  if (staffPattern.test(email)) return "staff"
 
   return "guest"
 }
@@ -42,18 +42,76 @@ export const authOptions: NextAuthOptions = {
       authorization: {
         params: {
           // In production, restrict to RIT Workspace domain.
-          // In dev, allow personal Gmail for testing staff/HOD dashboards.
           ...(process.env.NODE_ENV === "production" ? { hd: "ritchennai.edu.in" } : {}),
           prompt: "select_account",
         },
       },
     }),
+    CredentialsProvider({
+      name: "Faculty Login",
+      credentials: {
+        username: { label: "Username", type: "text" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.username || !credentials?.password) return null
+
+        const internalEmail = `${credentials.username}${INTERNAL_DOMAIN}`
+
+        try {
+          // 1. Verify password via Firebase Auth REST API
+          const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY
+          const res = await fetch(
+            `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                email: internalEmail,
+                password: credentials.password,
+                returnSecureToken: true,
+              }),
+            }
+          )
+
+          const authData = await res.json()
+          if (!res.ok) {
+            console.error("Firebase REST Auth error:", authData.error.message)
+            return null
+          }
+
+          const uid = authData.localId
+
+          // 2. Fetch user profile from Firestore to get their actual role and name
+          const userDoc = await adminDb.collection("users").doc(uid).get()
+          if (!userDoc.exists) return null
+          
+          const userData = userDoc.data()!
+          
+          // Return NextAuth user object
+          return {
+            id: uid,
+            email: internalEmail,
+            name: userData.name || credentials.username,
+            role: userData.role, // "staff" or "hod"
+            username: credentials.username
+          }
+        } catch (error) {
+          console.error("Authorize error:", error)
+          return null
+        }
+      },
+    }),
   ],
   callbacks: {
-    async signIn({ user }) {
+    async signIn({ user, account }) {
+      // Credentials provider handles its own validation in `authorize`
+      if (account?.provider === "credentials") return true
+
       const email = user.email ?? ""
       const role = getRole(email)
-      // Block non-RIT emails entirely
+      
+      // Block non-RIT emails for Google sign-in
       if (role === "guest") return false
 
       try {
@@ -96,10 +154,21 @@ export const authOptions: NextAuthOptions = {
       return true
     },
 
-    async jwt({ token, user }) {
-      if (user?.email) {
-        token.role = getRole(user.email)
+    async jwt({ token, user, account }) {
+      // Initial sign in
+      if (user) {
         token.uid = user.id
+        
+        if (account?.provider === "credentials") {
+          // @ts-expect-error - Custom property from our authorize callback
+          token.role = user.role
+          // @ts-expect-error - Custom property from our authorize callback
+          token.username = user.username
+          // Redact the internal email completely
+          delete token.email
+        } else if (user.email) {
+          token.role = getRole(user.email)
+        }
       }
       return token
     },
@@ -108,6 +177,13 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         session.user.role = token.role as UserRole
         session.user.uid = token.uid as string
+        
+        // Ensure email is stripped for faculty/HOD
+        if (token.username && !token.email) {
+          delete session.user.email
+          // @ts-expect-error - Add username to the session
+          session.user.username = token.username as string
+        }
       }
       return session
     },

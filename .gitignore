@@ -8,3 +8,10 @@ dist
 .env.local
 .env.*.local
 
+# Firebase Service Accounts & Secrets
+*firebase-adminsdk*.json
+*service-account*.json
+aiml-rit-*.json
+firebase-key.json
+aiml_portal_implementation_plan.md
+antigravity_agent_prompt.md
