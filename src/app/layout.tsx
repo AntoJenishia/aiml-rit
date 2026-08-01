@@ -41,7 +41,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
         />
       </head>
-      <body className={`${inter.variable} font-sans overflow-x-hidden antialiased`}>
+      <body className={`${inter.variable} font-sans overflow-x-hidden antialiased`} suppressHydrationWarning>
         <SessionProvider>
           {/*
             PublicChrome reads the current pathname and conditionally renders
