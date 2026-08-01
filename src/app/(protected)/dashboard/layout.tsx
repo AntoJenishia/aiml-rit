@@ -47,8 +47,8 @@ const getNavItems = (role?: string, isClassIncharge?: boolean) => {
   }
   // student (default)
   return [
-    { href: "/dashboard/student", label: "My Dashboard",   icon: LayoutDashboard, exact: false },
-    { href: "/profile",           label: "My Profile",     icon: User,            exact: false },
+    { href: "/dashboard/student", label: "My Dashboard",   icon: LayoutDashboard, exact: true },
+    { href: "/dashboard/student?tab=profile", label: "My Profile",     icon: User,            exact: false, tab: "profile" },
     { href: "/events",            label: "Events",         icon: FileText,        exact: false },
   ]
 }
@@ -163,7 +163,14 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
                 active = item.exact ? pathname === item.href : pathname.startsWith(item.href) && item.href !== "/"
               }
             } else {
-              active = item.exact ? pathname === item.href : pathname.startsWith(item.href) && item.href !== "/"
+              const itemAny = item as any
+              if (itemAny.tab) {
+                const currentTab = searchParams.get("tab")
+                active = pathname.startsWith("/dashboard/student") && currentTab === itemAny.tab
+              } else {
+                const currentTab = searchParams.get("tab")
+                active = item.exact ? (pathname === item.href && !currentTab) : pathname.startsWith(item.href) && item.href !== "/"
+              }
             }
             const isPublic = item.href === "/"
             return (
