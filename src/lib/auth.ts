@@ -1,7 +1,7 @@
 import type { NextAuthOptions } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
 import CredentialsProvider from "next-auth/providers/credentials"
-import { doc, setDoc, getDoc } from "firebase/firestore"
+import { doc, setDoc, getDoc, deleteDoc } from "firebase/firestore"
 import { db } from "./firebase"
 import { adminDb } from "./firebaseAdmin"
 import { parseStudentEmail } from "./parseStudentEmail"
@@ -129,7 +129,25 @@ export const authOptions: NextAuthOptions = {
       try {
         const userRef = doc(db, "users", user.id!)
         const snap = await getDoc(userRef)
-        if (!snap.exists()) {
+        
+        // Check if there is a pre-imported student record under their email
+        const emailRef = doc(db, "users", email)
+        const emailSnap = await getDoc(emailRef)
+
+        if (emailSnap.exists()) {
+          const importedData = emailSnap.data()
+          const mergedData = {
+            ...importedData,
+            uid: user.id!,
+            photoURL: user.image ?? importedData.photoURL ?? "",
+            name: user.name ?? importedData.name ?? "",
+            lastLogin: new Date(),
+            profileComplete: true, // Mark complete because all details were pre-entered by HOD
+          }
+          await setDoc(userRef, mergedData)
+          await deleteDoc(emailRef)
+          console.log(`[NextAuth] Successfully merged imported student document for ${email}`)
+        } else if (!snap.exists()) {
           // Base user document
           const userData: Record<string, unknown> = {
             email,

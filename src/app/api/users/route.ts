@@ -2,13 +2,14 @@ import { NextResponse } from "next/server"
 import { db } from "@/lib/firebase"
 import {
   collection, getDocs, getDoc, doc, setDoc,
-  query, orderBy,
+  query, orderBy, where,
 } from "firebase/firestore"
 
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url)
-    const uid = searchParams.get("uid")
+    const uid     = searchParams.get("uid")
+    const classId = searchParams.get("classId")
 
     // Single user fetch
     if (uid) {
@@ -17,6 +18,18 @@ export async function GET(req: Request) {
         return NextResponse.json(null, { status: 404 })
       }
       return NextResponse.json({ uid: snap.id, ...snap.data() })
+    }
+
+    // Find class incharge by classId
+    if (classId) {
+      const q = query(collection(db, "users"),
+        where("classId", "==", classId),
+        where("isClassIncharge", "==", true)
+      )
+      const snap = await getDocs(q)
+      if (snap.empty) return NextResponse.json(null, { status: 404 })
+      const d = snap.docs[0]
+      return NextResponse.json({ uid: d.id, ...d.data() })
     }
 
     // All users

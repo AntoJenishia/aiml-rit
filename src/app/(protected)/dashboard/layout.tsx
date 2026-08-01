@@ -1,6 +1,7 @@
 "use client"
 import { useAuth } from "@/lib/hooks/useAuth"
-import { usePathname } from "next/navigation"
+import { useUser } from "@/lib/hooks/useUser"
+import { usePathname, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
 import { signOut } from "next-auth/react"
@@ -8,7 +9,8 @@ import { useState, useEffect } from "react"
 import {
   LayoutDashboard, User, LogOut, Menu, X,
   Settings, Users, FileText, ChevronRight, Home,
-  GraduationCap, Shield,
+  GraduationCap, Shield, TrendingUp, Megaphone,
+  CalendarPlus, BarChart3, Award, Clock, Briefcase,
 } from "lucide-react"
 import clsx from "clsx"
 
@@ -18,43 +20,53 @@ const ROLE_ACCENT: Record<string, { gradient: string; badge: string; badgeText: 
   student: { gradient: "from-[#3B5BFF] to-[#2563EB]",   badge: "bg-white/10 text-white border border-white/20",       badgeText: "Student Portal" },
 }
 
-const getNavItems = (role?: string) => {
+const getNavItems = (role?: string, isClassIncharge?: boolean) => {
   if (role === "hod") {
     return [
-      { href: "/dashboard/hod", label: "HOD Dashboard",  icon: Shield,          exact: false },
-      { href: "/admin",         label: "Admin Panel",     icon: LayoutDashboard,  exact: false },
-      { href: "/profile",       label: "My Profile",      icon: User,            exact: false },
-      { href: "/",              label: "Public Site",     icon: Home,            exact: false },
+      { href: "/admin",                   label: "Students",        icon: GraduationCap,   exact: true },
+      { href: "/admin?tab=faculty",       label: "Faculty",         icon: Users,           exact: false },
+      { href: "/admin?tab=od",            label: "OD Approvals",    icon: FileText,        exact: false },
+      { href: "/admin?tab=achievements",  label: "Achievements",    icon: Award,           exact: false },
+      { href: "/profile",                 label: "My Profile",      icon: User,            exact: false },
+      { href: "/",                        label: "Public Site",     icon: Home,            exact: false },
     ]
   }
   if (role === "staff") {
-    return [
-      { href: "/dashboard/faculty", label: "Faculty Dashboard", icon: Users,    exact: false },
-      { href: "/profile",           label: "My Profile",        icon: User,     exact: false },
-      { href: "/",                  label: "Public Site",       icon: Home,     exact: false },
+    const baseItems = [
+      { href: "/dashboard/faculty?tab=portfolio", label: "My Portfolio",      icon: Briefcase,        exact: false, tab: "portfolio" },
+      { href: "/dashboard/faculty?tab=profile",  label: "My Profile",        icon: User,             exact: false, tab: "profile" },
     ]
+    if (isClassIncharge) {
+      return [
+        { href: "/dashboard/faculty?tab=class",     label: "My Class",          icon: Users,            exact: false, tab: "class" },
+        { href: "/dashboard/faculty?tab=od",        label: "OD Approvals",      icon: Clock,            exact: false, tab: "od" },
+        ...baseItems,
+      ]
+    }
+    return baseItems
   }
   // student (default)
   return [
     { href: "/dashboard/student", label: "My Dashboard",   icon: LayoutDashboard, exact: false },
     { href: "/profile",           label: "My Profile",     icon: User,            exact: false },
     { href: "/events",            label: "Events",         icon: FileText,        exact: false },
-    { href: "/",                  label: "Public Site",    icon: Home,            exact: false },
   ]
 }
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth()
+  const { isClassIncharge } = useUser()
   const pathname = usePathname()
+  const searchParams = useSearchParams()
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   useEffect(() => setSidebarOpen(false), [pathname])
 
-  const navItems = getNavItems(user?.role)
+  const navItems = getNavItems(user?.role, isClassIncharge)
   const roleConfig = ROLE_ACCENT[user?.role ?? "student"] ?? ROLE_ACCENT.student
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-[#F5F6FA] text-[#111827]">
+    <div className="h-screen flex flex-col md:flex-row bg-[#F5F6FA] text-[#111827] overflow-hidden">
 
       {/* Mobile top bar */}
       <div className="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-[#E5E7EB] shadow-sm">
@@ -79,7 +91,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* ── Sidebar ── */}
       <aside className={clsx(
-        "fixed inset-y-0 left-0 z-50 w-64 flex flex-col transition-transform duration-300 ease-out md:relative md:translate-x-0 md:shrink-0",
+        "fixed inset-y-0 left-0 z-50 w-64 flex flex-col transition-transform duration-300 ease-out md:sticky md:top-0 md:translate-x-0 md:shrink-0 md:h-screen",
         sidebarOpen ? "translate-x-0" : "-translate-x-full"
       )}>
 
@@ -88,8 +100,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {/* Brand */}
           <div className="px-5 pt-5 pb-4 flex items-center justify-between">
             <Link href="/" className="block flex-1">
-              <div className="relative h-9 w-40">
-                <Image src="/rit-header.png" alt="RIT AIML" fill sizes="160px" className="object-contain object-left" style={{ filter: "brightness(0) invert(1)" }} />
+              <div className="bg-white rounded-2xl px-3 py-2.5 shadow-sm">
+                <div className="relative h-16 w-full">
+                  <Image src="/rit-header.png" alt="RIT AIML" fill sizes="200px"
+                    className="object-contain object-left"
+                    style={user?.role === "hod" ? { filter: "brightness(0) invert(1)" } : {}} />
+                </div>
               </div>
             </Link>
             <button onClick={() => setSidebarOpen(false)}
@@ -128,7 +144,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Navigation */}
         <nav className="flex-1 bg-white px-3 py-4 space-y-0.5 overflow-y-auto border-r border-[#E5E7EB]">
           {navItems.map((item) => {
-            const active = item.exact ? pathname === item.href : pathname.startsWith(item.href) && item.href !== "/"
+            let active = false
+            if (user?.role === "hod") {
+              const itemUrl = new URL(item.href, "http://localhost")
+              const itemTab = itemUrl.searchParams.get("tab") || "students"
+              const currentTab = searchParams.get("tab") || "students"
+              active = pathname === "/admin" && itemTab === currentTab && item.href.startsWith("/admin")
+              if (item.href === "/profile") active = pathname === "/profile"
+              if (item.href === "/") active = pathname === "/"
+            } else if (user?.role === "staff") {
+              const itemAny = item as any
+              if (itemAny.tab) {
+                const currentTab = searchParams.get("tab") || (isClassIncharge ? "class" : "portfolio")
+                active = pathname.startsWith("/dashboard/faculty") && currentTab === itemAny.tab
+              } else {
+                active = item.exact ? pathname === item.href : pathname.startsWith(item.href) && item.href !== "/"
+              }
+            } else {
+              active = item.exact ? pathname === item.href : pathname.startsWith(item.href) && item.href !== "/"
+            }
             const isPublic = item.href === "/"
             return (
               <Link key={item.href} href={item.href}
@@ -163,7 +197,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </aside>
 
       {/* ── Main content ── */}
-      <main className="flex-1 overflow-auto min-w-0 p-4 md:p-8">
+      <main className="flex-1 overflow-y-auto min-w-0 p-4 md:p-8">
         <div className="max-w-7xl mx-auto">
           {children}
         </div>

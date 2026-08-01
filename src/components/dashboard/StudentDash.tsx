@@ -29,6 +29,8 @@ interface ODRequest {
   finalPdfUrl?: string
   facultyRejectReason?: string
   hodRejectReason?: string
+  driveFolderId?: string
+  driveFolderUrl?: string
   createdAt?: any
 }
 
@@ -86,27 +88,42 @@ function ODModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () =>
       setError("Please fill all required fields.")
       return
     }
-    if (!proofFile) { setError("Please upload the upfront proof document."); return }
+    let proofFileB64 = ""
+    let proofFileName = ""
+    let proofMimeType = ""
 
-    setUploading(true)
+    if (proofFile) {
+      setUploading(true)
+      try {
+        const toBase64 = (file: File): Promise<string> => new Promise((resolve, reject) => {
+          const reader = new FileReader()
+          reader.readAsDataURL(file)
+          reader.onload = () => resolve((reader.result as string).split(',')[1])
+          reader.onerror = error => reject(error)
+        })
+        proofFileB64 = await toBase64(proofFile)
+        proofFileName = proofFile.name
+        proofMimeType = proofFile.type
+      } catch (err) {
+        setError("Failed to process proof file.")
+        setUploading(false)
+        return
+      }
+      setUploading(false)
+    }
 
-    // 1. Upload proof file via the existing upload API
-    const fd = new FormData()
-    fd.append("file", proofFile)
-    fd.append("folder", "odProof")
-    const uploadRes = await fetch("/api/upload", { method: "POST", body: fd })
-    const uploadData = await uploadRes.json()
-    if (!uploadRes.ok) { setError(uploadData.error || "Upload failed."); setUploading(false); return }
-    const upfrontProofUrl = uploadData.url
-
-    setUploading(false)
     setSubmitting(true)
 
     // 2. Submit OD request
     const res = await fetch("/api/od", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, upfrontProofUrl }),
+      body: JSON.stringify({ 
+        ...form, 
+        proofFileB64, 
+        proofFileName, 
+        proofMimeType 
+      }),
     })
     const data = await res.json()
     if (!res.ok) { setError(data.error || "Submission failed."); setSubmitting(false); return }
@@ -206,7 +223,7 @@ function ODModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () =>
 
           {/* Proof upload */}
           <div>
-            <label className="block text-xs font-bold text-[#111827] mb-1.5">Upfront Proof (PDF or Image) *</label>
+            <label className="block text-xs font-bold text-[#111827] mb-1.5">Upfront Proof (PDF or Image)</label>
             <input ref={fileRef} type="file" accept="application/pdf,image/*" className="hidden"
               onChange={e => setProofFile(e.target.files?.[0] || null)} />
             <button onClick={() => fileRef.current?.click()}
@@ -233,6 +250,101 @@ function ODModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () =>
   )
 }
 
+// ── Post-OD Proof Modal ────────────────────────────────────────────────────────
+function PostODProofModal({ od, onClose, onSuccess }: { od: ODRequest; onClose: () => void; onSuccess: () => void }) {
+  const [description, setDescription] = useState("")
+  const [files, setFiles] = useState<File[]>([])
+  const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState("")
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  const handleSubmit = async () => {
+    setError("")
+    if (!description.trim() && files.length === 0) {
+      setError("Please provide a description or upload proof files.")
+      return
+    }
+
+    setUploading(true)
+
+    try {
+      const toBase64 = (file: File): Promise<string> => new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.readAsDataURL(file)
+        reader.onload = () => resolve((reader.result as string).split(',')[1])
+        reader.onerror = error => reject(error)
+      })
+
+      const filePayloads = await Promise.all(files.map(async f => ({
+        name: f.name,
+        mimeType: f.type,
+        base64: await toBase64(f)
+      })))
+
+      const res = await fetch(`/api/od/${od.id}/proof`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          description,
+          files: filePayloads,
+          refNumber: od.referenceNumber,
+          folderId: od.driveFolderId
+        }),
+      })
+
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Submission failed.")
+
+      onSuccess()
+      onClose()
+    } catch (err: any) {
+      setError(err.message)
+      setUploading(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={onClose}>
+      <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="px-6 pt-6 pb-4 border-b border-[#E5E7EB] flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-black text-[#111827]">Submit Post-OD Proof</h2>
+            <p className="text-xs text-[#6B7280] mt-0.5">Upload photos & certificates for {od.eventName}</p>
+          </div>
+          <button onClick={onClose} className="text-[#94A3B8] hover:text-[#111827] p-1 rounded-lg hover:bg-[#F5F6FA]"><X className="h-5 w-5" /></button>
+        </div>
+        <div className="px-6 py-5 space-y-4">
+          {error && <div className="p-3 bg-red-50 text-red-600 text-sm rounded-xl">{error}</div>}
+          <div>
+            <label className="block text-xs font-bold text-[#111827] mb-1.5">What did you achieve / learn?</label>
+            <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} placeholder="Briefly describe your experience..." className="w-full rounded-xl border border-[#E5E7EB] bg-[#F5F6FA] px-4 py-2.5 text-sm text-[#111827] focus:border-[#3B5BFF] focus:outline-none focus:ring-2 focus:ring-[#3B5BFF]/20 resize-none" />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-[#111827] mb-1.5">Upload Files (Photos, Certificates)</label>
+            <input ref={fileRef} type="file" multiple accept="image/*,application/pdf" className="hidden" onChange={e => setFiles(Array.from(e.target.files || []))} />
+            <button onClick={() => fileRef.current?.click()} className="w-full flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[#E5E7EB] bg-[#F5F6FA] py-6 text-sm font-semibold text-[#6B7280] hover:border-[#3B5BFF] hover:text-[#3B5BFF] transition-all">
+              <Upload className="h-5 w-5" />
+              {files.length > 0 ? `${files.length} file(s) selected` : "Click to select files"}
+            </button>
+            {files.length > 0 && (
+              <ul className="mt-2 text-xs text-[#6B7280] space-y-1">
+                {files.map(f => <li key={f.name} className="truncate">• {f.name}</li>)}
+              </ul>
+            )}
+          </div>
+        </div>
+        <div className="px-6 pb-6 pt-4 border-t border-[#E5E7EB] flex gap-3">
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-[#E5E7EB] text-sm font-bold text-[#6B7280] hover:bg-[#F5F6FA]">Cancel</button>
+          <button onClick={handleSubmit} disabled={uploading} className="flex-1 py-2.5 rounded-xl bg-[#3B5BFF] text-white text-sm font-bold hover:bg-[#2563EB] disabled:opacity-60 flex items-center justify-center gap-2">
+            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
+            {uploading ? "Submitting..." : "Submit Proof"}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Main StudentDash ─────────────────────────────────────────────────────────
 export default function StudentDash() {
   const { uid, name, email, image } = useUser()
@@ -246,13 +358,11 @@ export default function StudentDash() {
   const [odRequests,    setOdRequests]    = useState<ODRequest[]>([])
   const [loadingOD,     setLoadingOD]     = useState(true)
   const [showODForm,    setShowODForm]    = useState(false)
+  const [selectedODForProof, setSelectedODForProof] = useState<ODRequest | null>(null)
   const [activeTab,     setActiveTab]     = useState<"courses" | "od">("courses")
-
-  const mockClassIncharge = "Dr. J. Alice"
-  const mockSemester      = "6"
-  const mockCGPA          = "8.7"
-  const mockCourses       = 4
-  const mockAwards        = 2
+  const [profile,       setProfile]       = useState<any>(null)
+  const [loadingProfile, setLoadingProfile] = useState(true)
+  const [classInchargeName, setClassInchargeName] = useState<string>("—")
 
   useEffect(() => {
     async function load() {
@@ -263,9 +373,24 @@ export default function StudentDash() {
         if (uid) {
           const regs = await getRegistrationsByUser(uid)
           setRegistered(new Set(regs.map(r => r.eventId)))
+          // Fetch student profile
+          const pRes = await fetch(`/api/users?uid=${uid}`)
+          if (pRes.ok) {
+            const p = await pRes.json()
+            setProfile(p)
+            // Fetch class incharge using classId
+            if (p?.classId) {
+              const inchargeRes = await fetch(`/api/users?classId=${encodeURIComponent(p.classId)}`)
+              if (inchargeRes.ok) {
+                const incharge = await inchargeRes.json()
+                if (incharge?.name) setClassInchargeName(incharge.name)
+              }
+            }
+          }
         }
       } catch { /* silently fail */ }
       setLoadingData(false)
+      setLoadingProfile(false)
     }
     load()
   }, [uid])
@@ -300,11 +425,24 @@ export default function StudentDash() {
   const pendingODs   = odRequests.filter(o => o.status === "pending_faculty" || o.status === "pending_hod").length
   const approvedODs  = odRequests.filter(o => o.status === "approved" || o.status === "completed").length
 
+  // Real data from Firestore profile
+  const realSemester      = profile?.semester ?? "—"
+  const realCGPA          = profile?.cgpa ?? "—"
+  const realSection       = profile?.section ?? ""
+  const realBatch         = profile?.batch ?? ""
+
   return (
     <div className="min-h-full space-y-6">
 
       {/* OD Modal */}
       {showODForm && <ODModal onClose={() => setShowODForm(false)} onSuccess={loadODs} />}
+      {selectedODForProof && (
+        <PostODProofModal
+          od={selectedODForProof}
+          onClose={() => setSelectedODForProof(null)}
+          onSuccess={loadODs}
+        />
+      )}
 
       {/* ── Welcome Banner ── */}
       <div className="relative overflow-hidden rounded-2xl"
@@ -334,11 +472,11 @@ export default function StudentDash() {
           <div className="flex flex-wrap gap-3 shrink-0">
             <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl px-4 py-3 text-center min-w-[90px]">
               <p className="text-white/60 text-[10px] font-bold uppercase tracking-wider">Class Incharge</p>
-              <p className="text-white font-bold text-sm mt-1">{mockClassIncharge}</p>
+              <p className="text-white font-bold text-sm mt-1">{classInchargeName}</p>
             </div>
             <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl px-4 py-3 text-center min-w-[90px]">
               <p className="text-white/60 text-[10px] font-bold uppercase tracking-wider">Semester</p>
-              <p className="text-white font-black text-xl mt-0.5">{mockSemester}</p>
+              <p className="text-white font-black text-xl mt-0.5">{realSemester}</p>
             </div>
           </div>
         </div>
@@ -347,10 +485,8 @@ export default function StudentDash() {
       {/* ── Stat Cards ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: "CGPA",       value: mockCGPA,       icon: TrendingUp,   border: "border-l-[#3B5BFF]", iconBg: "bg-[#3B5BFF]/10", iconColor: "text-[#3B5BFF]", sub: "Current GPA" },
-          { label: "Courses",    value: mockCourses,    icon: BookOpen,     border: "border-l-[#7C3AED]", iconBg: "bg-[#7C3AED]/10", iconColor: "text-[#7C3AED]", sub: "This semester" },
-          { label: "Awards",     value: mockAwards,     icon: Trophy,       border: "border-l-[#D97706]", iconBg: "bg-[#D97706]/10", iconColor: "text-[#D97706]", sub: "Achievements" },
-          { label: "OD Pending", value: pendingODs,     icon: FileText,     border: "border-l-[#EF4444]", iconBg: "bg-[#EF4444]/10", iconColor: "text-[#EF4444]", sub: `${approvedODs} approved` },
+          { label: "Awards",     value: "—",      icon: Trophy,    border: "border-l-[#D97706]", iconBg: "bg-[#D97706]/10", iconColor: "text-[#D97706]", sub: "Achievements" },
+          { label: "OD Pending", value: pendingODs, icon: FileText, border: "border-l-[#EF4444]", iconBg: "bg-[#EF4444]/10", iconColor: "text-[#EF4444]", sub: `${approvedODs} approved` },
         ].map(s => (
           <div key={s.label} className={`bg-white rounded-xl p-5 shadow-sm border border-[#E5E7EB] border-l-4 ${s.border} hover:shadow-md transition-shadow`}>
             <div className="flex items-start justify-between mb-3">
@@ -397,28 +533,15 @@ export default function StudentDash() {
                   <BookOpen className="h-4 w-4 text-[#3B5BFF]" /> My Courses
                 </h2>
                 <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-[#3B5BFF]/10 text-[#3B5BFF]">
-                  Semester {mockSemester}
+                  Semester {realSemester}{realSection ? ` · Section ${realSection}` : ""}
                 </span>
               </div>
               <div className="divide-y divide-[#E5E7EB]">
-                {[
-                  { name: "Machine Learning Fundamentals",   code: "AI6001", credits: 4, accent: "#3B5BFF" },
-                  { name: "Deep Learning & Neural Networks", code: "AI6002", credits: 4, accent: "#7C3AED" },
-                  { name: "Computer Vision",                 code: "AI6003", credits: 3, accent: "#16A34A" },
-                  { name: "NLP & Transformers",              code: "AI6004", credits: 4, accent: "#D97706" },
-                ].map((c, i) => (
-                  <div key={c.code} className="flex items-center gap-4 px-6 py-4 hover:bg-[#F5F6FA] transition-colors">
-                    <div className="h-9 w-9 rounded-xl text-white flex items-center justify-center text-sm font-black shrink-0"
-                      style={{ backgroundColor: c.accent }}>
-                      {i + 1}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-[#111827] truncate">{c.name}</p>
-                      <p className="text-xs text-[#6B7280]">{c.code} · {c.credits} Credits</p>
-                    </div>
-                    <span className="text-[10px] font-bold text-[#16A34A] bg-green-50 px-2.5 py-1 rounded-full">Active</span>
-                  </div>
-                ))}
+                <div className="flex flex-col items-center justify-center py-14 text-center">
+                  <BookOpen className="h-8 w-8 text-[#94A3B8] mb-3" />
+                  <p className="text-sm font-bold text-[#111827]">Course data not available</p>
+                  <p className="text-xs text-[#6B7280] mt-1">Your courses will appear here once linked by the department.</p>
+                </div>
               </div>
             </div>
           )}
@@ -481,7 +604,7 @@ export default function StudentDash() {
                             <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold ${sc.bg} ${sc.color}`}>
                               <StatusIcon className="h-3 w-3" /> {sc.label}
                             </div>
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 items-center flex-wrap justify-end">
                               {(od.pdfUrl || od.finalPdfUrl) && (
                                 <a href={od.finalPdfUrl || od.pdfUrl} target="_blank" rel="noopener noreferrer"
                                   className="flex items-center gap-1 text-[10px] font-bold text-[#3B5BFF] hover:underline">
@@ -492,6 +615,12 @@ export default function StudentDash() {
                                 className="flex items-center gap-1 text-[10px] font-bold text-[#6B7280] hover:underline">
                                 <ExternalLink className="h-3 w-3" /> Verify
                               </a>
+                              {od.status === "approved" && (
+                                <button onClick={() => setSelectedODForProof(od)}
+                                  className="flex items-center gap-1 px-2 py-1 bg-[#16A34A] text-white text-[10px] font-bold rounded hover:bg-[#15803D]">
+                                  <Upload className="h-3 w-3" /> Submit Proof
+                                </button>
+                              )}
                             </div>
                           </div>
                         </div>

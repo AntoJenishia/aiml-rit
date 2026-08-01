@@ -23,30 +23,23 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json()
-    const { username, password, displayName } = body
+    const { staff_name, staff_code, department, designation, email, phone, gender, password } = body
 
-    if (!username || !password || !displayName) {
+    if (!staff_name || !staff_code || !password) {
       return NextResponse.json(
-        { error: "username, password, and displayName are required" },
+        { error: "Staff name, staff code, and password are required" },
         { status: 400 }
       )
     }
 
-    // Validate username (letters, numbers, underscores only)
-    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-      return NextResponse.json(
-        { error: "Username may only contain letters, numbers, and underscores" },
-        { status: 400 }
-      )
-    }
+    // Use provided email or fallback to an internal one
+    const userEmail = email?.trim() || `${staff_code.toLowerCase()}@internal.aiml.rit`
 
-    const internalEmail = `${username}${INTERNAL_DOMAIN}`
-
-    // Check if username already taken
+    // Check if email already taken
     try {
-      const existing = await adminAuth.getUserByEmail(internalEmail)
+      const existing = await adminAuth.getUserByEmail(userEmail)
       if (existing) {
-        return NextResponse.json({ error: "Username already taken" }, { status: 409 })
+        return NextResponse.json({ error: "Email or Staff Code already taken" }, { status: 409 })
       }
     } catch {
       // User not found — continue to create
@@ -54,16 +47,21 @@ export async function POST(req: Request) {
 
     // Create Firebase Auth user
     const authUser = await adminAuth.createUser({
-      email: internalEmail,
+      email: userEmail,
       password,
-      displayName,
+      displayName: staff_name,
       emailVerified: true,
     })
 
     // Create Firestore user doc
     await adminDb.collection("users").doc(authUser.uid).set({
-      username,
-      name: displayName,
+      name: staff_name,
+      staffCode: staff_code,
+      department: department || "",
+      designation: designation || "",
+      email: userEmail,
+      phone: phone || "",
+      gender: gender || "",
       role: "staff",
       photoURL: "",
       isClassIncharge: false,
