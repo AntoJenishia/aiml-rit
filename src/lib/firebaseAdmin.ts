@@ -1,5 +1,6 @@
 import { initializeApp, getApps, cert, type ServiceAccount } from "firebase-admin/app"
 import { getFirestore } from "firebase-admin/firestore"
+import { getAuth } from "firebase-admin/auth"
 
 /**
  * Firebase Admin SDK — for use in API routes and server-side code ONLY.
@@ -59,3 +60,4 @@ function getAdminApp() {
 
 const adminApp = getAdminApp()
 export const adminDb = getFirestore(adminApp)
+export const adminAuth = getAuth(adminApp)

@@ -62,9 +62,8 @@ export default function ProfilePage() {
 
   if (isLoading || loadingProfile) {
     return (
-      <div className="min-h-screen flex items-center justify-center"
-        style={{ background: "linear-gradient(160deg, #f8faff 0%, #eef2ff 50%, #f5f8ff 100%)" }}>
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600" />
+      <div className="min-h-screen flex items-center justify-center bg-[#F5F6FA]">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#E5E7EB] border-t-[#3B5BFF]" />
       </div>
     )
   }
@@ -75,13 +74,12 @@ export default function ProfilePage() {
   const hasRegNumber = !!profile?.registerNumber
 
   return (
-    <div className="min-h-screen p-4 md:p-8"
-      style={{ background: "linear-gradient(160deg, #f8faff 0%, #eef2ff 50%, #f5f8ff 100%)" }}>
+    <div className="min-h-screen p-4 md:p-8 bg-[#F5F6FA]">
       <div className="max-w-2xl mx-auto">
 
         {/* Back link */}
         <Link href="/dashboard"
-          className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-blue-600 mb-4 md:mb-6 transition-colors min-h-[44px]">
+          className="inline-flex items-center gap-2 text-sm font-medium text-[#6B7280] hover:text-[#3B5BFF] mb-4 md:mb-6 transition-colors min-h-[44px]">
           <ArrowLeft className="h-4 w-4" /> Back to Dashboard
         </Link>
 
@@ -93,11 +91,10 @@ export default function ProfilePage() {
         )}
 
         {/* Profile card */}
-        <div className="rounded-3xl border border-slate-200/80 bg-white/80 backdrop-blur-sm shadow-lg overflow-hidden">
+        <div className="rounded-2xl border border-[#E5E7EB] bg-[#FFFFFF] shadow-sm overflow-hidden">
 
-          {/* Cover gradient */}
-          <div className="h-20 sm:h-32 w-full"
-            style={{ background: "linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #7c3aed 100%)" }} />
+          {/* Cover bar (flat color instead of gradient) */}
+          <div className="h-20 sm:h-32 w-full bg-[#3B5BFF]" />
 
           {/* Avatar */}
           <div className="px-4 sm:px-8 pb-6 sm:pb-8">
@@ -105,9 +102,9 @@ export default function ProfilePage() {
               <div className="relative">
                 {user?.image ? (
                   <Image src={user.image} alt={name} width={72} height={72}
-                    className="rounded-2xl ring-4 ring-white shadow-xl w-16 h-16 sm:w-20 sm:h-20" />
+                    className="rounded-full ring-4 ring-white shadow-sm w-16 h-16 sm:w-20 sm:h-20" />
                 ) : (
-                  <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 ring-4 ring-white shadow-xl flex items-center justify-center text-white text-xl sm:text-2xl font-bold">
+                  <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-[#3B5BFF] ring-4 ring-white shadow-sm flex items-center justify-center text-white text-xl sm:text-2xl font-bold">
                     {name?.[0] ?? <User className="h-8 w-8" />}
                   </div>
                 )}
@@ -132,30 +129,32 @@ export default function ProfilePage() {
                   <ReadOnlyField icon={BookOpen} label="Department" value={profile?.department ?? "—"} />
                   <ReadOnlyField icon={Calendar} label="Batch" value={profile?.batch ?? "—"} />
                   <ReadOnlyField icon={GraduationCap} label="Current Year" value={profile?.currentYear ?? "—"} />
-                  <ReadOnlyField icon={Hash} label="Roll Number" value={profile?.rollNumber ?? "—"} />
+                  
+                  {/* Mocked Class Incharge - Real wiring in Phase 3 */}
+                  <ReadOnlyField icon={User} label="Class Incharge" value="Dr. J. Alice" />
 
                   {/* Register Number — editable once */}
-                  <div className="rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-3">
+                  <div className="rounded-xl border border-[#E5E7EB] bg-[#F5F6FA] px-4 py-3">
                     <div className="flex items-center gap-3">
-                      <Hash className="h-4 w-4 text-slate-400 shrink-0" />
+                      <Hash className="h-4 w-4 text-[#94A3B8] shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Register Number</p>
+                        <p className="text-xs font-semibold text-[#6B7280] uppercase tracking-wide">Register Number</p>
                         {hasRegNumber && !editingReg ? (
-                          <p className="text-sm font-medium text-slate-700 mt-0.5 font-mono">{profile?.registerNumber}</p>
+                          <p className="text-sm font-medium text-[#111827] mt-0.5 font-mono">{profile?.registerNumber}</p>
                         ) : (
                           <div className="mt-1.5">
                             <input
                               value={regNumber}
                               onChange={(e) => setRegNumber(e.target.value)}
                               placeholder="e.g. 7376222CS101"
-                              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-base sm:text-sm min-h-[44px] font-medium text-slate-800 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                              className="w-full rounded-lg border border-[#E5E7EB] px-3 py-2 text-base sm:text-sm min-h-[44px] font-medium text-[#111827] focus:outline-none focus:border-[#3B5BFF] focus:ring-2 focus:ring-[#3B5BFF]/20"
                               disabled={hasRegNumber && !editingReg}
                               autoFocus
                             />
                             <button
                               onClick={handleSaveReg}
                               disabled={!regNumber.trim() || savingReg}
-                              className="mt-2 flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 min-h-[44px] text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50 transition-all w-full sm:w-auto">
+                              className="mt-2 flex items-center justify-center gap-2 rounded-lg bg-[#3B5BFF] px-4 py-2 min-h-[44px] text-xs font-bold text-white hover:bg-[#2563EB] disabled:opacity-50 transition-all w-full sm:w-auto">
                               {savingReg ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
                               {savingReg ? "Saving…" : "Save Register Number"}
                             </button>
@@ -207,11 +206,11 @@ function ReadOnlyField({
   icon: React.ElementType; label: string; value: string; mono?: boolean; capitalize?: boolean
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-3">
-      <Icon className="h-4 w-4 text-slate-400 shrink-0" />
+    <div className="flex items-center gap-3 rounded-xl border border-[#E5E7EB] bg-[#F5F6FA] px-4 py-3">
+      <Icon className="h-4 w-4 text-[#94A3B8] shrink-0" />
       <div className="min-w-0">
-        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">{label}</p>
-        <p className={`text-sm font-medium text-slate-700 mt-0.5 ${mono ? "font-mono text-xs break-all" : ""} ${capitalize ? "capitalize" : ""}`}>
+        <p className="text-xs font-bold text-[#6B7280] uppercase tracking-wide">{label}</p>
+        <p className={`text-sm font-semibold text-[#111827] mt-0.5 ${mono ? "font-mono text-xs break-all" : ""} ${capitalize ? "capitalize" : ""}`}>
           {value}
         </p>
       </div>

@@ -1,9 +1,17 @@
 import { NextResponse } from "next/server"
-import { storage } from "@/lib/firebase"
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
+import { getStorage } from "firebase-admin/storage"
+import { getApps } from "firebase-admin/app"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
+import "@/lib/firebaseAdmin" // Ensure admin is initialized
 
 export async function POST(req: Request) {
   try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.uid) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
     const formData = await req.formData()
     const file = formData.get("file") as File | null
     const folder = (formData.get("folder") as string) || "uploads"
@@ -16,10 +24,16 @@ export async function POST(req: Request) {
     const ext = file.name.split(".").pop() || "jpg"
     const filename = `${folder}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`
 
-    const storageRef = ref(storage, filename)
+    const app = getApps()[0]
+    const bucketName = (process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "").replace(".firebasestorage.app", ".appspot.com")
+    const bucket = getStorage(app).bucket(bucketName)
+    const fileRef = bucket.file(filename)
+    
     const buffer = Buffer.from(await file.arrayBuffer())
-    await uploadBytes(storageRef, buffer, { contentType: file.type })
-    const downloadURL = await getDownloadURL(storageRef)
+    await fileRef.save(buffer, { contentType: file.type })
+    await fileRef.makePublic()
+    
+    const downloadURL = `https://storage.googleapis.com/${bucket.name}/${filename}`
 
     return NextResponse.json({ url: downloadURL })
   } catch (e) {

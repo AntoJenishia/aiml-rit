@@ -23,6 +23,10 @@ export interface FirestoreUser {
   idCardLinkedAt?: { seconds: number }
   // Profile completion flag
   profileComplete?: boolean
+  // Faculty-specific fields
+  isClassIncharge?: boolean
+  classId?: string | null
+  username?: string
 }
 
 export async function getAllUsers(): Promise<FirestoreUser[]> {
