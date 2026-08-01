@@ -47,20 +47,20 @@ function LoginFormInner() {
   }
 
   return (
-    <div className="min-h-screen w-full relative overflow-hidden flex items-center justify-center p-4 sm:p-8"
+    <div className="min-h-screen w-full relative flex items-center justify-center p-4 sm:p-6"
       style={{ background: "linear-gradient(135deg, #f0f4ff 0%, #eef2ff 50%, #f8faff 100%)" }}>
 
       {/* Mouse-reactive particle canvas */}
-      <div className="absolute inset-0"><ParticleCanvas subtle /></div>
+      <div className="absolute inset-0 overflow-hidden"><ParticleCanvas subtle /></div>
 
       {/* Dot grid */}
       <div className="pointer-events-none absolute inset-0 dot-grid opacity-30" />
 
       {/* Split Card Container */}
-      <div className="w-full max-w-[1000px] min-h-[600px] bg-white rounded-3xl overflow-hidden shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] relative z-10 flex flex-col md:flex-row border border-white/50">
+      <div className="w-full max-w-[900px] bg-white rounded-3xl shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] relative z-10 flex flex-col md:flex-row border border-white/50 my-auto">
         
         {/* LEFT PANEL: Branding */}
-        <div className="w-full md:w-[45%] bg-[#002855] relative p-8 md:p-12 flex flex-col justify-between overflow-hidden">
+        <div className="w-full md:w-[45%] bg-[#002855] relative p-8 md:p-10 flex flex-col justify-between overflow-hidden rounded-t-3xl md:rounded-l-3xl md:rounded-tr-none">
           {/* Background Glows for Left Panel */}
           <div className="absolute -top-32 -left-32 h-[400px] w-[400px] rounded-full opacity-30 blur-3xl"
             style={{ background: "radial-gradient(circle,#3b82f6,transparent 70%)" }} />
@@ -69,42 +69,42 @@ function LoginFormInner() {
             
           <div className="relative z-10">
             {/* Logo */}
-            <div className="bg-white/95 backdrop-blur-sm p-4 rounded-2xl inline-block mb-10 shadow-lg">
-              <div className="relative h-12 w-48">
+            <div className="bg-white/95 backdrop-blur-sm p-3 rounded-2xl inline-block mb-8 shadow-lg">
+              <div className="relative h-10 w-40">
                 <Image src="/rit-header.png" alt="RIT" fill className="object-contain object-left" priority sizes="200px" />
               </div>
             </div>
             
-            <h1 className="text-3xl md:text-4xl font-black text-white leading-tight mb-4">
+            <h1 className="text-3xl md:text-[2rem] font-black text-white leading-tight mb-3">
               Student &amp; Staff <br/><span className="text-blue-400">Portal</span>
             </h1>
-            <p className="text-blue-100/80 text-sm font-medium leading-relaxed max-w-[280px]">
+            <p className="text-blue-100/80 text-[13px] font-medium leading-relaxed max-w-[280px]">
               AI &amp; Machine Learning Department <br/>
               Rajalakshmi Institute of Technology
             </p>
           </div>
           
-          <div className="relative z-10 mt-12 md:mt-0">
-            <Link href="/" className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-white/60 hover:text-white transition-colors">
+          <div className="relative z-10 mt-10 md:mt-12">
+            <Link href="/" className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-white/60 hover:text-white transition-colors">
               ← Back to Public Site
             </Link>
           </div>
         </div>
 
         {/* RIGHT PANEL: Login Form */}
-        <div className="w-full md:w-[55%] p-8 md:p-12 flex flex-col justify-center bg-white relative">
+        <div className="w-full md:w-[55%] p-8 md:p-10 flex flex-col justify-center bg-white relative rounded-b-3xl md:rounded-r-3xl md:rounded-bl-none">
           
-          <div className="max-w-[380px] w-full mx-auto">
-            <div className="mb-8">
-              <div className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-blue-700 mb-4">
+          <div className="max-w-[360px] w-full mx-auto">
+            <div className="mb-6">
+              <div className="inline-flex items-center gap-1.5 rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest text-blue-700 mb-3">
                 <Shield className="h-3 w-3" /> Secure Access
               </div>
               <h2 className="text-2xl font-bold text-slate-800">Welcome Back</h2>
-              <p className="text-sm text-slate-500 mt-1">Please sign in to your account</p>
+              <p className="text-sm text-slate-500 mt-0.5">Please sign in to your account</p>
             </div>
 
             {/* Role Tabs */}
-            <div className="flex rounded-xl bg-slate-100 p-1 mb-8">
+            <div className="flex rounded-xl bg-slate-100 p-1 mb-6">
               <button
                 type="button"
                 onClick={() => { setActiveTab("student"); setError(false) }}
