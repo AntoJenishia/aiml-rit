@@ -1,6 +1,7 @@
 "use client"
 import { useUser } from "@/lib/hooks/useUser"
 import Image from "next/image"
+import Link from "next/link"
 import { useState, useEffect, useCallback } from "react"
 import {
   Users, UserPlus, FileSignature, Award, PieChart,
@@ -316,6 +317,14 @@ export default function HodDash() {
   const [rejectTarget, setRejectTarget] = useState<ODRequest | null>(null)
   const [rejectReason, setRejectReason] = useState("")
   const [toast, setToast] = useState<string | null>(null)
+  const [highlights, setHighlights] = useState<Highlight[]>([
+    { id: "h1", faculty: "Dr. J. Alice", title: "Published Paper in IEEE ICAIET 2026" },
+  ])
+
+  const handleApproveHighlight = (id: string, title: string) => {
+    setHighlights(prev => prev.filter(h => h.id !== id))
+    showToast(`✓ Approved Highlight: ${title}`)
+  }
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 3000) }
 
@@ -355,9 +364,6 @@ export default function HodDash() {
     else showToast(`Error: ${data.error}`)
     setActionLoading(null)
   }
-  const mockHighlights: Highlight[] = [
-    { id: "h1", faculty: "Dr. J. Alice", title: "Published Paper in IEEE ICAIET 2026" },
-  ]
 
   const loadFaculty = useCallback(async () => {
     setLoadingFaculty(true)
@@ -473,7 +479,7 @@ export default function HodDash() {
         {[
           { label: "Pending OD Approvals", value: odRequests.length, icon: FileSignature, border: "border-l-[#3B5BFF]", iconBg: "bg-[#3B5BFF]/10", iconColor: "text-[#3B5BFF]", sub: "Awaiting final review" },
           { label: "Faculty Accounts",     value: faculty.length,         icon: Users,          border: "border-l-[#7C3AED]", iconBg: "bg-[#7C3AED]/10", iconColor: "text-[#7C3AED]", sub: "Total registered" },
-          { label: "Pending Highlights",   value: mockHighlights.length,  icon: PlusCircle,     border: "border-l-[#D97706]", iconBg: "bg-[#D97706]/10", iconColor: "text-[#D97706]", sub: "Awaiting approval" },
+          { label: "Pending Highlights",   value: highlights.length,  icon: PlusCircle,     border: "border-l-[#D97706]", iconBg: "bg-[#D97706]/10", iconColor: "text-[#D97706]", sub: "Awaiting approval" },
           { label: "Total Students",       value: "450",                   icon: BookOpen,       border: "border-l-[#16A34A]", iconBg: "bg-[#16A34A]/10", iconColor: "text-[#16A34A]", sub: "Across all classes" },
         ].map((s) => (
           <div key={s.label} className={`bg-white rounded-xl p-5 shadow-sm border border-[#E5E7EB] border-l-4 ${s.border} hover:shadow-md transition-shadow`}>
@@ -705,7 +711,13 @@ export default function HodDash() {
                       )}
                     </div>
                     {!incharge && (
-                      <button onClick={() => setShowCreateFaculty(false)}
+                      <button onClick={() => {
+                        setActiveTab("faculty")
+                        setTimeout(() => {
+                          const table = document.querySelector("table")
+                          if (table) table.scrollIntoView({ behavior: "smooth" })
+                        }, 50)
+                      }}
                         className="shrink-0 text-[10px] font-bold text-[#3B5BFF] bg-[#3B5BFF]/10 px-2.5 py-1 rounded-lg hover:bg-[#3B5BFF]/20 transition-colors">
                         Assign
                       </button>
@@ -723,11 +735,11 @@ export default function HodDash() {
             </div>
             <div className="p-3 space-y-1">
               {[
-                { label: "Create Department Event",  icon: CalendarPlus, accent: "#3B5BFF" },
-                { label: "Post Announcement",        icon: Megaphone,    accent: "#7C3AED" },
-                { label: "View OD Analytics",        icon: BarChart3,    accent: "#16A34A" },
+                { label: "Create Department Event",  icon: CalendarPlus, accent: "#3B5BFF", href: "/admin/events" },
+                { label: "Post Announcement",        icon: Megaphone,    accent: "#7C3AED", href: "/admin/announcements" },
+                { label: "View OD Analytics",        icon: BarChart3,    accent: "#16A34A", href: "/admin" },
               ].map((action) => (
-                <button key={action.label}
+                <Link key={action.label} href={action.href}
                   className="w-full flex items-center justify-between gap-3 rounded-xl px-3 py-3 hover:bg-[#F5F6FA] transition-colors">
                   <div className="flex items-center gap-3">
                     <div className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${action.accent}15` }}>
@@ -736,7 +748,7 @@ export default function HodDash() {
                     <span className="text-sm font-semibold text-[#111827]">{action.label}</span>
                   </div>
                   <ChevronRight className="h-4 w-4 text-[#94A3B8]" />
-                </button>
+                </Link>
               ))}
             </div>
           </div>
@@ -747,19 +759,19 @@ export default function HodDash() {
               <Award className="h-4 w-4 text-[#D97706]" />
               <h2 className="text-base font-bold text-[#111827]">Pending Highlights</h2>
             </div>
-            {mockHighlights.length === 0 ? (
+            {highlights.length === 0 ? (
               <div className="px-5 py-8 text-center">
                 <p className="text-xs font-semibold text-[#6B7280]">No pending highlights</p>
               </div>
             ) : (
               <div className="divide-y divide-[#E5E7EB]">
-                {mockHighlights.map((h) => (
+                {highlights.map((h) => (
                   <div key={h.id} className="px-5 py-4">
                     <p className="text-sm font-bold text-[#111827]">{h.title}</p>
                     <p className="text-xs text-[#6B7280] mt-1">By {h.faculty}</p>
                     <div className="flex gap-2 mt-3">
                       <button className="flex-1 py-1.5 bg-[#F5F6FA] text-[#6B7280] rounded-lg text-xs font-bold hover:bg-[#E5E7EB] transition-colors">Review</button>
-                      <button className="flex-1 py-1.5 bg-[#16A34A] text-white rounded-lg text-xs font-bold hover:bg-[#15803d] transition-colors">Approve</button>
+                      <button onClick={() => handleApproveHighlight(h.id, h.title)} className="flex-1 py-1.5 bg-[#16A34A] text-white rounded-lg text-xs font-bold hover:bg-[#15803d] transition-colors">Approve</button>
                     </div>
                   </div>
                 ))}

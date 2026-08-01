@@ -7,12 +7,13 @@ import { useUser } from "@/lib/hooks/useUser"
 import { useState, useEffect } from "react"
 import {
   LayoutDashboard, Megaphone, Users, CalendarDays,
-  BarChart3, Settings, LogOut, ChevronRight, Globe, Menu, X,
+  BarChart3, Settings, LogOut, ChevronRight, Globe, Menu, X, Shield,
 } from "lucide-react"
 import clsx from "clsx"
 
 const navItems = [
   { href: "/admin",                 label: "Dashboard",      icon: LayoutDashboard, exact: true },
+  { href: "/dashboard/hod",         label: "OD & Faculty Dashboard", icon: Shield },
   { href: "/admin/announcements",   label: "Announcements",  icon: Megaphone },
   { href: "/admin/users",           label: "Users",          icon: Users },
   { href: "/admin/events",          label: "Events",         icon: CalendarDays },

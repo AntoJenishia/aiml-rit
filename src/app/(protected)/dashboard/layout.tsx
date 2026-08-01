@@ -22,6 +22,7 @@ const getNavItems = (role?: string) => {
   if (role === "hod") {
     return [
       { href: "/dashboard/hod", label: "HOD Dashboard",  icon: Shield,          exact: false },
+      { href: "/admin",         label: "Admin Panel",     icon: LayoutDashboard,  exact: false },
       { href: "/profile",       label: "My Profile",      icon: User,            exact: false },
       { href: "/",              label: "Public Site",     icon: Home,            exact: false },
     ]
