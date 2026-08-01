@@ -67,11 +67,11 @@ function LoginFormInner() {
           <div className="absolute -bottom-32 -right-32 h-[400px] w-[400px] rounded-full opacity-20 blur-3xl"
             style={{ background: "radial-gradient(circle,#6366f1,transparent 70%)" }} />
             
-          <div className="relative z-10">
+          <div className="relative z-10 flex flex-col items-center md:items-start text-center md:text-left">
             {/* Logo */}
-            <div className="bg-white/95 backdrop-blur-sm p-3 rounded-2xl inline-block mb-8 shadow-lg">
-              <div className="relative h-10 w-40">
-                <Image src="/rit-header.png" alt="RIT" fill className="object-contain object-left" priority sizes="200px" />
+            <div className="bg-white p-4 rounded-2xl inline-block mb-8 shadow-xl">
+              <div className="relative h-14 w-56 sm:w-64">
+                <Image src="/rit-header.png" alt="RIT" fill className="object-contain object-center" priority sizes="300px" />
               </div>
             </div>
             
