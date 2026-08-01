@@ -40,48 +40,6 @@ function LoginFormInner() {
     if (res?.error) {
       setError(true)
       setStaffLoading(false)
-"use client"
-import { signIn } from "next-auth/react"
-import Image from "next/image"
-import Link from "next/link"
-import { useState, useEffect } from "react"
-import { useSearchParams, useRouter } from "next/navigation"
-import { Shield, ArrowRight, UserCircle, Key } from "lucide-react"
-import ParticleCanvas from "@/components/ParticleCanvas"
-
-import { Suspense } from "react"
-
-function LoginFormInner() {
-  const [loading, setLoading] = useState(false)
-  const [error, setError]     = useState(false)
-  const [activeTab, setActiveTab] = useState<"student" | "staff">("student")
-  
-  // Staff credentials state
-  const [username, setUsername] = useState("")
-  const [password, setPassword] = useState("")
-  const [staffLoading, setStaffLoading] = useState(false)
-
-  const searchParams = useSearchParams()
-  const router = useRouter()
-  
-  useEffect(() => { if (searchParams.get("error")) setError(true) }, [searchParams])
-
-  const handleStaffLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!username || !password) return
-    
-    setStaffLoading(true)
-    setError(false)
-    
-    const res = await signIn("credentials", {
-      username,
-      password,
-      redirect: false,
-    })
-    
-    if (res?.error) {
-      setError(true)
-      setStaffLoading(false)
     } else {
       router.push("/dashboard")
       router.refresh()
@@ -278,4 +236,3 @@ export default function LoginForm() {
     </Suspense>
   )
 }
-
