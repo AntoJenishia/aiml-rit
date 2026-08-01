@@ -666,7 +666,9 @@ function ImportCSVModal({ type, onClose, onSuccess, showToast }: { type: "studen
 }
 
 // ── Main HOD Dashboard ────────────────────────────────────────────────────────
-export default function HodDash() {
+import { Suspense } from "react"
+
+function HodDashInner() {
   const { name, image } = useUser()
 
   const searchParams = useSearchParams()
@@ -1281,3 +1283,12 @@ export default function HodDash() {
     </div>
   )
 }
+
+export default function HodDash() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading dashboard...</div>}>
+      <HodDashInner />
+    </Suspense>
+  )
+}
+

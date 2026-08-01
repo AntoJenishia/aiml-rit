@@ -101,7 +101,9 @@ function RejectModal({ od, onClose, onConfirm }: { od: ODRequest, onClose: () =>
 }
 
 // ── Main StaffDash ────────────────────────────────────────────────────────────
-export default function StaffDash() {
+import { Suspense } from "react"
+
+function StaffDashInner() {
   const { name, image, isClassIncharge, classId, uid, email: userEmail } = useUser()
   const { user } = useAuth()
   const searchParams = useSearchParams()
@@ -577,3 +579,12 @@ export default function StaffDash() {
     </div>
   )
 }
+
+export default function StaffDash() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading dashboard...</div>}>
+      <StaffDashInner />
+    </Suspense>
+  )
+}
+

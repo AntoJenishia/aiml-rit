@@ -7,7 +7,9 @@ import { useSearchParams, useRouter } from "next/navigation"
 import { Shield, ArrowRight, UserCircle, Key } from "lucide-react"
 import ParticleCanvas from "@/components/ParticleCanvas"
 
-export default function LoginForm() {
+import { Suspense } from "react"
+
+function LoginFormInner() {
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState(false)
   const [activeTab, setActiveTab] = useState<"student" | "staff">("student")
@@ -244,3 +246,12 @@ export default function LoginForm() {
     </div>
   )
 }
+
+export default function LoginForm() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <LoginFormInner />
+    </Suspense>
+  )
+}
+
