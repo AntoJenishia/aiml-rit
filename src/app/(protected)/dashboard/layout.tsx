@@ -67,12 +67,14 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   const navItems = getNavItems(user?.role, isClassIncharge)
   const roleConfig = ROLE_ACCENT[user?.role ?? "student"] ?? ROLE_ACCENT.student
 
+  const homeHref = user?.role === "hod" ? "/admin" : user?.role === "staff" ? "/dashboard/faculty" : "/dashboard/student"
+
   return (
     <div className="h-[100dvh] flex flex-col md:flex-row bg-[#F5F6FA] text-[#111827] overflow-hidden">
 
       {/* Mobile top bar */}
       <div className="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-[#E5E7EB] shadow-sm">
-        <Link href="/" className="block">
+        <Link href={homeHref} className="block">
           <div className="relative h-12 w-48">
             <Image src="/rit-header.png" alt="RIT AIML" fill sizes="192px" className="object-contain object-left" />
           </div>
@@ -101,7 +103,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
         <div className={clsx("bg-gradient-to-b", roleConfig.gradient)}>
           {/* Brand */}
           <div className="px-5 pt-5 pb-4 flex items-center justify-between">
-            <Link href="/" className="block flex-1">
+            <Link href={homeHref} className="block flex-1">
               <div className="bg-white rounded-2xl px-3 py-2.5 shadow-sm">
                 <div className="relative h-16 w-full">
                   <Image src="/rit-header.png" alt="RIT AIML" fill sizes="200px"
