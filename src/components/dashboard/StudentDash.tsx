@@ -469,7 +469,7 @@ export default function StudentDash() {
             )}
             <div className="min-w-0 flex-1">
               <p className="text-white/60 text-xs font-semibold uppercase tracking-widest mb-1">Student Portal</p>
-              <h1 className="text-xl md:text-2xl font-black text-white leading-tight truncate">
+              <h1 className="text-xl md:text-2xl font-black text-white leading-tight">
                 Welcome back, {name?.split(" ")[0] || "Student"} 👋
               </h1>
               <p className="text-white/70 text-sm mt-1 truncate">
