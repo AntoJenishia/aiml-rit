@@ -53,7 +53,7 @@ export default function HeroSection({
           style={{ animationDelay: "0ms" }}
         >
           <span className="inline-block h-px w-10 bg-gradient-to-r from-blue-500 to-transparent" />
-          Department of AI &amp; ML
+          Departments of AI&ML and AI&DS
           <span className="inline-block h-px w-10 bg-gradient-to-l from-blue-500 to-transparent" />
         </p>
 
@@ -67,10 +67,14 @@ export default function HeroSection({
           <span className="hero-gradient-text">Intelligence</span>
         </h1>
         <h2
-          className="hero-fadein mt-1 text-4xl font-black leading-[1.06] tracking-tighter text-white/80 sm:text-6xl lg:text-7xl xl:text-8xl"
+          className="hero-fadein mt-2 text-3xl font-black leading-[1.1] tracking-tighter text-white/80 sm:text-5xl lg:text-6xl xl:text-7xl"
           style={{ animationDelay: "280ms" }}
         >
           &amp; Machine Learning
+          <br />
+          <span className="text-white/60 text-2xl sm:text-4xl lg:text-5xl xl:text-6xl inline-block mt-1">
+            &amp; Data Science
+          </span>
         </h2>
 
         {/* Sub-text */}
