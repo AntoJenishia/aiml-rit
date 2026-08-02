@@ -775,6 +775,7 @@ export default function StudentDash() {
             </div>
           </div>
         </div>
+      </div>
       )}
     </div>
   )
