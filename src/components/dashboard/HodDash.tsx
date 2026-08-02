@@ -1177,32 +1177,14 @@ function HodDashInner() {
           {/* TAB 5: OD Request Center */}
           {activeTab === "od" && (
             <div className="bg-white rounded-3xl border border-[#E5E7EB] shadow-sm overflow-hidden p-6 space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E5E7EB] pb-4">
-                <div>
-                  <h2 className="text-base font-bold text-[#111827]">OD Approvals</h2>
-                  <p className="text-xs text-[#6B7280]">Process student On-Duty requests</p>
-                </div>
-                <div className="flex bg-[#F5F6FA] border border-[#E5E7EB] rounded-xl p-1 shrink-0">
-                  {[
-                    { key: "pending",  label: `Pending (${pendingODs.length})` },
-                    { key: "approved", label: "Approved" },
-                    { key: "rejected", label: "Rejected" },
-                  ].map(tab => (
-                    <button
-                      key={tab.key}
-                      onClick={() => setOdTabFilter(tab.key as any)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                        odTabFilter === tab.key ? "bg-white text-[#111827] shadow-sm" : "text-[#6B7280]"
-                      }`}>
-                      {tab.label}
-                    </button>
-                  ))}
-                </div>
+              <div className="border-b border-[#E5E7EB] pb-4">
+                <h2 className="text-base font-bold text-[#111827]">OD Approvals</h2>
+                <p className="text-xs text-[#6B7280]">Process student On-Duty requests</p>
               </div>
 
               {loading ? (
                 <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-[#3B5BFF]" /></div>
-              ) : odTabFilter === "pending" ? (
+              ) : (
                 // Pending: show sub-tab switcher between OD Requests and Proof Approvals
                 <>
                   <div className="flex bg-[#F5F6FA] border border-[#E5E7EB] rounded-xl p-1 mb-4">
@@ -1273,6 +1255,9 @@ function HodDashInner() {
                                       </a>
                                     )
                                   )}
+                                  <a href={`/verify/${od.referenceNumber}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[10px] font-bold text-[#6B7280] hover:underline mt-1.5">
+                                    <ExternalLink className="h-3 w-3" /> Verify
+                                  </a>
                                 </div>
                                 <div className="flex gap-2 shrink-0 self-end sm:self-auto">
                                   <button onClick={() => { setRejectTarget(od); setRejectReason("") }} disabled={isActioning}
@@ -1292,66 +1277,6 @@ function HodDashInner() {
                     )
                   })()}
                 </>
-              ) : odList.length === 0 ? (
-                <div className="text-center py-12 text-xs font-semibold text-[#6B7280]">
-                  No {odTabFilter} On-Duty requests found.
-                </div>
-              ) : (
-                <div className="divide-y divide-[#E5E7EB] border border-[#E5E7EB] rounded-2xl overflow-hidden">
-                  {odList.map(od => {
-                    const isActioning = actionLoading === od.id
-                    return (
-                      <div key={od.id} className="px-5 py-4 hover:bg-[#F5F6FA] transition-colors">
-                        <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1 flex-wrap">
-                              <p className="text-sm font-bold text-[#111827]">{od.studentName || "Student"}</p>
-                              {od.status === "pending_hod" && (
-                                <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-[#16A34A]/10 text-[#16A34A] uppercase">Faculty Approved</span>
-                              )}
-                              {od.status === "post_pending_hod" && (
-                                <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 uppercase">Proof Approved by Faculty</span>
-                              )}
-                            </div>
-                            <p className="text-sm font-semibold text-[#111827] mb-0.5">{od.eventName}</p>
-                            <p className="text-xs text-[#6B7280]">{od.organiser} · {od.startDate} – {od.endDate}</p>
-                            <span className="text-[10px] font-mono text-[#94A3B8] block mt-1">Ref: {od.referenceNumber}</span>
-                            
-                            {od.status === "post_pending_hod" && (
-                              <div className="mt-3 bg-blue-50 border border-blue-100 rounded-xl p-3">
-                                <p className="text-[10px] font-bold text-blue-700 uppercase mb-1">Post-Event Proof Submitted</p>
-                                <p className="text-xs text-blue-900 mb-2 italic">"{od.postODDescription}"</p>
-                                {od.postODProofsUrl && (
-                                  <a href={od.postODProofsUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-700 hover:underline bg-white px-2 py-1 rounded border border-blue-200 shadow-sm">
-                                    <ExternalLink className="h-3 w-3" /> View Proof Files
-                                  </a>
-                                )}
-                              </div>
-                            )}
-
-                            {od.pdfUrl && (
-                              <a href={od.pdfUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[10px] font-bold text-[#3B5BFF] hover:underline mt-1.5">
-                                <Download className="h-3 w-3" /> View Draft PDF
-                              </a>
-                            )}
-                          </div>
-                          {(od.status === "pending_hod" || od.status === "post_pending_hod") && (
-                            <div className="flex gap-2 shrink-0 self-end sm:self-auto">
-                              <button onClick={() => { setRejectTarget(od); setRejectReason("") }} disabled={isActioning}
-                                className="flex items-center gap-1.5 px-3 py-1.5 bg-[#EF4444]/10 text-[#EF4444] rounded-lg text-xs font-bold hover:bg-[#EF4444] hover:text-white transition-all">
-                                <XCircle className="h-3.5 w-3.5" /> {od.status === "post_pending_hod" ? "Reject Proof" : "Reject"}
-                              </button>
-                              <button onClick={() => handleHODApprove(od)} disabled={isActioning}
-                                className="flex items-center gap-1.5 px-3 py-1.5 bg-[#16A34A] text-white rounded-lg text-xs font-bold hover:bg-[#15803d] transition-all">
-                                <CheckCircle className="h-3.5 w-3.5" /> {od.status === "post_pending_hod" ? "Approve Proof" : "Final Approve"}
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
               )}
             </div>
           )}
