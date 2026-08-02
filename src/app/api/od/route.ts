@@ -97,7 +97,9 @@ export async function POST(req: NextRequest) {
       proofFile: proofFileB64 || "",
       proofFileName: proofFileName || "",
       proofMimeType: proofMimeType || "",
-      draftPdfFile: draftPdfBase64
+      draftPdfFile: draftPdfBase64,
+      createUpfrontSubfolder: true,
+      upfrontSubfolderName: "Upfront Proof",
     }
 
     const scriptRes = await fetch(scriptUrl, {

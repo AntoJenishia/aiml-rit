@@ -84,8 +84,10 @@ export async function generateFormalODPdf(params: ODPdfParams): Promise<Uint8Arr
   y -= 25
 
   // ── Body ──
-  const dateText = params.startDate === params.endDate ? params.startDate : `${params.startDate} to ${params.endDate}`
-  const bodyText = `I would like to bring to your kind notice that I have planned to attend the ${params.eventType} on "${params.eventName}" organized by ${params.organiser} at ${params.venue} on ${dateText}.`
+  const dateText = params.startDate === params.endDate
+    ? `on ${params.startDate}`
+    : `from ${params.startDate} to ${params.endDate}`
+  const bodyText = `I would like to bring to your kind notice that I have planned to attend the ${params.eventType} on "${params.eventName}" organized by ${params.organiser} at ${params.venue} ${dateText}.`
   
   const words = bodyText.split(" ")
   let line = ""

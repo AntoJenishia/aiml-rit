@@ -75,16 +75,33 @@ const quickLinks = [
 function ODModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
   const [form, setForm] = useState({
     eventName: "", eventType: OD_EVENT_TYPES[0], organiser: "", venue: "",
-    startDate: "", endDate: "", reason: "",
+    startDate: "", endDate: "", numberOfDays: 1, reason: "",
     isSpecialNeed: false, specialNeedJustification: "",
   })
+
+  // Auto-derive endDate whenever startDate or numberOfDays changes
+  const deriveEndDate = (start: string, days: number): string => {
+    if (!start) return ""
+    const d = new Date(start)
+    d.setDate(d.getDate() + days - 1)
+    return d.toISOString().slice(0, 10)
+  }
   const [proofFile,    setProofFile]    = useState<File | null>(null)
   const [uploading,    setUploading]    = useState(false)
   const [submitting,   setSubmitting]   = useState(false)
   const [error,        setError]        = useState("")
   const fileRef = useRef<HTMLInputElement>(null)
 
-  const set = (k: string, v: any) => setForm(f => ({ ...f, [k]: v }))
+  const set = (k: string, v: any) => setForm(f => {
+    const updated = { ...f, [k]: v }
+    if (k === "startDate" || k === "numberOfDays") {
+      updated.endDate = deriveEndDate(
+        k === "startDate" ? v : f.startDate,
+        k === "numberOfDays" ? Number(v) : f.numberOfDays
+      )
+    }
+    return updated
+  })
 
   const handleSubmit = async () => {
     setError("")
@@ -193,9 +210,15 @@ function ODModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () =>
                 className="w-full rounded-xl border border-[#E5E7EB] bg-[#F5F6FA] px-4 py-2.5 text-sm text-[#111827] focus:border-[#3B5BFF] focus:outline-none focus:ring-2 focus:ring-[#3B5BFF]/20" />
             </div>
             <div>
-              <label className="block text-xs font-bold text-[#111827] mb-1.5">End Date *</label>
-              <input type="date" value={form.endDate} onChange={e => set("endDate", e.target.value)}
+              <label className="block text-xs font-bold text-[#111827] mb-1.5">Number of Days * <span className="text-[#94A3B8] font-normal">(max 5)</span></label>
+              <input type="number" min={1} max={5} value={form.numberOfDays} onChange={e => set("numberOfDays", Math.min(5, Math.max(1, Number(e.target.value))))}
                 className="w-full rounded-xl border border-[#E5E7EB] bg-[#F5F6FA] px-4 py-2.5 text-sm text-[#111827] focus:border-[#3B5BFF] focus:outline-none focus:ring-2 focus:ring-[#3B5BFF]/20" />
+            </div>
+            <div className="col-span-2">
+              <label className="block text-xs font-bold text-[#111827] mb-1.5">End Date <span className="text-[#94A3B8] font-normal">(auto-calculated)</span></label>
+              <div className="w-full rounded-xl border border-[#E5E7EB] bg-[#F0F0F0] px-4 py-2.5 text-sm text-[#6B7280]">
+                {form.endDate || <span className="text-[#94A3B8]">Select a start date first</span>}
+              </div>
             </div>
           </div>
 

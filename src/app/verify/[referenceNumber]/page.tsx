@@ -25,6 +25,7 @@ interface ODData {
 function formatTs(ts?: { _seconds: number }) {
   if (!ts) return null
   return new Date(ts._seconds * 1000).toLocaleString("en-IN", {
+    timeZone: "Asia/Kolkata",
     day: "2-digit", month: "short", year: "numeric",
     hour: "2-digit", minute: "2-digit",
   })
