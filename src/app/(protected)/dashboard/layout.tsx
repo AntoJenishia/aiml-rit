@@ -68,7 +68,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   const roleConfig = ROLE_ACCENT[user?.role ?? "student"] ?? ROLE_ACCENT.student
 
   return (
-    <div className="h-screen flex flex-col md:flex-row bg-[#F5F6FA] text-[#111827] overflow-hidden">
+    <div className="h-[100dvh] flex flex-col md:flex-row bg-[#F5F6FA] text-[#111827] overflow-hidden">
 
       {/* Mobile top bar */}
       <div className="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-[#E5E7EB] shadow-sm">
@@ -93,7 +93,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
 
       {/* ── Sidebar ── */}
       <aside className={clsx(
-        "fixed inset-y-0 left-0 z-50 w-64 flex flex-col transition-transform duration-300 ease-out md:sticky md:top-0 md:translate-x-0 md:shrink-0 md:h-screen",
+        "fixed inset-y-0 left-0 z-50 w-64 flex flex-col transition-transform duration-300 ease-out md:sticky md:top-0 md:translate-x-0 md:shrink-0 md:h-[100dvh]",
         sidebarOpen ? "translate-x-0" : "-translate-x-full"
       )}>
 
@@ -175,6 +175,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
             const isPublic = item.href === "/"
             return (
               <Link key={item.href} href={item.href}
+                onClick={() => setSidebarOpen(false)}
                 className={clsx(
                   "group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-150 min-h-[44px]",
                   active
