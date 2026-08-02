@@ -59,23 +59,23 @@ export default function HeroSection({
 
         {/* Title */}
         <h1
-          className="hero-fadein text-4xl font-black leading-[1.06] tracking-tighter text-white sm:text-6xl lg:text-7xl xl:text-8xl"
+          className="hero-fadein text-4xl font-black leading-[1.1] tracking-tighter text-white sm:text-5xl lg:text-6xl xl:text-7xl"
           style={{ animationDelay: "150ms" }}
         >
-          Artificial
-          <br />
-          <span className="hero-gradient-text">Intelligence</span>
+          Artificial <span className="hero-gradient-text">Intelligence</span>
         </h1>
-        <h2
-          className="hero-fadein mt-2 text-3xl font-black leading-[1.1] tracking-tighter text-white/80 sm:text-5xl lg:text-6xl xl:text-7xl"
+        
+        <div 
+          className="hero-fadein mt-4 flex flex-col gap-2 border-l-4 border-blue-600 pl-5 md:mt-6 md:gap-3 md:pl-6" 
           style={{ animationDelay: "280ms" }}
         >
-          &amp; Machine Learning
-          <br />
-          <span className="text-white/60 text-2xl sm:text-4xl lg:text-5xl xl:text-6xl inline-block mt-1">
+          <h2 className="text-3xl font-bold tracking-tight text-white/90 sm:text-4xl lg:text-5xl">
+            &amp; Machine Learning
+          </h2>
+          <h2 className="text-3xl font-bold tracking-tight text-white/90 sm:text-4xl lg:text-5xl">
             &amp; Data Science
-          </span>
-        </h2>
+          </h2>
+        </div>
 
         {/* Sub-text */}
         <p
