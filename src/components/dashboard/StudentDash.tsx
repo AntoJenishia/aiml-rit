@@ -530,7 +530,7 @@ export default function StudentDash() {
             </div>
             <div>
               <p className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider mb-1">Email Address</p>
-              <p className="text-sm font-semibold text-[#111827] bg-[#F5F6FA] px-3 py-2 rounded-lg">{profile?.email || email}</p>
+              <p className="text-sm font-semibold text-[#111827] bg-[#F5F6FA] px-3 py-2 rounded-lg break-all">{profile?.email || email}</p>
             </div>
             <div>
               <p className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider mb-1">Phone Number</p>
@@ -754,26 +754,6 @@ export default function StudentDash() {
             )}
           </div>
 
-          {/* Quick Links */}
-          <div className="bg-white rounded-2xl border border-[#E5E7EB] shadow-sm overflow-hidden">
-            <div className="px-5 py-4 border-b border-[#E5E7EB]">
-              <h2 className="text-base font-bold text-[#111827]">Quick Links</h2>
-            </div>
-            <div className="p-3 space-y-1">
-              {quickLinks.map(link => (
-                <Link key={link.href} href={link.href}
-                  className="flex items-center justify-between gap-3 rounded-xl px-3 py-3 hover:bg-[#F5F6FA] transition-colors">
-                  <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${link.accent}18` }}>
-                      <link.icon className="h-4 w-4" style={{ color: link.accent }} />
-                    </div>
-                    <span className="text-sm font-semibold text-[#111827]">{link.label}</span>
-                  </div>
-                  <ChevronRight className="h-4 w-4 text-[#94A3B8]" />
-                </Link>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
       )}
