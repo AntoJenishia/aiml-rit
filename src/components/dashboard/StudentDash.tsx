@@ -458,7 +458,7 @@ export default function StudentDash() {
           <div className="absolute -bottom-16 -left-10 w-80 h-80 rounded-full bg-white/10" />
         </div>
         <div className="relative px-6 py-8 md:px-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 w-full md:w-auto">
             {image ? (
               <Image src={image} alt={name || ""} width={72} height={72}
                 className="rounded-full ring-4 ring-white/30 w-14 h-14 md:w-16 md:h-16 object-cover shrink-0" />
@@ -467,12 +467,14 @@ export default function StudentDash() {
                 {name?.[0] ?? "S"}
               </div>
             )}
-            <div>
+            <div className="min-w-0 flex-1">
               <p className="text-white/60 text-xs font-semibold uppercase tracking-widest mb-1">Student Portal</p>
-              <h1 className="text-xl md:text-2xl font-black text-white leading-tight">
+              <h1 className="text-xl md:text-2xl font-black text-white leading-tight truncate">
                 Welcome back, {name?.split(" ")[0] || "Student"} 👋
               </h1>
-              <p className="text-white/70 text-sm mt-1">{email}</p>
+              <p className="text-white/70 text-sm mt-1 truncate">
+                {profile?.registerNumber || email}
+              </p>
             </div>
           </div>
           <div className="flex flex-wrap gap-3 shrink-0">
