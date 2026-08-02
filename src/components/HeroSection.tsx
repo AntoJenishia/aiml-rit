@@ -45,7 +45,7 @@ export default function HeroSection({
       />
 
       {/* ── Main hero content ── */}
-      <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 flex-col justify-center px-6 pt-12 pb-12 md:pt-16 md:pb-16">
+      <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 flex-col justify-center px-6 pt-6 pb-10 md:pt-8 md:pb-12">
 
         {/* Eyebrow */}
         <p
