@@ -52,9 +52,8 @@ export default function HeroSection({
           className="hero-fadein mb-5 flex items-center gap-3 text-xs font-bold uppercase tracking-[0.25em] text-blue-400"
           style={{ animationDelay: "0ms" }}
         >
-          <span className="inline-block h-px w-10 bg-gradient-to-r from-blue-500 to-transparent" />
           Departments of AI&ML and AI&DS
-          <span className="inline-block h-px w-10 bg-gradient-to-l from-blue-500 to-transparent" />
+          <span className="inline-block h-px w-20 bg-gradient-to-r from-blue-500 to-transparent" />
         </p>
 
         {/* Title */}
