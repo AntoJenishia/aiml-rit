@@ -54,10 +54,10 @@ export async function POST(
     if (scriptData.error) throw new Error("Apps Script Error: " + scriptData.error)
 
     await odRef.update({
-      status: "completed",
+      status: "post_pending_faculty",
       postODProofsUrl: scriptData.proofFolderUrl || "",
       postODDescription: description || "",
-      completedAt: FieldValue.serverTimestamp()
+      proofSubmittedAt: FieldValue.serverTimestamp()
     })
 
     return NextResponse.json({ success: true })

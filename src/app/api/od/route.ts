@@ -156,7 +156,7 @@ export async function GET(req: NextRequest) {
         .get()
     } else if (role === "staff") {
       docs = await adminDb.collection("odRequests")
-        .where("status", "==", "pending_faculty")
+        .where("status", "in", ["pending_faculty", "post_pending_faculty"])
         .get()
 
       const userDoc = await adminDb.collection("users").doc(uid).get()
@@ -184,7 +184,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(enriched)
     } else if (role === "hod") {
       docs = await adminDb.collection("odRequests")
-        .where("status", "==", "pending_hod")
+        .where("status", "in", ["pending_hod", "post_pending_hod"])
         .get()
 
       const data = docs.docs.map(d => ({ id: d.id, ...d.data() }))

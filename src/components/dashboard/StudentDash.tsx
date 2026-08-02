@@ -25,11 +25,12 @@ interface ODRequest {
   startDate: string
   endDate: string
   reason: string
-  status: "pending_faculty" | "rejected_faculty" | "pending_hod" | "rejected_hod" | "approved" | "completed"
+  status: "pending_faculty" | "rejected_faculty" | "pending_hod" | "rejected_hod" | "approved" | "completed" | "post_pending_faculty" | "post_pending_hod"
   pdfUrl?: string
   finalPdfUrl?: string
   facultyRejectReason?: string
   hodRejectReason?: string
+  postRejectReason?: string
   driveFolderId?: string
   driveFolderUrl?: string
   createdAt?: any
@@ -59,6 +60,8 @@ const OD_STATUS: Record<string, { label: string; color: string; bg: string; icon
   rejected_hod:     { label: "Rejected by HOD",   color: "text-[#EF4444]", bg: "bg-red-50",       icon: XCircle },
   approved:         { label: "Approved ✓",         color: "text-[#16A34A]", bg: "bg-green-50",     icon: CheckCircle },
   completed:        { label: "Completed",          color: "text-[#16A34A]", bg: "bg-green-50",     icon: CheckCircle },
+  post_pending_faculty: { label: "Proof Pending Faculty", color: "text-[#3B5BFF]", bg: "bg-blue-50", icon: Clock },
+  post_pending_hod:     { label: "Proof Pending HOD",     color: "text-[#3B5BFF]", bg: "bg-blue-50", icon: Clock },
 }
 
 const quickLinks = [
@@ -656,6 +659,11 @@ export default function StudentDash() {
                             {isRejected && (
                               <p className="text-xs text-[#EF4444] mt-1">
                                 Reason: {od.facultyRejectReason || od.hodRejectReason || "—"}
+                              </p>
+                            )}
+                            {od.postRejectReason && od.status === "approved" && (
+                              <p className="text-xs text-[#EF4444] mt-1 font-semibold">
+                                Proof Rejected: {od.postRejectReason}
                               </p>
                             )}
                           </div>

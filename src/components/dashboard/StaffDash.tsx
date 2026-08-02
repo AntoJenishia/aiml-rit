@@ -27,6 +27,9 @@ interface ODRequest {
   status: string
   pdfUrl?: string
   createdAt?: any
+  postODProofsUrl?: string
+  postODDescription?: string
+  postRejectReason?: string
 }
 
 interface Student {
@@ -72,7 +75,7 @@ function RejectModal({ od, onClose, onConfirm }: { od: ODRequest, onClose: () =>
       <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden animate-scaleIn" onClick={e => e.stopPropagation()}>
         <div className="px-6 pt-6 pb-4 border-b border-[#E5E7EB] flex items-center justify-between">
           <div>
-            <h2 className="text-base font-black text-[#111827]">Reject OD Request</h2>
+            <h2 className="text-base font-black text-[#111827]">Reject {od.status === "post_pending_faculty" ? "Post-Event Proof" : "OD Request"}</h2>
             <p className="text-xs text-[#6B7280] mt-0.5">{od.studentName} — {od.eventName}</p>
           </div>
           <button onClick={onClose} className="text-[#94A3B8] hover:text-[#111827] p-1 rounded-lg hover:bg-[#F5F6FA]"><X className="h-5 w-5" /></button>
@@ -434,6 +437,18 @@ function StaffDashInner() {
                             <p className="text-xs text-[#6B7280] mt-0.5">{od.organiser} · {od.venue}</p>
                             <p className="text-xs text-[#6B7280] mt-0.5">{od.startDate}{od.startDate !== od.endDate ? ` – ${od.endDate}` : ""}</p>
                             
+                            {od.status === "post_pending_faculty" && (
+                              <div className="mt-3 bg-blue-50 border border-blue-100 rounded-xl p-3">
+                                <p className="text-[10px] font-bold text-blue-700 uppercase mb-1">Post-Event Proof Submitted</p>
+                                <p className="text-xs text-blue-900 mb-2 italic">"{od.postODDescription}"</p>
+                                {od.postODProofsUrl && (
+                                  <a href={od.postODProofsUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-700 hover:underline bg-white px-2 py-1 rounded border border-blue-200 shadow-sm">
+                                    <ExternalLink className="h-3 w-3" /> View Proof Files
+                                  </a>
+                                )}
+                              </div>
+                            )}
+
                             <div className="flex gap-3 mt-3">
                               {od.pdfUrl && (
                                 <a href={od.pdfUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[10px] font-bold text-[#3B5BFF] hover:underline">
@@ -448,10 +463,10 @@ function StaffDashInner() {
                           </div>
                           <div className="flex gap-2 shrink-0">
                             <button onClick={() => setRejectTarget(od)} disabled={isActioning} className="flex items-center gap-1.5 px-3 py-2 bg-red-50 text-red-600 rounded-xl text-xs font-bold hover:bg-red-500 hover:text-white transition-all">
-                              {isActioning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <XCircle className="h-3.5 w-3.5" />} Reject
+                              {isActioning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <XCircle className="h-3.5 w-3.5" />} {od.status === "post_pending_faculty" ? "Reject Proof" : "Reject"}
                             </button>
                             <button onClick={() => handleApprove(od)} disabled={isActioning} className="flex items-center gap-1.5 px-3 py-2 bg-[#16A34A] text-white rounded-xl text-xs font-bold hover:bg-[#15803d] transition-all">
-                              {isActioning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle className="h-3.5 w-3.5" />} Approve
+                              {isActioning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle className="h-3.5 w-3.5" />} {od.status === "post_pending_faculty" ? "Approve Proof" : "Approve"}
                             </button>
                           </div>
                         </div>

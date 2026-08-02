@@ -91,75 +91,93 @@ export async function PATCH(
     if (!scriptUrl) throw new Error("Missing NEXT_PUBLIC_APPS_SCRIPT_URL")
 
     if (role === "staff") {
-      if (od.status !== "pending_faculty") {
+      if (od.status !== "pending_faculty" && od.status !== "post_pending_faculty") {
         return NextResponse.json({ error: "This OD is not awaiting faculty approval." }, { status: 400 })
       }
-      if (action === "approve") {
-        const draftPdfBase64 = await regeneratePdf({ ...od }, true, false)
-        
-        // Notify webhook
-        const scriptRes = await fetch(scriptUrl, {
-          method: "POST",
-          body: JSON.stringify({
-            action: "update_status",
-            refNumber: od.referenceNumber,
-            newStatus: "Pending HOD",
-            folderId: od.driveFolderId
-          })
-        })
-        if (!scriptRes.ok) throw new Error("Webhook failed")
-
-        updateData = {
-          status: "pending_hod",
-          facultyRespondedAt: FieldValue.serverTimestamp(),
+      
+      if (od.status === "post_pending_faculty") {
+        if (action === "approve") {
+          updateData = { status: "post_pending_hod" }
+        } else {
+          updateData = { status: "approved", postRejectReason: reason }
         }
       } else {
-        await fetch(scriptUrl, {
-          method: "POST",
-          body: JSON.stringify({ action: "update_status", refNumber: od.referenceNumber, newStatus: "Rejected by Faculty" })
-        })
-        updateData = {
-          status: "rejected_faculty",
-          facultyRespondedAt: FieldValue.serverTimestamp(),
-          facultyRejectReason: reason,
+        if (action === "approve") {
+          const draftPdfBase64 = await regeneratePdf({ ...od }, true, false)
+          
+          // Notify webhook
+          const scriptRes = await fetch(scriptUrl, {
+            method: "POST",
+            body: JSON.stringify({
+              action: "update_status",
+              refNumber: od.referenceNumber,
+              newStatus: "Pending HOD",
+              folderId: od.driveFolderId
+            })
+          })
+          if (!scriptRes.ok) throw new Error("Webhook failed")
+
+          updateData = {
+            status: "pending_hod",
+            facultyRespondedAt: FieldValue.serverTimestamp(),
+          }
+        } else {
+          await fetch(scriptUrl, {
+            method: "POST",
+            body: JSON.stringify({ action: "update_status", refNumber: od.referenceNumber, newStatus: "Rejected by Faculty" })
+          })
+          updateData = {
+            status: "rejected_faculty",
+            facultyRespondedAt: FieldValue.serverTimestamp(),
+            facultyRejectReason: reason,
+          }
         }
       }
     } else if (role === "hod") {
-      if (od.status !== "pending_hod") {
+      if (od.status !== "pending_hod" && od.status !== "post_pending_hod") {
         return NextResponse.json({ error: "This OD is not awaiting HOD approval." }, { status: 400 })
       }
-      if (action === "approve") {
-        const finalPdfBase64 = await regeneratePdf({ ...od }, true, true)
-        
-        // Notify webhook & upload final PDF to Drive
-        const scriptRes = await fetch(scriptUrl, {
-          method: "POST",
-          body: JSON.stringify({
-            action: "update_status",
-            refNumber: od.referenceNumber,
-            newStatus: "Approved",
-            folderId: od.driveFolderId,
-            finalPdfFile: finalPdfBase64
-          })
-        })
-        if (!scriptRes.ok) throw new Error("Webhook failed")
-        
-        const scriptData = await scriptRes.json()
-        
-        updateData = {
-          status: "approved",
-          hodRespondedAt: FieldValue.serverTimestamp(),
-          finalPdfUrl: scriptData.finalPdfUrl || "",
+      
+      if (od.status === "post_pending_hod") {
+        if (action === "approve") {
+          updateData = { status: "completed", completedAt: FieldValue.serverTimestamp() }
+        } else {
+          updateData = { status: "approved", postRejectReason: reason }
         }
       } else {
-        await fetch(scriptUrl, {
-          method: "POST",
-          body: JSON.stringify({ action: "update_status", refNumber: od.referenceNumber, newStatus: "Rejected by HOD" })
-        })
-        updateData = {
-          status: "rejected_hod",
-          hodRespondedAt: FieldValue.serverTimestamp(),
-          hodRejectReason: reason,
+        if (action === "approve") {
+          const finalPdfBase64 = await regeneratePdf({ ...od }, true, true)
+          
+          // Notify webhook & upload final PDF to Drive
+          const scriptRes = await fetch(scriptUrl, {
+            method: "POST",
+            body: JSON.stringify({
+              action: "update_status",
+              refNumber: od.referenceNumber,
+              newStatus: "Approved",
+              folderId: od.driveFolderId,
+              finalPdfFile: finalPdfBase64
+            })
+          })
+          if (!scriptRes.ok) throw new Error("Webhook failed")
+          
+          const scriptData = await scriptRes.json()
+          
+          updateData = {
+            status: "approved",
+            hodRespondedAt: FieldValue.serverTimestamp(),
+            finalPdfUrl: scriptData.finalPdfUrl || "",
+          }
+        } else {
+          await fetch(scriptUrl, {
+            method: "POST",
+            body: JSON.stringify({ action: "update_status", refNumber: od.referenceNumber, newStatus: "Rejected by HOD" })
+          })
+          updateData = {
+            status: "rejected_hod",
+            hodRespondedAt: FieldValue.serverTimestamp(),
+            hodRejectReason: reason,
+          }
         }
       }
     }
