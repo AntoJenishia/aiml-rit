@@ -34,23 +34,25 @@ export default function Navbar() {
           : "bg-white border-slate-100 py-3 md:py-4"
       )}
     >
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 md:px-6">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 md:px-6 relative">
         
         {/* Left: Logo */}
-        <Link href="/" className="shrink-0 transition-opacity hover:opacity-95">
-          <div className="relative h-10 w-40 sm:h-12 sm:w-48 md:h-14 md:w-64 lg:h-16 lg:w-72">
-            <Image 
-              src="/rit-header.png" 
-              alt="Rajalakshmi Institute of Technology AIML Department" 
-              fill
-              className="object-contain object-left"
-              priority
-            />
-          </div>
-        </Link>
+        <div className="z-10 flex shrink-0">
+          <Link href="/" className="transition-opacity hover:opacity-95">
+            <div className="relative h-10 w-40 sm:h-12 sm:w-48 md:h-14 md:w-64 lg:h-16 lg:w-72">
+              <Image 
+                src="/rit-header.png" 
+                alt="Rajalakshmi Institute of Technology AIML Department" 
+                fill
+                className="object-contain object-left"
+                priority
+              />
+            </div>
+          </Link>
+        </div>
 
         {/* Center: Desktop Nav Links */}
-        <nav className="hidden flex-1 items-center justify-center gap-1 md:flex lg:gap-4">
+        <nav className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 items-center justify-center gap-1 lg:gap-4 z-0 w-max">
           {navLinks.map((link) => {
             const active = isActive(link.href);
             return (
@@ -73,7 +75,7 @@ export default function Navbar() {
         </nav>
 
         {/* Right: Login Button & Mobile Toggle */}
-        <div className="flex shrink-0 items-center gap-3 md:gap-4">
+        <div className="z-10 flex shrink-0 items-center gap-3 md:gap-4">
           <Link
             href="/login"
             className="hidden md:inline-flex items-center justify-center rounded-lg bg-blue-600 px-5 py-2.5 text-[12px] lg:text-[13px] font-bold uppercase tracking-wider text-white shadow-md shadow-blue-600/20 transition-all hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-600/30 hover:-translate-y-0.5"
