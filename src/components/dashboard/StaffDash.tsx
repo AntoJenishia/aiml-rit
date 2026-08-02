@@ -12,6 +12,7 @@ import {
 } from "lucide-react"
 
 // ── Types ────────────────────────────────────────────────────────────────────
+interface ODRequest {
   id: string
   referenceNumber: string
   studentName?: string
