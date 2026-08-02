@@ -512,6 +512,7 @@ function StaffDashInner() {
                     )}
                   </>
                 )
+              })()}
             </div>
           )}
 
