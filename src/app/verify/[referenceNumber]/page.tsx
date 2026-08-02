@@ -54,8 +54,17 @@ export default async function VerifyPage({
 
   if (snap.empty) notFound()
 
-  const raw = snap.docs[0].data() as ODData
-  const od: ODData = { ...raw, referenceNumber }
+  const raw = snap.docs[0].data() as ODData & { studentUid?: string }
+  let studentName = raw.studentName
+  
+  if (!studentName && raw.studentUid) {
+    const userDoc = await adminDb.collection("users").doc(raw.studentUid).get()
+    if (userDoc.exists) {
+      studentName = userDoc.data()?.name
+    }
+  }
+
+  const od: ODData = { ...raw, referenceNumber, studentName }
 
   const sc = STATUS_CONFIG[od.status] || STATUS_CONFIG.pending_faculty
   const StatusIcon = sc.icon
