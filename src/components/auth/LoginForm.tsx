@@ -59,8 +59,8 @@ function LoginFormInner() {
       {/* Split Card Container */}
       <div className="w-full max-w-[900px] bg-white rounded-3xl shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] relative z-10 flex flex-col md:flex-row border border-white/50 my-auto">
         
-        {/* LEFT PANEL: Branding */}
-        <div className="w-full md:w-[45%] bg-[#002855] relative p-8 md:p-10 flex flex-col justify-between overflow-hidden rounded-t-3xl md:rounded-l-3xl md:rounded-tr-none">
+        {/* LEFT PANEL: Branding (Hidden on Mobile) */}
+        <div className="hidden md:flex w-full md:w-[45%] bg-[#002855] relative p-8 md:p-10 flex-col justify-between overflow-hidden rounded-l-3xl">
           {/* Background Glows for Left Panel */}
           <div className="absolute -top-32 -left-32 h-[400px] w-[400px] rounded-full opacity-30 blur-3xl"
             style={{ background: "radial-gradient(circle,#3b82f6,transparent 70%)" }} />
@@ -92,10 +92,23 @@ function LoginFormInner() {
         </div>
 
         {/* RIGHT PANEL: Login Form */}
-        <div className="w-full md:w-[55%] p-8 md:p-10 flex flex-col justify-center bg-white relative rounded-b-3xl md:rounded-r-3xl md:rounded-bl-none">
+        <div className="w-full md:w-[55%] p-6 md:p-10 flex flex-col justify-center bg-white relative rounded-3xl md:rounded-l-none">
           
           <div className="max-w-[360px] w-full mx-auto">
-            <div className="mb-6">
+            
+            {/* Mobile Header (Hidden on Desktop) */}
+            <div className="md:hidden flex flex-col items-center text-center mb-6 pb-6 border-b border-slate-100">
+              <Link href="/">
+                <div className="relative h-10 w-40 mb-3 mx-auto">
+                  <Image src="/rit-header.png" alt="RIT" fill className="object-contain object-center" priority sizes="200px" />
+                </div>
+              </Link>
+              <h1 className="text-lg font-black text-slate-800 leading-tight">
+                Student &amp; Staff <span className="text-blue-600">Portal</span>
+              </h1>
+            </div>
+
+            <div className="mb-6 hidden md:block">
               <div className="inline-flex items-center gap-1.5 rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest text-blue-700 mb-3">
                 <Shield className="h-3 w-3" /> Secure Access
               </div>
