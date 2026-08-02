@@ -73,8 +73,8 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
       {/* Mobile top bar */}
       <div className="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-[#E5E7EB] shadow-sm">
         <Link href="/" className="block">
-          <div className="relative h-8 w-32">
-            <Image src="/rit-header.png" alt="RIT AIML" fill sizes="128px" className="object-contain object-left" />
+          <div className="relative h-12 w-48">
+            <Image src="/rit-header.png" alt="RIT AIML" fill sizes="192px" className="object-contain object-left" />
           </div>
         </Link>
         <button

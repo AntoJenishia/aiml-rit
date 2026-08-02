@@ -39,7 +39,7 @@ export default function Navbar() {
         {/* Left: Logo */}
         <div className="z-10 flex shrink-0">
           <Link href="/" className="transition-opacity hover:opacity-95">
-            <div className="relative h-10 w-40 sm:h-12 sm:w-48 md:h-14 md:w-64 lg:h-16 lg:w-72">
+            <div className="relative h-12 w-48 sm:h-12 sm:w-48 md:h-14 md:w-64 lg:h-16 lg:w-72">
               <Image 
                 src="/rit-header.png" 
                 alt="Rajalakshmi Institute of Technology AIML Department" 
