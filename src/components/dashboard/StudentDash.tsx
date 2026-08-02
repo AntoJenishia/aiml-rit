@@ -109,6 +109,10 @@ function ODModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () =>
       setError("Please fill all required fields.")
       return
     }
+    if (!proofFile) {
+      setError("Please upload an upfront proof file (registration confirmation or invitation letter).")
+      return
+    }
     let proofFileB64 = ""
     let proofFileName = ""
     let proofMimeType = ""
@@ -250,13 +254,13 @@ function ODModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () =>
 
           {/* Proof upload */}
           <div>
-            <label className="block text-xs font-bold text-[#111827] mb-1.5">Upfront Proof (PDF or Image)</label>
+            <label className="block text-xs font-bold text-[#111827] mb-1.5">Upfront Proof <span className="text-red-500">*</span> <span className="font-normal text-[#6B7280]">(registration confirmation or invitation — PDF or image)</span></label>
             <input ref={fileRef} type="file" accept="application/pdf,image/*" className="hidden"
               onChange={e => setProofFile(e.target.files?.[0] || null)} />
             <button onClick={() => fileRef.current?.click()}
-              className={`w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed py-4 text-sm font-semibold transition-all ${proofFile ? "border-[#16A34A] bg-green-50 text-[#16A34A]" : "border-[#E5E7EB] bg-[#F5F6FA] text-[#6B7280] hover:border-[#3B5BFF] hover:text-[#3B5BFF]"}`}>
+              className={`w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed py-4 text-sm font-semibold transition-all ${proofFile ? "border-[#16A34A] bg-green-50 text-[#16A34A]" : "border-red-200 bg-red-50/30 text-[#6B7280] hover:border-[#3B5BFF] hover:text-[#3B5BFF]"}`}>
               {proofFile ? <CheckCircle className="h-4 w-4" /> : <Upload className="h-4 w-4" />}
-              {proofFile ? proofFile.name : "Click to upload registration confirmation / invitation"}
+              {proofFile ? proofFile.name : "Required — click to upload registration confirmation / invitation"}
             </button>
           </div>
         </div>
@@ -287,8 +291,12 @@ function PostODProofModal({ od, onClose, onSuccess }: { od: ODRequest; onClose: 
 
   const handleSubmit = async () => {
     setError("")
-    if (!description.trim() && files.length === 0) {
-      setError("Please provide a description or upload proof files.")
+    if (files.length === 0) {
+      setError("Please upload at least one proof file (photo or certificate).")
+      return
+    }
+    if (!description.trim()) {
+      setError("Please provide a written description of the event.")
       return
     }
 
@@ -343,15 +351,15 @@ function PostODProofModal({ od, onClose, onSuccess }: { od: ODRequest; onClose: 
         <div className="px-6 py-5 space-y-4">
           {error && <div className="p-3 bg-red-50 text-red-600 text-sm rounded-xl">{error}</div>}
           <div>
-            <label className="block text-xs font-bold text-[#111827] mb-1.5">What did you achieve / learn?</label>
+            <label className="block text-xs font-bold text-[#111827] mb-1.5">What did you achieve / learn? <span className="text-red-500">*</span></label>
             <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} placeholder="Briefly describe your experience..." className="w-full rounded-xl border border-[#E5E7EB] bg-[#F5F6FA] px-4 py-2.5 text-sm text-[#111827] focus:border-[#3B5BFF] focus:outline-none focus:ring-2 focus:ring-[#3B5BFF]/20 resize-none" />
           </div>
           <div>
-            <label className="block text-xs font-bold text-[#111827] mb-1.5">Upload Files (Photos, Certificates)</label>
+            <label className="block text-xs font-bold text-[#111827] mb-1.5">Upload Files <span className="text-red-500">*</span> <span className="font-normal text-[#6B7280]">(photos, certificates)</span></label>
             <input ref={fileRef} type="file" multiple accept="image/*,application/pdf" className="hidden" onChange={e => setFiles(Array.from(e.target.files || []))} />
-            <button onClick={() => fileRef.current?.click()} className="w-full flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[#E5E7EB] bg-[#F5F6FA] py-6 text-sm font-semibold text-[#6B7280] hover:border-[#3B5BFF] hover:text-[#3B5BFF] transition-all">
-              <Upload className="h-5 w-5" />
-              {files.length > 0 ? `${files.length} file(s) selected` : "Click to select files"}
+            <button onClick={() => fileRef.current?.click()} className={`w-full flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed py-6 text-sm font-semibold transition-all ${files.length > 0 ? "border-[#16A34A] bg-green-50 text-[#16A34A]" : "border-red-200 bg-red-50/30 text-[#6B7280] hover:border-[#3B5BFF] hover:text-[#3B5BFF]"`}>
+              {files.length > 0 ? <CheckCircle className="h-5 w-5" /> : <Upload className="h-5 w-5" />}
+              {files.length > 0 ? `${files.length} file(s) selected` : "Required — click to upload photos or certificates"}
             </button>
             {files.length > 0 && (
               <ul className="mt-2 text-xs text-[#6B7280] space-y-1">
