@@ -102,7 +102,7 @@ export default function HomePage() {
 
 
       {/* ── Stats ── */}
-      <section className="py-16">
+      <section className="py-12 sm:py-16">
         <div className="mx-auto max-w-7xl px-6">
           <RevealSection>
             <SectionHeading
@@ -125,7 +125,7 @@ export default function HomePage() {
       </section>
 
       {/* ── Intro ── */}
-      <section className="py-8">
+      <section className="py-8 sm:py-12">
         <div className="mx-auto max-w-7xl px-6">
           <CardReveal>
             <div className="premium-card p-8 sm:p-12">
@@ -136,7 +136,7 @@ export default function HomePage() {
       </section>
 
       {/* ── Quick links ── */}
-      <section className="py-16">
+      <section className="py-12 sm:py-16">
         <div className="mx-auto max-w-7xl px-6">
           <RevealSection>
             <SectionHeading eyebrow="EXPLORE" title={homeData.quickLinksTitle}

@@ -23,7 +23,7 @@ export default function HeroSection({
   secondaryCtaHref,
 }: HeroSectionProps) {
   return (
-    <section className="relative flex min-h-screen flex-col overflow-hidden bg-[#0a0f1e]">
+    <section className="relative flex min-[100dvh] flex-col overflow-hidden bg-[#0a0f1e]">
 
 
 
@@ -45,7 +45,7 @@ export default function HeroSection({
       />
 
       {/* ── Main hero content ── */}
-      <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 flex-col justify-center px-6 py-20">
+      <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 flex-col justify-center px-6 pt-32 pb-20 md:pt-40 md:pb-28">
 
         {/* Eyebrow */}
         <p
@@ -59,7 +59,7 @@ export default function HeroSection({
 
         {/* Title */}
         <h1
-          className="hero-fadein text-5xl font-black leading-[1.06] tracking-tighter text-white sm:text-6xl lg:text-8xl"
+          className="hero-fadein text-4xl font-black leading-[1.06] tracking-tighter text-white sm:text-6xl lg:text-7xl xl:text-8xl"
           style={{ animationDelay: "150ms" }}
         >
           Artificial
@@ -67,7 +67,7 @@ export default function HeroSection({
           <span className="hero-gradient-text">Intelligence</span>
         </h1>
         <h2
-          className="hero-fadein mt-1 text-5xl font-black leading-[1.06] tracking-tighter text-white/80 sm:text-6xl lg:text-8xl"
+          className="hero-fadein mt-1 text-4xl font-black leading-[1.06] tracking-tighter text-white/80 sm:text-6xl lg:text-7xl xl:text-8xl"
           style={{ animationDelay: "280ms" }}
         >
           &amp; Machine Learning
@@ -75,7 +75,7 @@ export default function HeroSection({
 
         {/* Sub-text */}
         <p
-          className="hero-fadein mt-8 max-w-xl text-lg leading-relaxed text-slate-400"
+          className="hero-fadein mt-6 md:mt-8 max-w-xl text-base md:text-lg leading-relaxed text-slate-400"
           style={{ animationDelay: "440ms" }}
         >
           {subtitle}
