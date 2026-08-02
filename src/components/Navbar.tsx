@@ -30,11 +30,11 @@ export default function Navbar() {
       className={clsx(
         "sticky top-0 z-50 w-full transition-all duration-300 border-b",
         scrolled 
-          ? "bg-white/95 shadow-lg backdrop-blur-md border-slate-200 py-2" 
-          : "bg-white border-slate-100 py-3 md:py-4"
+          ? "bg-white/95 shadow-lg backdrop-blur-md border-slate-200" 
+          : "bg-white border-slate-100"
       )}
     >
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 md:px-6 relative">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-6 md:py-4 relative">
         
         {/* Left: Logo */}
         <div className="z-10 flex shrink-0">
