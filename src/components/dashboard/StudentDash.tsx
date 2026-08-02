@@ -435,61 +435,7 @@ export default function StudentDash() {
   const searchParams = useSearchParams()
   const currentTab = searchParams.get("tab") || "dashboard"
 
-  if (currentTab === "profile") {
-    return (
-      <div className="min-h-full space-y-6">
-        <div className="bg-white rounded-2xl border border-[#E5E7EB] shadow-sm p-6 lg:p-8 max-w-4xl">
-          <h2 className="text-xl font-black text-[#111827] mb-8 flex items-center gap-2">
-            <User className="h-5 w-5 text-[#3B5BFF]" /> My Profile Details
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-y-8 gap-x-12">
-            <div>
-              <p className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider mb-1">Full Name</p>
-              <p className="text-sm font-semibold text-[#111827] bg-[#F5F6FA] px-3 py-2 rounded-lg">{profile?.name || name}</p>
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider mb-1">Register Number</p>
-              <p className="text-sm font-semibold text-[#111827] bg-[#F5F6FA] px-3 py-2 rounded-lg">{profile?.registerNumber || "—"}</p>
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider mb-1">Roll Number</p>
-              <p className="text-sm font-semibold text-[#111827] bg-[#F5F6FA] px-3 py-2 rounded-lg">{profile?.rollNumber || "—"}</p>
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider mb-1">Email Address</p>
-              <p className="text-sm font-semibold text-[#111827] bg-[#F5F6FA] px-3 py-2 rounded-lg">{profile?.email || email}</p>
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider mb-1">Phone Number</p>
-              <p className="text-sm font-semibold text-[#111827] bg-[#F5F6FA] px-3 py-2 rounded-lg">{profile?.phone || "—"}</p>
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider mb-1">Department</p>
-              <p className="text-sm font-semibold text-[#111827] bg-[#F5F6FA] px-3 py-2 rounded-lg">{profile?.department || "—"}</p>
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider mb-1">Batch</p>
-              <p className="text-sm font-semibold text-[#111827] bg-[#F5F6FA] px-3 py-2 rounded-lg">{profile?.batch || "—"}</p>
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider mb-1">Current Year & Semester</p>
-              <p className="text-sm font-semibold text-[#111827] bg-[#F5F6FA] px-3 py-2 rounded-lg">
-                Year {profile?.currentYear || "—"} · Semester {profile?.semester || "—"}
-              </p>
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider mb-1">Section</p>
-              <p className="text-sm font-semibold text-[#111827] bg-[#F5F6FA] px-3 py-2 rounded-lg">{profile?.section || "—"}</p>
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider mb-1">Class Incharge</p>
-              <p className="text-sm font-semibold text-[#111827] bg-[#F5F6FA] px-3 py-2 rounded-lg">{classInchargeName}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
+
 
   return (
     <div className="min-h-full space-y-6">
@@ -561,7 +507,58 @@ export default function StudentDash() {
         ))}
       </div>
 
-      {/* ── Main Grid ── */}
+      {/* ── Main Content Area ── */}
+      {currentTab === "profile" ? (
+        <div className="bg-white rounded-2xl border border-[#E5E7EB] shadow-sm p-6 lg:p-8">
+          <h2 className="text-xl font-black text-[#111827] mb-8 flex items-center gap-2">
+            <User className="h-5 w-5 text-[#3B5BFF]" /> My Profile Details
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-y-8 gap-x-12">
+            <div>
+              <p className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider mb-1">Full Name</p>
+              <p className="text-sm font-semibold text-[#111827] bg-[#F5F6FA] px-3 py-2 rounded-lg">{profile?.name || name}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider mb-1">Register Number</p>
+              <p className="text-sm font-semibold text-[#111827] bg-[#F5F6FA] px-3 py-2 rounded-lg">{profile?.registerNumber || "—"}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider mb-1">Roll Number</p>
+              <p className="text-sm font-semibold text-[#111827] bg-[#F5F6FA] px-3 py-2 rounded-lg">{profile?.rollNumber || "—"}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider mb-1">Email Address</p>
+              <p className="text-sm font-semibold text-[#111827] bg-[#F5F6FA] px-3 py-2 rounded-lg">{profile?.email || email}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider mb-1">Phone Number</p>
+              <p className="text-sm font-semibold text-[#111827] bg-[#F5F6FA] px-3 py-2 rounded-lg">{profile?.phone || "—"}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider mb-1">Department</p>
+              <p className="text-sm font-semibold text-[#111827] bg-[#F5F6FA] px-3 py-2 rounded-lg">{profile?.department || "—"}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider mb-1">Batch</p>
+              <p className="text-sm font-semibold text-[#111827] bg-[#F5F6FA] px-3 py-2 rounded-lg">{profile?.batch || "—"}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider mb-1">Current Year & Semester</p>
+              <p className="text-sm font-semibold text-[#111827] bg-[#F5F6FA] px-3 py-2 rounded-lg">
+                Year {profile?.currentYear || "—"} · Semester {profile?.semester || "—"}
+              </p>
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider mb-1">Section</p>
+              <p className="text-sm font-semibold text-[#111827] bg-[#F5F6FA] px-3 py-2 rounded-lg">{profile?.section || "—"}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider mb-1">Class Incharge</p>
+              <p className="text-sm font-semibold text-[#111827] bg-[#F5F6FA] px-3 py-2 rounded-lg">{classInchargeName}</p>
+            </div>
+          </div>
+        </div>
+      ) : (
       <div className="grid lg:grid-cols-3 gap-6">
 
         {/* LEFT col */}
@@ -776,7 +773,7 @@ export default function StudentDash() {
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }
