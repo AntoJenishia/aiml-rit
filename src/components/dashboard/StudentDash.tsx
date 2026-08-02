@@ -357,7 +357,7 @@ function PostODProofModal({ od, onClose, onSuccess }: { od: ODRequest; onClose: 
           <div>
             <label className="block text-xs font-bold text-[#111827] mb-1.5">Upload Files <span className="text-red-500">*</span> <span className="font-normal text-[#6B7280]">(photos, certificates)</span></label>
             <input ref={fileRef} type="file" multiple accept="image/*,application/pdf" className="hidden" onChange={e => setFiles(Array.from(e.target.files || []))} />
-            <button onClick={() => fileRef.current?.click()} className={`w-full flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed py-6 text-sm font-semibold transition-all ${files.length > 0 ? "border-[#16A34A] bg-green-50 text-[#16A34A]" : "border-red-200 bg-red-50/30 text-[#6B7280] hover:border-[#3B5BFF] hover:text-[#3B5BFF]"`}>
+            <button onClick={() => fileRef.current?.click()} className={`w-full flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed py-6 text-sm font-semibold transition-all ${files.length > 0 ? "border-[#16A34A] bg-green-50 text-[#16A34A]" : "border-red-200 bg-red-50/30 text-[#6B7280] hover:border-[#3B5BFF] hover:text-[#3B5BFF]"}`}>
               {files.length > 0 ? <CheckCircle className="h-5 w-5" /> : <Upload className="h-5 w-5" />}
               {files.length > 0 ? `${files.length} file(s) selected` : "Required — click to upload photos or certificates"}
             </button>
