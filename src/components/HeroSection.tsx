@@ -23,7 +23,7 @@ export default function HeroSection({
   secondaryCtaHref,
 }: HeroSectionProps) {
   return (
-    <section className="relative flex min-[100dvh] flex-col overflow-hidden bg-[#0a0f1e]">
+    <section className="relative flex min-h-[100dvh] flex-col overflow-hidden bg-[#0a0f1e]">
 
 
 
