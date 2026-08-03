@@ -1353,6 +1353,87 @@ function HodDashInner() {
               )}
             </div>
           )}
+
+          {/* TAB 7: Events & Announcements */}
+          {activeTab === "events" && (
+            <div className="space-y-6">
+              {/* Create Event */}
+              <div className="bg-white rounded-3xl border border-[#E5E7EB] shadow-sm p-6 animate-fadeIn">
+                <div className="mb-6">
+                  <h2 className="text-base font-bold text-[#111827]">Create Upcoming Event</h2>
+                  <p className="text-xs text-[#6B7280]">Add a new event that will appear on the public site and dashboards.</p>
+                </div>
+                <form onSubmit={handleCreateEvent} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-[#4B5563] mb-1">Event Title</label>
+                      <input required type="text" value={evForm.title} onChange={e => setEvForm({...evForm, title: e.target.value})} className="w-full bg-[#F5F6FA] border-none rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#3B5BFF]" placeholder="e.g. AI Hackathon 2026" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-[#4B5563] mb-1">Event Type</label>
+                      <select required value={evForm.type} onChange={e => setEvForm({...evForm, type: e.target.value})} className="w-full bg-[#F5F6FA] border-none rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#3B5BFF]">
+                        <option value="Workshop">Workshop</option>
+                        <option value="Hackathon">Hackathon</option>
+                        <option value="Guest Lecture">Guest Lecture</option>
+                        <option value="Seminar">Seminar</option>
+                        <option value="FDP">FDP</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-[#4B5563] mb-1">Start Date</label>
+                      <input required type="date" value={evForm.startDate} onChange={e => setEvForm({...evForm, startDate: e.target.value})} className="w-full bg-[#F5F6FA] border-none rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#3B5BFF]" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-[#4B5563] mb-1">End Date</label>
+                      <input required type="date" value={evForm.endDate} onChange={e => setEvForm({...evForm, endDate: e.target.value})} className="w-full bg-[#F5F6FA] border-none rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#3B5BFF]" />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-xs font-semibold text-[#4B5563] mb-1">Venue</label>
+                      <input required type="text" value={evForm.venue} onChange={e => setEvForm({...evForm, venue: e.target.value})} className="w-full bg-[#F5F6FA] border-none rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#3B5BFF]" placeholder="e.g. Main Auditorium" />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-xs font-semibold text-[#4B5563] mb-1">Description</label>
+                      <textarea required value={evForm.description} onChange={e => setEvForm({...evForm, description: e.target.value})} rows={3} className="w-full bg-[#F5F6FA] border-none rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#3B5BFF]" placeholder="Brief description of the event..." />
+                    </div>
+                  </div>
+                  <button type="submit" disabled={evLoading} className="mt-2 px-6 py-2.5 bg-[#3B5BFF] text-white rounded-xl text-sm font-bold hover:bg-[#2563EB] transition-all disabled:opacity-50">
+                    {evLoading ? "Creating..." : "Create Event"}
+                  </button>
+                </form>
+              </div>
+
+              {/* Post Announcement */}
+              <div className="bg-white rounded-3xl border border-[#E5E7EB] shadow-sm p-6 animate-fadeIn">
+                <div className="mb-6">
+                  <h2 className="text-base font-bold text-[#111827]">Post Announcement</h2>
+                  <p className="text-xs text-[#6B7280]">Broadcast a message to students and/or faculty dashboards.</p>
+                </div>
+                <form onSubmit={handlePostAnn} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-[#4B5563] mb-1">Announcement Title</label>
+                      <input required type="text" value={annForm.title} onChange={e => setAnnForm({...annForm, title: e.target.value})} className="w-full bg-[#F5F6FA] border-none rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#3B5BFF]" placeholder="e.g. Upcoming Holiday" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-[#4B5563] mb-1">Target Audience</label>
+                      <select required value={annForm.target} onChange={e => setAnnForm({...annForm, target: e.target.value as any})} className="w-full bg-[#F5F6FA] border-none rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#3B5BFF]">
+                        <option value="all">All (Students & Faculty)</option>
+                        <option value="students">Students Only</option>
+                        <option value="staff">Faculty Only</option>
+                      </select>
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-xs font-semibold text-[#4B5563] mb-1">Message Body</label>
+                      <textarea required value={annForm.body} onChange={e => setAnnForm({...annForm, body: e.target.value})} rows={3} className="w-full bg-[#F5F6FA] border-none rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#3B5BFF]" placeholder="Detailed message..." />
+                    </div>
+                  </div>
+                  <button type="submit" disabled={annLoading} className="mt-2 px-6 py-2.5 bg-[#D97706] text-white rounded-xl text-sm font-bold hover:bg-[#B45309] transition-all disabled:opacity-50">
+                    {annLoading ? "Posting..." : "Post Announcement"}
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

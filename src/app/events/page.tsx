@@ -56,8 +56,7 @@ export default function EventsPage() {
   }, []);
 
   const filtered = useMemo(() => {
-    const all = [...initialEvents, ...dynamicEvents];
-    return all.filter((e) => e.type === tab).sort((a, b) => a.date.localeCompare(b.date));
+    return dynamicEvents.filter((e) => e.type === tab).sort((a, b) => a.date.localeCompare(b.date));
   }, [tab, dynamicEvents]);
 
   const years = useMemo(() => {

@@ -144,11 +144,24 @@ function StaffDashInner() {
   }
 
   const loadData = useCallback(async () => {
-    // Portfolios
+    // Portfolios, Events, Announcements
     setLoadingPortfolio(true)
     try {
-      const pRes = await fetch("/api/faculty/portfolio")
+      const [pRes, evRes, annRes] = await Promise.all([
+        fetch("/api/faculty/portfolio"),
+        fetch("/api/events"),
+        fetch("/api/announcements")
+      ])
       if (pRes.ok) setPortfolios(await pRes.json())
+      if (evRes.ok) {
+        const ev = await evRes.json()
+        const todayStr = new Date().toISOString().split("T")[0]
+        setEvents(ev.filter((e: AdminEvent) => e.startDate >= todayStr))
+      }
+      if (annRes.ok) {
+        const ann = await annRes.json()
+        setAnnouncements(ann.filter((a: Announcement) => a.target === "all" || a.target === "staff"))
+      }
     } catch { }
     setLoadingPortfolio(false)
 
