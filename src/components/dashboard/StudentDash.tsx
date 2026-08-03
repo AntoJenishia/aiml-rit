@@ -737,7 +737,7 @@ export default function StudentDash() {
               <h2 className="text-base font-bold text-[#111827] flex items-center gap-2">
                 <CalendarDays className="h-4 w-4 text-[#16A34A]" /> Upcoming Events
               </h2>
-              <Link href="/events" className="text-xs font-bold text-[#3B5BFF] flex items-center gap-1 hover:underline">
+              <Link href="/dashboard/events-announcements" className="text-xs font-bold text-[#3B5BFF] flex items-center gap-1 hover:underline">
                 View All <ArrowRight className="h-3 w-3" />
               </Link>
             </div>

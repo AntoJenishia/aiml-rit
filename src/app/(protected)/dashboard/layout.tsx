@@ -36,6 +36,7 @@ const getNavItems = (role?: string, isClassIncharge?: boolean) => {
     const baseItems = [
       { href: "/dashboard/faculty?tab=portfolio", label: "My Portfolio",      icon: Briefcase,        exact: false, tab: "portfolio" },
       { href: "/dashboard/faculty?tab=profile",  label: "My Profile",        icon: User,             exact: false, tab: "profile" },
+      { href: "/dashboard/events-announcements", label: "Events & Announcements", icon: Megaphone, exact: false },
     ]
     if (isClassIncharge) {
       return [
@@ -50,7 +51,7 @@ const getNavItems = (role?: string, isClassIncharge?: boolean) => {
   return [
     { href: "/dashboard/student", label: "My Dashboard",   icon: LayoutDashboard, exact: true },
     { href: "/dashboard/student?tab=profile", label: "My Profile",     icon: User,            exact: false, tab: "profile" },
-    { href: "/events",            label: "Events",         icon: FileText,        exact: false },
+    { href: "/dashboard/events-announcements", label: "Events & Announcements", icon: Megaphone, exact: false },
   ]
 }
 
