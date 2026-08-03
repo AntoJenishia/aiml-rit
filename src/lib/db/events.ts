@@ -1,9 +1,11 @@
 export interface AdminEvent {
   id?: string
   title: string
-  date: string
+  startDate: string
+  endDate: string
   description: string
-  tag: string
+  venue: string
+  type: string
   createdBy: string
   posterURL?: string
   createdAt?: { seconds: number } | null

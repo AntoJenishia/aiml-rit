@@ -4,6 +4,8 @@ import Image from "next/image"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { useState, useEffect, useCallback } from "react"
+import { type AdminEvent, addAdminEvent } from "@/lib/db/events"
+import { type Announcement, addAnnouncement } from "@/lib/db/announcements"
 import {
   Users, UserPlus, FileSignature, Award, PieChart,
   CheckCircle, XCircle, ChevronRight, PlusCircle, CalendarPlus,
@@ -683,6 +685,42 @@ function HodDashInner() {
   const [resetTarget, setResetTarget] = useState<FacultyUser | null>(null)
   const [editingStudent, setEditingStudent] = useState<StudentUser | null>(null)
   const [importType, setImportType] = useState<"student" | "faculty" | null>(null)
+
+  // Events & Announcements
+  const [evForm, setEvForm] = useState<Partial<AdminEvent>>({ title: "", description: "", startDate: "", endDate: "", venue: "", type: "Workshop" })
+  const [annForm, setAnnForm] = useState<Partial<Announcement>>({ title: "", body: "", target: "all" })
+  const [evLoading, setEvLoading] = useState(false)
+  const [annLoading, setAnnLoading] = useState(false)
+  
+  const handleCreateEvent = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!evForm.title || !evForm.startDate || !evForm.endDate || !evForm.type || !evForm.venue || !evForm.description) return
+    setEvLoading(true)
+    try {
+      await addAdminEvent({ ...(evForm as Omit<AdminEvent, "id">), createdBy: name })
+      setEvForm({ title: "", description: "", startDate: "", endDate: "", venue: "", type: "Workshop" })
+      alert("Event created successfully!")
+    } catch (err: any) {
+      alert("Failed to create event: " + err.message)
+    } finally {
+      setEvLoading(false)
+    }
+  }
+
+  const handlePostAnn = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!annForm.title || !annForm.body || !annForm.target) return
+    setAnnLoading(true)
+    try {
+      await addAnnouncement({ ...(annForm as Omit<Announcement, "id">), postedBy: name })
+      setAnnForm({ title: "", body: "", target: "all" })
+      alert("Announcement posted successfully!")
+    } catch (err: any) {
+      alert("Failed to post announcement: " + err.message)
+    } finally {
+      setAnnLoading(false)
+    }
+  }
 
   // Dynamic datasets loaded from API
   const [students, setStudents] = useState<StudentUser[]>([])

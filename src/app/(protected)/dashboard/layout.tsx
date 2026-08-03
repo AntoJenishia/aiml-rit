@@ -26,6 +26,7 @@ const getNavItems = (role?: string, isClassIncharge?: boolean) => {
       { href: "/admin",                   label: "Students",        icon: GraduationCap,   exact: true },
       { href: "/admin?tab=faculty",       label: "Faculty",         icon: Users,           exact: false },
       { href: "/admin?tab=od",            label: "OD Approvals",    icon: FileText,        exact: false },
+      { href: "/admin?tab=events",        label: "Events & Announcements", icon: Megaphone, exact: false },
       { href: "/admin?tab=achievements",  label: "Achievements",    icon: Award,           exact: false },
       { href: "/profile",                 label: "My Profile",      icon: User,            exact: false },
       { href: "/",                        label: "Public Site",     icon: Home,            exact: false },

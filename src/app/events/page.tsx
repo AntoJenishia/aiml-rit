@@ -3,9 +3,10 @@
 import SectionHeading from "@/components/SectionHeading";
 import RevealSection from "@/components/RevealSection";
 import CardReveal from "@/components/CardReveal";
-import { events, archiveEvents } from "@/data/events";
+import { events as initialEvents, archiveEvents } from "@/data/events";
 import { eventsPageData } from "@/data/quickLinks";
 import type { EventType, EventTag, ArchiveEvent } from "@/lib/types";
+import { getAdminEvents, type AdminEvent } from "@/lib/db/events";
 import { AnimatePresence } from "framer-motion";
 import { ArrowRight, X } from "lucide-react";
 import Image from "next/image";
@@ -32,11 +33,32 @@ export default function EventsPage() {
   const [tab, setTab]             = useState<EventType>("upcoming");
   const [yearFilter, setYearFilter] = useState("All");
   const [selected, setSelected]   = useState<ArchiveEvent | null>(null);
+  const [dynamicEvents, setDynamicEvents] = useState<any[]>([]);
 
-  const filtered = useMemo(
-    () => events.filter((e) => e.type === tab).sort((a, b) => a.date.localeCompare(b.date)),
-    [tab]
-  );
+  useEffect(() => {
+    async function load() {
+      try {
+        const adminEvs = await getAdminEvents();
+        const mapped = adminEvs.map(ev => {
+          const today = new Date().toISOString().split("T")[0];
+          return {
+            title: ev.title,
+            type: ev.startDate >= today ? "upcoming" : "past",
+            date: ev.startDate,
+            description: ev.description,
+            tag: ev.type as EventTag
+          };
+        });
+        setDynamicEvents(mapped);
+      } catch (e) { console.error(e) }
+    }
+    load();
+  }, []);
+
+  const filtered = useMemo(() => {
+    const all = [...initialEvents, ...dynamicEvents];
+    return all.filter((e) => e.type === tab).sort((a, b) => a.date.localeCompare(b.date));
+  }, [tab, dynamicEvents]);
 
   const years = useMemo(() => {
     const s = [...new Set(archiveEvents.map((e) => e.year))].sort((a, b) => b - a);
@@ -109,7 +131,7 @@ export default function EventsPage() {
                             <p className="text-sm font-bold text-slate-800 transition-colors duration-200 group-hover:text-blue-700">
                               {ev.title}
                             </p>
-                            <span className={clsx("rounded-full px-3 py-1 text-[10px] font-semibold", TAG_CLASS[ev.tag])}>
+                            <span className={clsx("rounded-full px-3 py-1 text-[10px] font-semibold", TAG_CLASS[ev.tag as EventTag])}>
                               {ev.tag}
                             </span>
                           </div>

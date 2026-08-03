@@ -8,8 +8,11 @@ import {
   Users, CheckCircle, XCircle, FileText, ChevronRight,
   BookOpen, TrendingUp, Clock, AlertCircle, Loader2,
   ExternalLink, Download, X, Send, Award, FileUp, Briefcase, Plus,
-  Mail, Shield, Phone, User, Hash,
+  Mail, Shield, Phone, User, Hash, CalendarDays, Megaphone
 } from "lucide-react"
+
+import { getAnnouncements, type Announcement } from "@/lib/db/announcements"
+import { getAdminEvents, type AdminEvent } from "@/lib/db/events"
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface ODRequest {
@@ -118,6 +121,8 @@ function StaffDashInner() {
   const [odRequests, setOdRequests] = useState<ODRequest[]>([])
   const [students, setStudents] = useState<Student[]>([])
   const [portfolios, setPortfolios] = useState<PortfolioItem[]>([])
+  const [events, setEvents] = useState<AdminEvent[]>([])
+  const [announcements, setAnnouncements] = useState<Announcement[]>([])
 
   const [loadingOD, setLoadingOD] = useState(true)
   const [loadingStudents, setLoadingStudents] = useState(true)
@@ -342,7 +347,9 @@ function StaffDashInner() {
         </div>
       </div>
 
-      {/* Content Area — full width, no internal sidebar */}
+      {/* Content Area */}
+      <div className="grid lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-4">
           
           {/* TAB 1: My Class (Only if incharge) */}
           {isClassIncharge && activeTab === "class" && (
@@ -628,7 +635,63 @@ function StaffDashInner() {
               </div>
             </div>
           )}
+        </div>
 
+        {/* Right Sidebar: Events & Announcements */}
+        <div className="space-y-6">
+          {/* Events */}
+          <div className="bg-white rounded-2xl border border-[#E5E7EB] shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-[#E5E7EB] flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CalendarDays className="h-4 w-4 text-[#16A34A]" />
+                <h2 className="text-base font-bold text-[#111827]">Upcoming Events</h2>
+              </div>
+            </div>
+            {events.length === 0 ? (
+              <div className="px-6 py-8 text-center text-xs text-[#94A3B8]">No upcoming events</div>
+            ) : (
+              <div className="divide-y divide-[#E5E7EB]">
+                {events.slice(0, 3).map(ev => (
+                  <div key={ev.id} className="p-5 hover:bg-[#F5F6FA] transition-colors flex items-start gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <p className="text-sm font-bold text-[#111827] truncate">{ev.title}</p>
+                      </div>
+                      <p className="text-xs text-[#6B7280]">{ev.startDate}{ev.startDate !== ev.endDate ? ` - ${ev.endDate}` : ""}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Announcements */}
+          <div className="bg-white rounded-2xl border border-[#E5E7EB] shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-[#E5E7EB] flex items-center gap-2">
+              <Megaphone className="h-4 w-4 text-[#D97706]" />
+              <h2 className="text-base font-bold text-[#111827]">Announcements</h2>
+            </div>
+            {announcements.length === 0 ? (
+              <div className="px-5 py-6 text-center text-xs text-[#94A3B8]">No announcements</div>
+            ) : (
+              <div className="divide-y divide-[#E5E7EB]">
+                {announcements.slice(0, 4).map(a => (
+                  <div key={a.id} className="px-5 py-3.5 hover:bg-[#F5F6FA] transition-colors">
+                    <p className="text-sm font-bold text-[#111827]">{a.title}</p>
+                    {a.body && <p className="text-xs text-[#6B7280] mt-0.5 line-clamp-2">{a.body}</p>}
+                    {a.postedBy && (
+                      <p className="text-[10px] font-bold text-[#94A3B8] mt-1">
+                        — {a.postedBy}
+                        {a.createdAt && ` on ${new Date(a.createdAt.seconds * 1000).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

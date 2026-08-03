@@ -7,7 +7,7 @@ import {
 
 export async function GET() {
   try {
-    const snap = await getDocs(query(collection(db, "admin_events"), orderBy("date", "desc")))
+    const snap = await getDocs(query(collection(db, "admin_events"), orderBy("startDate", "desc")))
     const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
     return NextResponse.json(data)
   } catch (e) {

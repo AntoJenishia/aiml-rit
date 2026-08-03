@@ -404,7 +404,8 @@ export default function StudentDash() {
       try {
         const [ann, ev] = await Promise.all([getAnnouncements(), getAdminEvents()])
         setAnnouncements(ann.filter(a => a.target === "all" || a.target === "students"))
-        setEvents(ev)
+        const todayStr = new Date().toISOString().split("T")[0]
+        setEvents(ev.filter(e => e.startDate >= todayStr))
         if (uid) {
           const regs = await getRegistrationsByUser(uid)
           setRegistered(new Set(regs.map(r => r.eventId)))
@@ -755,7 +756,7 @@ export default function StudentDash() {
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <p className="text-sm font-bold text-[#111827] truncate">{ev.title}</p>
                         </div>
-                        <p className="text-xs text-[#6B7280]">{ev.date}</p>
+                        <p className="text-xs text-[#6B7280]">{ev.startDate}{ev.startDate !== ev.endDate ? ` - ${ev.endDate}` : ""}</p>
                       </div>
                       <button onClick={() => toggleRegister(ev.id!)} disabled={isLoading}
                         className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${isReg ? "bg-[#16A34A]/10 text-[#16A34A] hover:bg-red-50 hover:text-[#EF4444]" : "bg-[#3B5BFF] text-white hover:bg-[#2563EB]"}`}>
@@ -786,7 +787,12 @@ export default function StudentDash() {
                   <div key={a.id} className="px-5 py-3.5 hover:bg-[#F5F6FA] transition-colors">
                     <p className="text-sm font-bold text-[#111827]">{a.title}</p>
                     {a.body && <p className="text-xs text-[#6B7280] mt-0.5 line-clamp-2">{a.body}</p>}
-                    {a.postedBy && <p className="text-[10px] font-bold text-[#94A3B8] mt-1">— {a.postedBy}</p>}
+                    {a.postedBy && (
+                      <p className="text-[10px] font-bold text-[#94A3B8] mt-1">
+                        — {a.postedBy}
+                        {a.createdAt && ` on ${new Date(a.createdAt.seconds * 1000).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`}
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>

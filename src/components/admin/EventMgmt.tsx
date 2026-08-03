@@ -24,7 +24,7 @@ export default function EventMgmt() {
   const [error, setError]       = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [editItem, setEditItem] = useState<AdminEvent | null>(null)
-  const [form, setForm]         = useState({ title: "", date: "", description: "", tag: "Workshop" })
+  const [form, setForm]         = useState({ title: "", startDate: "", description: "", type: "Workshop" })
   const [posterFile, setPosterFile] = useState<File | null>(null)
   const [posterPreview, setPosterPreview] = useState<string | null>(null)
   const [saving, setSaving]     = useState(false)
@@ -53,7 +53,7 @@ export default function EventMgmt() {
 
   const openCreateForm = () => {
     setEditItem(null)
-    setForm({ title: "", date: "", description: "", tag: "Workshop" })
+    setForm({ title: "", startDate: "", description: "", type: "Workshop" })
     setPosterFile(null)
     setPosterPreview(null)
     setShowForm(true)
@@ -61,7 +61,7 @@ export default function EventMgmt() {
 
   const openEditForm = (ev: AdminEvent) => {
     setEditItem(ev)
-    setForm({ title: ev.title, date: ev.date, description: ev.description, tag: ev.tag })
+    setForm({ title: ev.title, startDate: ev.startDate, description: ev.description, type: ev.type })
     setPosterFile(null)
     setPosterPreview(ev.posterURL || null)
     setShowForm(true)
@@ -76,7 +76,7 @@ export default function EventMgmt() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.title.trim() || !form.date) return
+    if (!form.title.trim() || !form.startDate) return
     setSaving(true)
     setSaveError(null)
     try {
@@ -93,11 +93,11 @@ export default function EventMgmt() {
       }
 
       if (editItem?.id) {
-        await updateAdminEvent(editItem.id, { ...form, posterURL })
+        await updateAdminEvent(editItem.id, { ...form, endDate: form.startDate, venue: editItem.venue || "", posterURL })
       } else {
-        await addAdminEvent({ ...form, posterURL, createdBy: name })
+        await addAdminEvent({ ...form, endDate: form.startDate, venue: "", posterURL, createdBy: name ?? "" })
       }
-      setForm({ title: "", date: "", description: "", tag: "Workshop" })
+      setForm({ title: "", startDate: "", description: "", type: "Workshop" })
       setPosterFile(null)
       setPosterPreview(null)
       setShowForm(false)
@@ -169,12 +169,12 @@ export default function EventMgmt() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Date</label>
-                  <input required type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })}
+                  <input required type="date" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })}
                     className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-base sm:text-sm min-h-[44px] focus:outline-none focus:ring-2 focus:ring-blue-400" />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Category</label>
-                  <select value={form.tag} onChange={(e) => setForm({ ...form, tag: e.target.value })}
+                  <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}
                     className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-base sm:text-sm min-h-[44px] focus:outline-none focus:ring-2 focus:ring-blue-400">
                     {TAGS.map((t) => <option key={t}>{t}</option>)}
                   </select>
@@ -280,10 +280,10 @@ export default function EventMgmt() {
                     </div>
                     {ev.description && <p className="text-slate-500 text-xs mt-1 line-clamp-2">{ev.description}</p>}
                     <div className="flex items-center gap-2 mt-2 flex-wrap">
-                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${TAG_COLORS[ev.tag] ?? "bg-slate-100 text-slate-600 border-slate-200"}`}>
-                        {ev.tag}
+                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${TAG_COLORS[ev.type] ?? "bg-slate-100 text-slate-600 border-slate-200"}`}>
+                        {ev.type}
                       </span>
-                      <span className="text-[10px] text-slate-400">{ev.date}</span>
+                      <span className="text-[10px] text-slate-400">{ev.startDate}</span>
                       <button
                         onClick={toggleExpand}
                         className="flex items-center gap-1 text-[10px] font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200 hover:bg-blue-100 transition-all">
