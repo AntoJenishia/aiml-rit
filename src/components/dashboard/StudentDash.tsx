@@ -5,14 +5,11 @@ import { useSearchParams } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
 import {
-  BookOpen, Bell, CalendarDays, Trophy, TrendingUp,
-  ExternalLink, CheckCircle, CheckCircle2, Clock, Megaphone, X, Loader2,
-  GraduationCap, Users, ArrowRight, Star, FileText, PlusCircle,
+  BookOpen, Bell, Trophy, TrendingUp,
+  ExternalLink, CheckCircle, CheckCircle2, Clock, X, Loader2,
+  GraduationCap, Users, Star, FileText, PlusCircle,
   Upload, AlertCircle, XCircle, ChevronRight, Download, User,
 } from "lucide-react"
-import { getAnnouncements, type Announcement } from "@/lib/db/announcements"
-import { getAdminEvents, type AdminEvent } from "@/lib/db/events"
-import { getRegistrationsByUser, registerForEvent, unregisterFromEvent } from "@/lib/db/registrations"
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface ODRequest {
@@ -64,12 +61,7 @@ const OD_STATUS: Record<string, { label: string; color: string; bg: string; icon
   post_pending_hod:     { label: "Proof Pending HOD",     color: "text-[#3B5BFF]", bg: "bg-blue-50", icon: Clock },
 }
 
-const quickLinks = [
-  { label: "Department Events", href: "/events",       icon: CalendarDays, accent: "#3B5BFF" },
-  { label: "View Faculty",      href: "/faculty",      icon: Users,        accent: "#7C3AED" },
-  { label: "Syllabus",          href: "/syllabus",     icon: BookOpen,     accent: "#16A34A" },
-  { label: "Achievements",      href: "/achievements", icon: Trophy,       accent: "#D97706" },
-]
+
 
 // ── OD Application Modal ─────────────────────────────────────────────────────
 function ODModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
@@ -384,12 +376,6 @@ function PostODProofModal({ od, onClose, onSuccess }: { od: ODRequest; onClose: 
 export default function StudentDash() {
   const { uid, name, email, image } = useUser()
 
-  const [announcements, setAnnouncements] = useState<Announcement[]>([])
-  const [events,        setEvents]        = useState<AdminEvent[]>([])
-  const [registered,    setRegistered]    = useState<Set<string>>(new Set())
-  const [regLoading,    setRegLoading]    = useState<Set<string>>(new Set())
-  const [loadingData,   setLoadingData]   = useState(true)
-  const [selectedEvent, setSelectedEvent] = useState<AdminEvent | null>(null)
   const [odRequests,    setOdRequests]    = useState<ODRequest[]>([])
   const [loadingOD,     setLoadingOD]     = useState(true)
   const [showODForm,    setShowODForm]    = useState(false)
@@ -402,13 +388,7 @@ export default function StudentDash() {
   useEffect(() => {
     async function load() {
       try {
-        const [ann, ev] = await Promise.all([getAnnouncements(), getAdminEvents()])
-        setAnnouncements(ann.filter(a => a.target === "all" || a.target === "students"))
-        const todayStr = new Date().toISOString().split("T")[0]
-        setEvents(ev.filter(e => e.startDate >= todayStr))
         if (uid) {
-          const regs = await getRegistrationsByUser(uid)
-          setRegistered(new Set(regs.map(r => r.eventId)))
           // Fetch student profile
           const pRes = await fetch(`/api/users?uid=${uid}`)
           if (pRes.ok) {
@@ -425,7 +405,6 @@ export default function StudentDash() {
           }
         }
       } catch { /* silently fail */ }
-      setLoadingData(false)
       setLoadingProfile(false)
     }
     load()
@@ -442,21 +421,6 @@ export default function StudentDash() {
   }
 
   useEffect(() => { loadODs() }, [uid])
-
-  const toggleRegister = async (eventId: string) => {
-    if (!uid || regLoading.has(eventId)) return
-    setRegLoading(prev => new Set(prev).add(eventId))
-    try {
-      if (registered.has(eventId)) {
-        await unregisterFromEvent(eventId, uid)
-        setRegistered(prev => { const n = new Set(prev); n.delete(eventId); return n })
-      } else {
-        await registerForEvent(eventId, uid, name, email)
-        setRegistered(prev => new Set(prev).add(eventId))
-      }
-    } catch { /* silently fail */ }
-    setRegLoading(prev => { const n = new Set(prev); n.delete(eventId); return n })
-  }
 
   const pendingODs   = odRequests.filter(o => o.status === "pending_faculty" || o.status === "pending_hod").length
   const approvedODs  = odRequests.filter(o => o.status === "approved" || o.status === "completed").length
@@ -596,10 +560,7 @@ export default function StudentDash() {
           </div>
         </div>
       ) : (
-      <div className="grid lg:grid-cols-3 gap-6">
-
-        {/* LEFT col */}
-        <div className="lg:col-span-2 space-y-6">
+      <div className="space-y-6">
 
           {/* Tab nav — Courses | OD */}
           <div className="flex gap-1 bg-[#F5F6FA] border border-[#E5E7EB] rounded-xl p-1">
@@ -730,76 +691,6 @@ export default function StudentDash() {
               )}
             </div>
           )}
-
-          {/* Events */}
-          <div className="bg-white rounded-2xl border border-[#E5E7EB] shadow-sm overflow-hidden">
-            <div className="px-6 py-5 border-b border-[#E5E7EB] flex items-center justify-between">
-              <h2 className="text-base font-bold text-[#111827] flex items-center gap-2">
-                <CalendarDays className="h-4 w-4 text-[#16A34A]" /> Upcoming Events
-              </h2>
-              <Link href="/dashboard/events-announcements" className="text-xs font-bold text-[#3B5BFF] flex items-center gap-1 hover:underline">
-                View All <ArrowRight className="h-3 w-3" />
-              </Link>
-            </div>
-            {loadingData ? (
-              <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-[#3B5BFF]" /></div>
-            ) : events.length === 0 ? (
-              <div className="px-6 py-8 text-center text-xs text-[#94A3B8]">No upcoming events</div>
-            ) : (
-              <div className="divide-y divide-[#E5E7EB]">
-                {events.slice(0, 3).map(ev => {
-                  const isReg = registered.has(ev.id!)
-                  const isLoading = regLoading.has(ev.id!)
-                  return (
-                    <div key={ev.id} className="px-6 py-4 flex items-center gap-4 hover:bg-[#F5F6FA] transition-colors">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <p className="text-sm font-bold text-[#111827] truncate">{ev.title}</p>
-                        </div>
-                        <p className="text-xs text-[#6B7280]">{ev.startDate}{ev.startDate !== ev.endDate ? ` - ${ev.endDate}` : ""}</p>
-                      </div>
-                      <button onClick={() => toggleRegister(ev.id!)} disabled={isLoading}
-                        className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${isReg ? "bg-[#16A34A]/10 text-[#16A34A] hover:bg-red-50 hover:text-[#EF4444]" : "bg-[#3B5BFF] text-white hover:bg-[#2563EB]"}`}>
-                        {isLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : isReg ? "Registered ✓" : "Register"}
-                      </button>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* RIGHT col */}
-        <div className="space-y-6">
-
-          {/* Announcements */}
-          <div className="bg-white rounded-2xl border border-[#E5E7EB] shadow-sm overflow-hidden">
-            <div className="px-5 py-4 border-b border-[#E5E7EB] flex items-center gap-2">
-              <Megaphone className="h-4 w-4 text-[#D97706]" />
-              <h2 className="text-base font-bold text-[#111827]">Announcements</h2>
-            </div>
-            {announcements.length === 0 ? (
-              <div className="px-5 py-6 text-center text-xs text-[#94A3B8]">No announcements</div>
-            ) : (
-              <div className="divide-y divide-[#E5E7EB]">
-                {announcements.slice(0, 4).map(a => (
-                  <div key={a.id} className="px-5 py-3.5 hover:bg-[#F5F6FA] transition-colors">
-                    <p className="text-sm font-bold text-[#111827]">{a.title}</p>
-                    {a.body && <p className="text-xs text-[#6B7280] mt-0.5 line-clamp-2">{a.body}</p>}
-                    {a.postedBy && (
-                      <p className="text-[10px] font-bold text-[#94A3B8] mt-1">
-                        — {a.postedBy}
-                        {a.createdAt && ` on ${new Date(a.createdAt.seconds * 1000).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`}
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-        </div>
       </div>
       )}
     </div>
