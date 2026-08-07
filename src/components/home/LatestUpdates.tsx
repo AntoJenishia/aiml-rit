@@ -50,7 +50,7 @@ export default function LatestUpdates() {
             />
           </RevealSection>
           
-          <RevealSection delay={200}>
+          <RevealSection delayMs={200}>
             <Link 
               href="#"
               className="inline-flex items-center gap-2 text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors"

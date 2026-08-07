@@ -20,7 +20,7 @@ export default function ContactSection() {
         <div className="mt-16 grid lg:grid-cols-2 gap-12 lg:gap-20">
           
           {/* Left: Contact Info */}
-          <RevealSection delay={100}>
+          <RevealSection delayMs={100}>
             <div>
               <div className="mb-10">
                 <h3 className="text-2xl font-black text-slate-900 mb-2">
@@ -92,7 +92,7 @@ export default function ContactSection() {
           </RevealSection>
 
           {/* Right: Map Placeholder */}
-          <RevealSection delay={200}>
+          <RevealSection delayMs={200}>
             <div className="h-full min-h-[400px] w-full rounded-3xl bg-slate-100 border border-slate-200 overflow-hidden relative group">
               <iframe 
                 src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d3886.9596138459974!2d80.0428186!3d13.0382427!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3a528bae35449d29%3A0x37d13f08d672385b!2sRajalakshmi%20Institute%20of%20Technology!5e0!3m2!1sen!2sin!4v1777059037956!5m2!1sen!2sin" 

@@ -56,7 +56,7 @@ export default function UpcomingEvents() {
             />
           </RevealSection>
           
-          <RevealSection delay={200}>
+          <RevealSection delayMs={200}>
             <Link 
               href="/events"
               className="group inline-flex items-center gap-2 rounded-full bg-slate-100 px-6 py-3 text-sm font-bold text-slate-800 transition-all hover:bg-slate-200 active:scale-95 whitespace-nowrap"

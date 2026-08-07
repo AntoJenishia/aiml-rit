@@ -21,7 +21,7 @@ export default function FacultySpotlight() {
             />
           </RevealSection>
           
-          <RevealSection delay={200}>
+          <RevealSection delayMs={200}>
             <Link 
               href="/faculty"
               className="group inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-bold text-slate-700 shadow-sm transition-all hover:border-blue-200 hover:text-blue-600 hover:shadow-md active:scale-95 whitespace-nowrap"
@@ -34,7 +34,7 @@ export default function FacultySpotlight() {
 
         {/* Reusing FacultyCarousel which expects `faculties` */}
         <div className="-mx-6 px-6 pb-8">
-          <RevealSection delay={300}>
+          <RevealSection delayMs={300}>
             <FacultyCarousel faculty={faculty.slice(0, 8)} />
           </RevealSection>
         </div>

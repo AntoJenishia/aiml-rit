@@ -149,7 +149,7 @@ function DocumentPreviewModal({url, title, onClose}: {url: string, title: string
 
 // ── Main Component ────────────────────────────────────────────────────────────
 function StaffDashInner() {
-  const { name, image, isClassIncharge, classId, uid, department } = useUser()
+  const { name, image, isClassIncharge, classId, uid } = useUser()
   const searchParams = useSearchParams()
   const activeTab = searchParams.get("tab") || "dashboard"
 
@@ -377,7 +377,7 @@ function StaffDashInner() {
             <h1 className="text-xl md:text-2xl font-black text-white mt-1">{name || "Faculty Name"} 👋</h1>
             <div className="flex items-center gap-2 mt-2">
               <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-white/20 px-2 py-0.5 rounded">Faculty</span>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-white/20 px-2 py-0.5 rounded">{department || "AIML"}</span>
+              <span className="text-[10px] uppercase font-bold text-white bg-white/20 px-2 py-0.5 rounded">AIML</span>
             </div>
           </div>
         </div>

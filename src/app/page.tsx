@@ -27,12 +27,12 @@ export default function HomePage() {
       {/* 3. Department Statistics (Immediately below Hero) */}
       <section className="relative z-20 -mt-20 px-6 sm:-mt-24 lg:-mt-28 mb-16">
         <div className="mx-auto max-w-7xl">
-          <RevealSection delay={800}>
+          <RevealSection delayMs={800}>
             <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-              <StatCard icon={Users} label="Students" value="1200" suffix="+" delay={100} />
-              <StatCard icon={Briefcase} label="Faculty" value="60" suffix="+" delay={200} />
-              <StatCard icon={Trophy} label="Achievements" value="150" suffix="+" delay={300} />
-              <StatCard icon={Calendar} label="Events" value="45" suffix="+" delay={400} />
+              <StatCard icon={Users} label="Students" value="1200" suffix="+" index={0} />
+              <StatCard icon={Briefcase} label="Faculty" value="60" suffix="+" index={1} />
+              <StatCard icon={Trophy} label="Achievements" value="150" suffix="+" index={2} />
+              <StatCard icon={Calendar} label="Events" value="45" suffix="+" index={3} />
             </div>
           </RevealSection>
         </div>
