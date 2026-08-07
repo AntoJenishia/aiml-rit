@@ -29,8 +29,8 @@ export async function POST(
     if (odData.studentUid !== session.user.uid) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
-    if (odData.status !== "approved") {
-      return NextResponse.json({ error: "OD is not in approved state." }, { status: 400 })
+    if (odData.status !== "VERIFIED") {
+      return NextResponse.json({ error: "OD is not in verified state." }, { status: 400 })
     }
 
     const scriptUrl = process.env.NEXT_PUBLIC_APPS_SCRIPT_URL
