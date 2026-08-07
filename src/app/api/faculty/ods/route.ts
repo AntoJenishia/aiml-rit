@@ -42,7 +42,6 @@ export async function GET(req: Request) {
       const chunk = studentUids.slice(i, i + 10)
       const odSnap = await adminDb.collection("odRequests")
         .where("studentUid", "in", chunk)
-        .orderBy("createdAt", "desc")
         .get()
         
       odSnap.forEach(doc => {
