@@ -35,7 +35,7 @@ export async function GET(req: Request) {
     // 3. Firestore doesn't support 'in' queries for >10 items.
     // Instead, since it's a dashboard, we could fetch all ODs with studentUid in list, or just fetch all recent ODs and filter.
     // Assuming class sizes are ~60, we can chunk the `in` queries.
-    const odRequests = []
+    const odRequests: any[] = []
     
     // Chunk array into groups of 10
     for (let i = 0; i < studentUids.length; i += 10) {
