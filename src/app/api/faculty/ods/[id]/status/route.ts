@@ -9,7 +9,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     
     // 1. Fetch Faculty
-    const facultyDoc = await adminDb.collection("users").doc(session.user.id).get()
+    const uid = (session.user as any).uid || (session.user as any).id
+    const facultyDoc = await adminDb.collection("users").doc(uid).get()
     const facultyData = facultyDoc.data()
     if (!facultyDoc.exists || facultyData?.role !== "staff") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 })
