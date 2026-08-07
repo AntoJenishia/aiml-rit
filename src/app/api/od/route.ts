@@ -27,8 +27,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const {
       eventName, eventType, organiser, venue,
-      startDate, endDate, reason,
-      isSpecialNeed, specialNeedJustification,
+      startDate, endDate, reason, gpsLocation,
       proofFileB64, proofFileName, proofMimeType,
     } = body
 
@@ -43,45 +42,13 @@ export async function POST(req: NextRequest) {
     if (!userDoc.exists) return NextResponse.json({ error: "User not found." }, { status: 404 })
     const userData = userDoc.data()!
 
-    // Resolve class incharge
-    let facultyName = "Class Incharge"
-    if (userData.classId) {
-      const classDoc = await adminDb.collection("classes").doc(userData.classId).get()
-      if (classDoc.exists) {
-        const inchargeUid = classDoc.data()?.classInchargeUid
-        if (inchargeUid) {
-          const facDoc = await adminDb.collection("users").doc(inchargeUid).get()
-          if (facDoc.exists) facultyName = facDoc.data()?.name || facultyName
-        }
-      }
-    }
-
     const refNumber = generateRefNumber()
-    const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000"
-    const verifyUrl = `${baseUrl}/verify/${refNumber}`
-
-    // Generate pre-approval PDF
-    const pdfBytes = await generateFormalODPdf({
-      referenceNumber: refNumber,
-      studentName: userData.name || "Student",
-      registerNumber: userData.registerNumber || "—",
-      department: "AI & Machine Learning",
-      classLabel: userData.classId || "—",
-      eventName, eventType, organiser, venue, startDate, endDate, reason,
-      facultyName,
-      hodName: "Head of Department",
-      facultyApproved: false,
-      hodApproved: false,
-      verifyUrl,
-    })
-
+    
     // Forward to Google Apps Script Webhook
     const scriptUrl = process.env.NEXT_PUBLIC_APPS_SCRIPT_URL
     if (!scriptUrl) {
       throw new Error("Missing NEXT_PUBLIC_APPS_SCRIPT_URL in env")
     }
-
-    const draftPdfBase64 = Buffer.from(pdfBytes).toString("base64")
 
     const webhookPayload = {
       action: "create_od",
@@ -97,9 +64,12 @@ export async function POST(req: NextRequest) {
       proofFile: proofFileB64 || "",
       proofFileName: proofFileName || "",
       proofMimeType: proofMimeType || "",
-      draftPdfFile: draftPdfBase64,
+      gpsLat: gpsLocation?.lat || null,
+      gpsLng: gpsLocation?.lng || null,
+      gpsAccuracy: gpsLocation?.accuracy || null,
       createUpfrontSubfolder: true,
-      upfrontSubfolderName: "Upfront Proof",
+      upfrontSubfolderName: "Signed Letter",
+      skipPdfGeneration: true // Tell the script not to generate a PDF draft
     }
 
     const scriptRes = await fetch(scriptUrl, {
@@ -120,21 +90,18 @@ export async function POST(req: NextRequest) {
     const docRef = await adminDb.collection("odRequests").add({
       studentUid: uid,
       referenceNumber: refNumber,
-      qrCodeUrl: verifyUrl,
       eventName, eventType, organiser, venue,
       startDate, endDate,
-      isSpecialNeed: isSpecialNeed || false,
-      specialNeedJustification: specialNeedJustification || "",
       reason,
-      upfrontProofUrl: scriptData.proofUrl || "",
-      status: "pending_faculty",
-      pdfUrl: scriptData.draftPdfUrl || "",
+      gpsLocation: gpsLocation || null,
+      signedLetterUrl: scriptData.proofUrl || "", // Maps to the uploaded signed letter in Drive
+      status: "FACULTY_VERIFICATION", // Directly goes to faculty verification
       driveFolderId: scriptData.folderId || "",
       driveFolderUrl: scriptData.folderUrl || "",
       createdAt: FieldValue.serverTimestamp(),
     })
 
-    return NextResponse.json({ id: docRef.id, referenceNumber: refNumber, pdfUrl: scriptData.draftPdfUrl })
+    return NextResponse.json({ id: docRef.id, referenceNumber: refNumber, signedLetterUrl: scriptData.proofUrl })
   } catch (err: any) {
     console.error("[OD POST]", err)
     return NextResponse.json({ error: err.message || "Server error" }, { status: 500 })

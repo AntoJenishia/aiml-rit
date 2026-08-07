@@ -33,11 +33,12 @@ export const motionTokens: MotionTokens = {
 export const navLinks: NavLink[] = [
   { label: "Home", href: "/", icon: Home },
   { label: "About", href: "/about", icon: Info },
-  { label: "HOD", href: "/hod", icon: ShieldCheck },
+  { label: "Departments", href: "/departments", icon: BookOpenText },
   { label: "Faculty", href: "/faculty", icon: Users },
-  { label: "Syllabus", href: "/syllabus", icon: BookOpenText },
-  { label: "Events", href: "/events", icon: CalendarDays },
   { label: "Achievements", href: "/achievements", icon: Trophy },
+  { label: "Events", href: "/events", icon: CalendarDays },
+  { label: "Research", href: "/research", icon: ShieldCheck },
+  { label: "Activities", href: "/activities", icon: Users },
   { label: "Contact", href: "/contact", icon: Phone }
 ];
 

@@ -39,9 +39,9 @@ export default function Navbar() {
         {/* Left: Logo */}
         <div className="z-10 flex shrink-0">
           <Link href="/" className="transition-opacity hover:opacity-95">
-            <div className="relative h-12 w-48 sm:h-12 sm:w-48 md:h-14 md:w-64 lg:h-16 lg:w-72">
+            <div className="relative h-10 w-40 sm:h-12 sm:w-48 md:h-12 md:w-56 lg:h-14 lg:w-60 xl:w-64">
               <Image 
-                src="/rit-header.png" 
+                src="/new-logo.png" 
                 alt="Rajalakshmi Institute of Technology AIML Department" 
                 fill
                 className="object-contain object-left"
@@ -52,7 +52,7 @@ export default function Navbar() {
         </div>
 
         {/* Center: Desktop Nav Links */}
-        <nav className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 items-center justify-center gap-1 lg:gap-4 z-0 w-max">
+        <nav className="hidden xl:flex flex-1 items-center justify-center gap-1 xl:gap-2 z-0 px-2">
           {navLinks.map((link) => {
             const active = isActive(link.href);
             return (
@@ -60,7 +60,7 @@ export default function Navbar() {
                 key={link.href}
                 href={link.href}
                 className={clsx(
-                  "group relative px-3 py-2 text-[12px] lg:text-[13px] font-bold uppercase tracking-wider transition-colors",
+                  "group relative px-2 py-2 text-[11px] xl:text-[12px] font-bold uppercase tracking-wider transition-colors whitespace-nowrap",
                   active ? "text-blue-700" : "text-slate-800 hover:text-blue-600"
                 )}
               >
@@ -85,7 +85,7 @@ export default function Navbar() {
           
           <button
             type="button"
-            className="inline-flex items-center justify-center rounded-lg border border-slate-200 p-2 text-slate-600 transition hover:bg-slate-50 md:hidden"
+            className="inline-flex items-center justify-center rounded-lg border border-slate-200 p-2 text-slate-600 transition hover:bg-slate-50 xl:hidden"
             onClick={() => setOpen((v) => !v)}
           >
             {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
@@ -96,7 +96,7 @@ export default function Navbar() {
       {/* Mobile drawer */}
       <div
         className={clsx(
-          "absolute left-0 top-full w-full overflow-hidden border-t border-slate-100 bg-white shadow-xl transition-all duration-300 md:hidden",
+          "absolute left-0 top-full w-full overflow-hidden border-t border-slate-100 bg-white shadow-xl transition-all duration-300 xl:hidden",
           open ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0 border-t-0 shadow-none"
         )}
       >

@@ -44,7 +44,7 @@ export default function StatCard({ icon: Icon, label, value, suffix, index = 0 }
   return (
     <motion.div
       ref={ref}
-      className="glass-card card-accent p-8 text-center cursor-default"
+      className="premium-card p-6 sm:p-8 text-center cursor-default hover-glow"
       initial={{ opacity: 0, y: 30 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-60px" }}

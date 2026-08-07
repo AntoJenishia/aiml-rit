@@ -7,18 +7,17 @@
  * HOD-only: Assigns a class incharge.
  * Body: { facultyUid, classId } — set classId: null to unassign.
  */
-import { NextResponse } from "next/server"
-import { getServerSession } from "next-auth/next"
-import { authOptions } from "@/lib/auth"
+import { NextRequest, NextResponse } from "next/server"
+import { getToken } from "next-auth/jwt"
 import { adminAuth, adminDb } from "@/lib/firebaseAdmin"
 
 const INTERNAL_DOMAIN = "@internal.aiml.rit"
 
 // ── POST — Create Faculty Account ─────────────────────────────────────────────
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user || session.user.role !== "hod") {
+    const token = await getToken({ req })
+    if (!token || token.role !== "hod") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 })
     }
 
@@ -79,10 +78,10 @@ export async function POST(req: Request) {
 }
 
 // ── PATCH — Assign Class Incharge ─────────────────────────────────────────────
-export async function PATCH(req: Request) {
+export async function PATCH(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user || session.user.role !== "hod") {
+    const token = await getToken({ req })
+    if (!token || token.role !== "hod") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 })
     }
 

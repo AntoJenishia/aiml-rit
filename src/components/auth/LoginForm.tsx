@@ -72,7 +72,7 @@ function LoginFormInner() {
             {/* Logo */}
             <div className="bg-white p-4 rounded-2xl inline-block mb-8 shadow-xl">
               <div className="relative h-14 w-56 sm:w-64">
-                <Image src="/rit-header.png" alt="RIT" fill className="object-contain object-center" priority sizes="300px" />
+                <Image src="/new-logo.png" alt="RIT" fill className="object-contain object-center" priority sizes="300px" />
               </div>
             </div>
             
@@ -101,7 +101,7 @@ function LoginFormInner() {
             <div className="md:hidden flex flex-col items-center text-center mb-6 pb-6 border-b border-slate-100">
               <Link href="/">
                 <div className="relative h-10 w-40 mb-3 mx-auto">
-                  <Image src="/rit-header.png" alt="RIT" fill className="object-contain object-center" priority sizes="200px" />
+                  <Image src="/new-logo.png" alt="RIT" fill className="object-contain object-center" priority sizes="200px" />
                 </div>
               </Link>
               <h1 className="text-lg font-black text-slate-800 leading-tight">

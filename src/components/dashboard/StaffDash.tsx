@@ -3,19 +3,20 @@ import { useUser } from "@/lib/hooks/useUser"
 import { useAuth } from "@/lib/hooks/useAuth"
 import Image from "next/image"
 import { useSearchParams } from "next/navigation"
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, Suspense } from "react"
 import {
-  Users, CheckCircle, XCircle, FileText, ChevronRight,
-  BookOpen, TrendingUp, Clock, AlertCircle, Loader2,
-  ExternalLink, Download, X, Send, Award, FileUp, Briefcase, Plus,
-  Mail, Shield, Phone, User, Hash
+  Users, CheckCircle, XCircle, FileText,
+  Clock, AlertCircle, Loader2, Award,
+  ExternalLink, Download, X, Briefcase, Plus,
+  Mail, Shield, User, Activity, LayoutDashboard, CalendarDays,
+  BarChart3, Bell, Search
 } from "lucide-react"
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface ODRequest {
   id: string
   referenceNumber: string
-  studentName?: string
+  studentName: string
   studentUid: string
   eventName: string
   eventType: string
@@ -25,12 +26,9 @@ interface ODRequest {
   endDate: string
   reason: string
   status: string
-  pdfUrl?: string
-  finalPdfUrl?: string
-  createdAt?: any
+  signedLetterUrl?: string
   postODProofsUrl?: string
-  postODDescription?: string
-  postRejectReason?: string
+  createdAt?: any
 }
 
 interface Student {
@@ -47,17 +45,20 @@ interface Student {
   semester?: number
 }
 
-interface PortfolioItem {
-  id: string
-  title: string
-  type: string
-  date: string
-  description: string
-  link: string
-  status: string
+// ── Empty State ───────────────────────────────────────────────────────────────
+function EmptyState({ icon: Icon, title, subtitle, accent="#3B5BFF", accentBg="bg-blue-50" }: any) {
+  return (
+    <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+      <div className={`h-16 w-16 rounded-2xl ${accentBg} flex items-center justify-center mb-4 ring-8 ring-white shadow-sm`}>
+        <Icon className="h-8 w-8" style={{ color: accent }} />
+      </div>
+      <h3 className="text-base font-black text-slate-800">{title}</h3>
+      <p className="text-sm text-slate-500 mt-1.5 max-w-sm leading-relaxed">{subtitle}</p>
+    </div>
+  )
 }
 
-// ── Reject Reason Modal ───────────────────────────────────────────────────────
+// ── Reject Modal ──────────────────────────────────────────────────────────────
 function RejectModal({ od, onClose, onConfirm }: { od: ODRequest, onClose: () => void, onConfirm: (reason: string) => Promise<void> }) {
   const [reason, setReason] = useState("")
   const [loading, setLoading] = useState(false)
@@ -72,29 +73,25 @@ function RejectModal({ od, onClose, onConfirm }: { od: ODRequest, onClose: () =>
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fadeIn" onClick={onClose}>
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden animate-scaleIn" onClick={e => e.stopPropagation()}>
-        <div className="px-6 pt-6 pb-4 border-b border-[#E5E7EB] flex items-center justify-between">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4" onClick={onClose}>
+      <div className="w-full max-w-md bg-white rounded-lg shadow-xl overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="px-5 py-4 border-b border-[#E2E8F0] flex items-center justify-between bg-slate-50">
           <div>
-            <h2 className="text-base font-black text-[#111827]">Reject {od.status === "post_pending_faculty" ? "Post-Event Proof" : "OD Request"}</h2>
-            <p className="text-xs text-[#6B7280] mt-0.5">{od.studentName} — {od.eventName}</p>
+            <h2 className="text-base font-bold text-slate-800">Reject Request</h2>
+            <p className="text-xs text-slate-500 mt-0.5">{od.studentName} — {od.eventName}</p>
           </div>
-          <button onClick={onClose} className="text-[#94A3B8] hover:text-[#111827] p-1 rounded-lg hover:bg-[#F5F6FA]"><X className="h-5 w-5" /></button>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-700 p-1 rounded hover:bg-slate-200"><X className="h-5 w-5" /></button>
         </div>
-        <div className="px-6 py-5 space-y-4">
-          {error && (
-            <div className="flex items-center gap-2 bg-red-50 border border-[#EF4444]/30 rounded-xl px-4 py-3 text-sm text-[#EF4444]">
-              <AlertCircle className="h-4 w-4 shrink-0" />{error}
-            </div>
-          )}
+        <div className="px-5 py-5 space-y-4">
+          {error && <div className="flex items-center gap-2 bg-red-50 border border-[#EF4444]/30 rounded px-4 py-3 text-sm text-[#EF4444]"><AlertCircle className="h-4 w-4 shrink-0" />{error}</div>}
           <div>
-            <label className="block text-xs font-bold text-[#111827] mb-1.5">Reason for Rejection <span className="text-[#EF4444]">*</span></label>
-            <textarea value={reason} onChange={e => setReason(e.target.value)} placeholder="Provide a clear reason so the student can resubmit…" rows={3}
-              className="w-full rounded-xl border border-[#E5E7EB] bg-[#F5F6FA] px-4 py-2.5 text-sm text-[#111827] placeholder:text-[#94A3B8] focus:border-[#EF4444] focus:outline-none focus:ring-2 focus:ring-[#EF4444]/20 resize-none" />
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Reason for Rejection <span className="text-[#EF4444]">*</span></label>
+            <textarea value={reason} onChange={e => setReason(e.target.value)} placeholder="Provide a clear reason..." rows={3}
+              className="w-full rounded border border-[#E2E8F0] bg-slate-50 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:border-[#003087] focus:outline-none focus:ring-1 focus:ring-[#003087] resize-none" />
           </div>
           <div className="flex gap-3">
-            <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-[#E5E7EB] text-sm font-bold text-[#6B7280] hover:bg-[#F5F6FA]">Cancel</button>
-            <button onClick={handleConfirm} disabled={loading} className="flex-1 py-2.5 rounded-xl bg-[#EF4444] text-white text-sm font-bold hover:bg-[#DC2626] flex items-center justify-center gap-2 disabled:opacity-60">
+            <button onClick={onClose} className="flex-1 py-2 rounded border border-[#E2E8F0] bg-white text-sm font-semibold text-slate-600 hover:bg-slate-100">Cancel</button>
+            <button onClick={handleConfirm} disabled={loading} className="flex-1 py-2 rounded bg-[#EF4444] text-white text-sm font-semibold hover:bg-[#DC2626] flex items-center justify-center gap-2 disabled:opacity-60 shadow-sm">
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />} Reject
             </button>
           </div>
@@ -104,543 +101,307 @@ function RejectModal({ od, onClose, onConfirm }: { od: ODRequest, onClose: () =>
   )
 }
 
-// ── Main StaffDash ────────────────────────────────────────────────────────────
-import { Suspense } from "react"
+// ── Live Clock ───────────────────────────────────────────────────────────────
+function LiveClock() {
+  const [time, setTime] = useState<Date | null>(null)
 
+  useEffect(() => {
+    setTime(new Date())
+    const timer = setInterval(() => setTime(new Date()), 1000)
+    return () => clearInterval(timer)
+  }, [])
+
+  if (!time) return <div className="h-12"></div> // Placeholder
+
+  return (
+    <div className="flex flex-col items-end justify-center bg-white/10 backdrop-blur-md rounded-lg px-4 py-2 border border-white/20 shadow-sm relative z-10 shrink-0">
+      <div className="text-xl md:text-2xl font-mono font-black text-white tracking-widest leading-none mb-1">
+        {time.toLocaleTimeString('en-US', { hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+      </div>
+      <div className="text-[10px] md:text-xs font-bold text-white/80 uppercase tracking-widest leading-none">
+        {time.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+      </div>
+    </div>
+  )
+}
+
+// ── Document Preview Modal ───────────────────────────────────────────────────
+function DocumentPreviewModal({url, title, onClose}: {url: string, title: string, onClose: ()=>void}) {
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 md:p-8" onClick={onClose}>
+      <div className="w-full max-w-4xl h-full max-h-[90vh] bg-white rounded-lg shadow-xl overflow-hidden flex flex-col" onClick={e=>e.stopPropagation()}>
+        <div className="px-5 py-4 border-b border-[#E2E8F0] flex items-center justify-between bg-slate-50 shrink-0">
+          <div><h2 className="text-lg font-bold text-slate-800">{title}</h2></div>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-700 p-1.5 rounded hover:bg-slate-200 transition-colors"><X className="h-5 w-5"/></button>
+        </div>
+        <div className="flex-1 bg-slate-100 p-2 md:p-4 overflow-hidden relative">
+          <iframe 
+            src={url.includes('drive.google.com') ? url.replace('/view', '/preview') : url} 
+            className="w-full h-full rounded shadow-sm border-0 bg-white" 
+            title="Document Preview"
+            allow="autoplay"
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Main Component ────────────────────────────────────────────────────────────
 function StaffDashInner() {
-  const { name, image, isClassIncharge, classId, uid, email: userEmail } = useUser()
-  const { user } = useAuth()
+  const { name, image, isClassIncharge, classId, uid, department } = useUser()
   const searchParams = useSearchParams()
-  const activeTab = searchParams.get("tab") || (isClassIncharge ? "class" : "portfolio")
+  const activeTab = searchParams.get("tab") || "dashboard"
 
-  const [profileData, setProfileData] = useState<any>(null)
-
-  const [odRequests, setOdRequests] = useState<ODRequest[]>([])
+  const [loading, setLoading] = useState(true)
   const [students, setStudents] = useState<Student[]>([])
-  const [portfolios, setPortfolios] = useState<PortfolioItem[]>([])
-
-  const [loadingOD, setLoadingOD] = useState(true)
-  const [loadingStudents, setLoadingStudents] = useState(true)
-  const [loadingPortfolio, setLoadingPortfolio] = useState(true)
-  const [loadingProfile, setLoadingProfile] = useState(true)
-
+  const [odRequests, setOdRequests] = useState<ODRequest[]>([])
+  
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [rejectTarget, setRejectTarget] = useState<ODRequest | null>(null)
-  const [toast, setToast] = useState<string | null>(null)
-  const [odSubTab, setOdSubTab] = useState<"requests" | "proofs">("requests")
-
-  const [showAddPortfolio, setShowAddPortfolio] = useState(false)
-  const [portfolioForm, setPortfolioForm] = useState({ title: "", type: "Research Paper", date: "", description: "", link: "" })
-  const [portfolioSubmitting, setPortfolioSubmitting] = useState(false)
-
-  const showToast = (msg: string) => {
-    setToast(msg)
-    setTimeout(() => setToast(null), 3000)
-  }
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
   const loadData = useCallback(async () => {
-    // Portfolios, Events, Announcements
-    setLoadingPortfolio(true)
+    setLoading(true)
     try {
-      const [pRes] = await Promise.all([
-        fetch("/api/faculty/portfolio"),
-      ])
-      if (pRes.ok) setPortfolios(await pRes.json())
-    } catch { }
-    setLoadingPortfolio(false)
+      // 1. Fetch Students
+      const stuRes = await fetch("/api/faculty/students")
+      if (stuRes.ok) setStudents(await stuRes.json())
 
-    // ODs & Students (only if incharge)
-    if (isClassIncharge) {
-      setLoadingOD(true)
-      setLoadingStudents(true)
-      try {
-        const [oRes, sRes] = await Promise.all([
-          fetch("/api/od"),
-          fetch("/api/users")
-        ])
-        if (oRes.ok) setOdRequests(await oRes.json())
-        if (sRes.ok) {
-          const allUsers = await sRes.json()
-          let myStudents = allUsers.filter((u: any) => u.role === "student" && u.classId === classId)
-          myStudents = myStudents.sort((a: any, b: any) => {
-            const regA = a.registerNumber || ""
-            const regB = b.registerNumber || ""
-            return regA.localeCompare(regB)
-          })
-          setStudents(myStudents)
-        }
-      } catch { }
-      setLoadingOD(false)
-      setLoadingStudents(false)
+      // 2. Fetch ODs
+      const odRes = await fetch("/api/faculty/ods")
+      if (odRes.ok) setOdRequests(await odRes.json())
+
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoading(false)
     }
-  }, [isClassIncharge, classId])
+  }, [])
 
   useEffect(() => { loadData() }, [loadData])
 
+  const pendingODs = odRequests.filter(o => o.status === "FACULTY_VERIFICATION")
+  const approvedODs = odRequests.filter(o => ["VERIFIED", "COMPLETED", "ACTIVITY_COMPLETED"].includes(o.status))
+
   const handleApprove = async (od: ODRequest) => {
     setActionLoading(od.id)
-    const res = await fetch(`/api/od/${od.id}`, {
+    const res = await fetch(`/api/faculty/ods/${od.id}/status`, {
       method: "PATCH", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "approve" }),
     })
-    if (res.ok) { showToast(`✓ Approved OD for ${od.studentName}`); await loadData() } 
-    else { showToast(`Error: Failed to approve`) }
+    if (res.ok) await loadData()
     setActionLoading(null)
   }
 
   const handleReject = async (od: ODRequest, reason: string) => {
     setActionLoading(od.id)
-    const res = await fetch(`/api/od/${od.id}`, {
+    const res = await fetch(`/api/faculty/ods/${od.id}/status`, {
       method: "PATCH", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "reject", reason }),
     })
-    if (res.ok) { showToast(`Rejected OD for ${od.studentName}`); await loadData() }
+    if (res.ok) await loadData()
     setActionLoading(null)
   }
 
-  const handleAddPortfolio = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!portfolioForm.title || !portfolioForm.type) return
-    setPortfolioSubmitting(true)
-    try {
-      const res = await fetch("/api/faculty/portfolio", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(portfolioForm)
-      })
-      if (res.ok) {
-        showToast("✓ Portfolio item submitted successfully")
-        setShowAddPortfolio(false)
-        setPortfolioForm({ title: "", type: "Research Paper", date: "", description: "", link: "" })
-        await loadData()
-      } else {
-        showToast("Failed to submit portfolio")
-      }
-    } catch { showToast("Network error") }
-    setPortfolioSubmitting(false)
-  }
+  // Helper render components
+  const renderDashboardOverview = () => (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white rounded-lg border border-[#E2E8F0] p-5 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-xs font-bold text-slate-500 uppercase">Assigned Students</h3>
+            <Users className="h-4 w-4 text-[#003087]" />
+          </div>
+          <p className="text-2xl font-black text-slate-800">{students.length}</p>
+        </div>
+        <div className="bg-white rounded-lg border border-[#E2E8F0] p-5 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-xs font-bold text-slate-500 uppercase">Pending OD</h3>
+            <Clock className="h-4 w-4 text-amber-500" />
+          </div>
+          <p className="text-2xl font-black text-slate-800">{pendingODs.length}</p>
+        </div>
+        <div className="bg-white rounded-lg border border-[#E2E8F0] p-5 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-xs font-bold text-slate-500 uppercase">Pending Achievements</h3>
+            <Award className="h-4 w-4 text-indigo-500" />
+          </div>
+          <p className="text-2xl font-black text-slate-800">0</p>
+        </div>
+        <div className="bg-white rounded-lg border border-[#E2E8F0] p-5 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-xs font-bold text-slate-500 uppercase">Upcoming Activities</h3>
+            <CalendarDays className="h-4 w-4 text-teal-500" />
+          </div>
+          <p className="text-2xl font-black text-slate-800">0</p>
+        </div>
+      </div>
 
-  const handleDeletePortfolio = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this item?")) return
-    const res = await fetch(`/api/faculty/portfolio?id=${id}`, { method: "DELETE" })
-    if (res.ok) {
-      showToast("✓ Item deleted")
-      await loadData()
-    }
-  }
+      <div className="bg-white rounded-lg border border-[#E2E8F0] shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-[#E2E8F0] bg-slate-50">
+          <h3 className="text-sm font-bold text-slate-800">Recent Activity</h3>
+        </div>
+        <EmptyState icon={Activity} title="No recent activity" subtitle="Check back later for updates." />
+      </div>
+    </div>
+  )
 
-  const TAG_COLORS: Record<string, string> = {
-    "Workshop": "bg-purple-100 text-purple-700",
-    "Hackathon": "bg-red-100 text-red-700",
-    "Guest Lecture": "bg-amber-100 text-amber-700",
-    "Symposium": "bg-indigo-100 text-indigo-700",
-    "Conference": "bg-rose-100 text-rose-700",
-    "Internship": "bg-teal-100 text-teal-700",
-  }
+  const renderMyStudents = () => (
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-bold text-slate-800">My Students</h2>
+          <p className="text-xs text-slate-500 mt-0.5">{isClassIncharge ? `Class Incharge: ${classId}` : "Assigned responsibilities"}</p>
+        </div>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <input type="text" placeholder="Search register no..." className="pl-9 pr-4 py-2 rounded border border-slate-200 text-sm focus:border-[#003087] focus:ring-1 focus:ring-[#003087] outline-none" />
+        </div>
+      </div>
+
+      <div className="bg-white rounded-lg border border-[#E2E8F0] shadow-sm overflow-hidden">
+        {loading ? (
+          <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-[#003087]" /></div>
+        ) : students.length === 0 ? (
+          <EmptyState icon={Users} title="No students assigned" subtitle="You currently do not have any students assigned to your profile." />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50 border-b border-[#E2E8F0]">
+                  <th className="px-5 py-3 text-xs font-bold text-slate-500 uppercase">Register No</th>
+                  <th className="px-5 py-3 text-xs font-bold text-slate-500 uppercase">Name</th>
+                  <th className="px-5 py-3 text-xs font-bold text-slate-500 uppercase">Class</th>
+                  <th className="px-5 py-3 text-xs font-bold text-slate-500 uppercase">Email</th>
+                  <th className="px-5 py-3 text-xs font-bold text-slate-500 uppercase">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#E2E8F0]">
+                {students.map(s => (
+                  <tr key={s.uid} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-5 py-3.5 text-sm font-mono text-slate-600">{s.registerNumber || "—"}</td>
+                    <td className="px-5 py-3.5 text-sm font-bold text-slate-800">{s.name}</td>
+                    <td className="px-5 py-3.5 text-sm text-slate-600">{s.classId || "—"}</td>
+                    <td className="px-5 py-3.5 text-xs text-slate-500">{s.email || "—"}</td>
+                    <td className="px-5 py-3.5 text-sm">
+                      <button className="text-[#003087] font-bold text-xs hover:underline">View Profile</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+
+  const renderODRequests = () => (
+    <div className="space-y-4">
+      <div className="flex flex-col justify-between gap-2">
+        <h2 className="text-lg font-bold text-slate-800">OD Requests</h2>
+        <p className="text-xs text-slate-500 mt-0.5">Review and verify On-Duty requests from your students.</p>
+      </div>
+      
+      <div className="bg-white rounded-lg border border-[#E2E8F0] shadow-sm overflow-hidden">
+        {loading ? (
+          <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-[#003087]" /></div>
+        ) : pendingODs.length === 0 ? (
+          <EmptyState icon={CheckCircle} title="All caught up" subtitle="There are no pending OD requests awaiting your verification." accent="#16A34A" accentBg="bg-green-50" />
+        ) : (
+          <div className="divide-y divide-[#E5E7EB]">
+            {pendingODs.map(od => (
+              <div key={od.id} className="p-5 hover:bg-slate-50 transition-colors">
+                <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-700">{od.eventType}</span>
+                      <span className="text-[10px] text-slate-400 font-mono">Ref: {od.referenceNumber}</span>
+                    </div>
+                    <h3 className="text-sm font-bold text-slate-800">{od.studentName}</h3>
+                    <p className="text-sm font-semibold text-slate-700 mt-1">{od.eventName}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">{od.organiser} · {od.venue}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">{od.startDate}{od.startDate !== od.endDate ? ` – ${od.endDate}` : ""}</p>
+                  </div>
+                  <div className="flex flex-col items-start md:items-end gap-3 shrink-0">
+                    {od.signedLetterUrl && (
+                      <button onClick={() => setPreviewUrl(od.signedLetterUrl!)} className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-slate-100 text-xs font-bold text-[#003087] hover:bg-slate-200 transition-colors border border-slate-200 shadow-sm">
+                        <FileText className="h-4 w-4" /> View Signed Letter
+                      </button>
+                    )}
+                    <div className="flex gap-2">
+                      <button onClick={() => setRejectTarget(od)} disabled={actionLoading === od.id} className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-rose-200 text-rose-600 rounded text-xs font-bold hover:bg-rose-50 transition-colors shadow-sm disabled:opacity-50">
+                        {actionLoading === od.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <XCircle className="h-3 w-3" />} Reject
+                      </button>
+                      <button onClick={() => handleApprove(od)} disabled={actionLoading === od.id} className="flex items-center gap-1.5 px-3 py-1.5 bg-[#16A34A] text-white rounded text-xs font-bold hover:bg-[#15803d] transition-colors shadow-sm disabled:opacity-50">
+                        {actionLoading === od.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle className="h-3 w-3" />} Verify OD
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+
+  const renderComingSoon = (title: string, icon: any, desc: string) => (
+    <div className="bg-white rounded-lg border border-[#E2E8F0] shadow-sm">
+      <EmptyState icon={icon} title={title} subtitle={desc} />
+    </div>
+  )
 
   return (
-    <div className="min-h-full space-y-6">
-      {/* Toast Alert */}
-      {toast && (
-        <div className="fixed bottom-6 right-6 z-50 bg-[#111827] text-white text-sm font-semibold px-5 py-3.5 rounded-2xl shadow-2xl border border-white/10 animate-slideUp">
-          {toast}
-        </div>
-      )}
-
+    <div className="space-y-6 pb-20">
+      {/* Reject Modal */}
       {rejectTarget && <RejectModal od={rejectTarget} onClose={() => setRejectTarget(null)} onConfirm={(reason) => handleReject(rejectTarget, reason)} />}
+      
+      {/* Preview Modal */}
+      {previewUrl && <DocumentPreviewModal url={previewUrl} title="Document Preview" onClose={() => setPreviewUrl(null)} />}
 
-      {/* Add Portfolio Modal */}
-      {showAddPortfolio && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fadeIn" onClick={() => setShowAddPortfolio(false)}>
-          <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden animate-scaleIn" onClick={e => e.stopPropagation()}>
-            <div className="px-6 pt-6 pb-4 border-b border-[#E5E7EB] flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-black text-[#111827]">Submit Portfolio Item</h2>
-                <p className="text-xs text-[#6B7280] mt-1">Add research papers, certifications, or awards.</p>
-              </div>
-              <button onClick={() => setShowAddPortfolio(false)} className="text-[#94A3B8] hover:text-[#111827] p-1 rounded-lg hover:bg-[#F5F6FA]"><X className="h-5 w-5" /></button>
+      {/* Header Banner */}
+      <div className="bg-[#003087] rounded-lg shadow-md p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-5 relative overflow-hidden">
+        <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+          <Shield className="w-48 h-48 text-white -translate-y-12 translate-x-4" />
+        </div>
+        
+        <div className="flex items-center gap-5 relative z-10">
+          <div className="h-16 w-16 md:h-20 md:w-20 rounded-full bg-white/20 flex items-center justify-center text-white text-3xl font-black shrink-0 ring-4 ring-white/10 relative z-10">
+            {name?.[0] ?? "F"}
+          </div>
+          <div className="relative z-10">
+            <p className="text-white/80 text-sm font-medium">Good Morning,</p>
+            <h1 className="text-xl md:text-2xl font-black text-white mt-1">{name || "Faculty Name"} 👋</h1>
+            <div className="flex items-center gap-2 mt-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-white/20 px-2 py-0.5 rounded">Faculty</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-white/20 px-2 py-0.5 rounded">{department || "AIML"}</span>
             </div>
-            <form onSubmit={handleAddPortfolio} className="px-6 py-5 space-y-4 max-h-[75vh] overflow-y-auto">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2">
-                  <label className="block text-sm font-bold text-[#111827] mb-1.5">Title <span className="text-[#EF4444]">*</span></label>
-                  <input type="text" required placeholder="e.g. Deep Learning in Healthcare" value={portfolioForm.title} onChange={e => setPortfolioForm({ ...portfolioForm, title: e.target.value })}
-                    className="w-full rounded-xl border border-[#E5E7EB] bg-[#F5F6FA] px-4 py-2.5 text-sm text-[#111827] focus:border-[#3B5BFF] focus:outline-none focus:ring-2 focus:ring-[#3B5BFF]/20" />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-[#111827] mb-1.5">Category <span className="text-[#EF4444]">*</span></label>
-                  <select required value={portfolioForm.type} onChange={e => setPortfolioForm({ ...portfolioForm, type: e.target.value })}
-                    className="w-full rounded-xl border border-[#E5E7EB] bg-[#F5F6FA] px-4 py-2.5 text-sm text-[#111827] focus:border-[#3B5BFF] focus:outline-none focus:ring-2 focus:ring-[#3B5BFF]/20">
-                    <option value="Research Paper">Research Paper</option>
-                    <option value="Patent">Patent</option>
-                    <option value="Book Published">Book Published</option>
-                    <option value="Certification">Certification</option>
-                    <option value="Award">Award</option>
-                    <option value="Other">Other Works</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-[#111827] mb-1.5">Date</label>
-                  <input type="date" value={portfolioForm.date} onChange={e => setPortfolioForm({ ...portfolioForm, date: e.target.value })}
-                    className="w-full rounded-xl border border-[#E5E7EB] bg-[#F5F6FA] px-4 py-2.5 text-sm text-[#111827] focus:border-[#3B5BFF] focus:outline-none focus:ring-2 focus:ring-[#3B5BFF]/20" />
-                </div>
-                <div className="col-span-2">
-                  <label className="block text-sm font-bold text-[#111827] mb-1.5">Description (Optional)</label>
-                  <textarea rows={3} placeholder="Brief details..." value={portfolioForm.description} onChange={e => setPortfolioForm({ ...portfolioForm, description: e.target.value })}
-                    className="w-full rounded-xl border border-[#E5E7EB] bg-[#F5F6FA] px-4 py-2.5 text-sm text-[#111827] focus:border-[#3B5BFF] focus:outline-none focus:ring-2 focus:ring-[#3B5BFF]/20 resize-none" />
-                </div>
-                <div className="col-span-2">
-                  <label className="block text-sm font-bold text-[#111827] mb-1.5">Reference Link (Optional)</label>
-                  <input type="url" placeholder="https://..." value={portfolioForm.link} onChange={e => setPortfolioForm({ ...portfolioForm, link: e.target.value })}
-                    className="w-full rounded-xl border border-[#E5E7EB] bg-[#F5F6FA] px-4 py-2.5 text-sm text-[#111827] focus:border-[#3B5BFF] focus:outline-none focus:ring-2 focus:ring-[#3B5BFF]/20" />
-                </div>
-              </div>
-              <div className="pt-4 flex gap-3">
-                <button type="button" onClick={() => setShowAddPortfolio(false)} className="flex-1 py-2.5 rounded-xl border border-[#E5E7EB] text-sm font-bold text-[#6B7280] hover:bg-[#F5F6FA]">Cancel</button>
-                <button type="submit" disabled={portfolioSubmitting} className="flex-1 py-2.5 rounded-xl bg-[#3B5BFF] text-white text-sm font-bold hover:bg-[#2563EB] flex items-center justify-center gap-2 disabled:opacity-60">
-                  {portfolioSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} Submit
-                </button>
-              </div>
-            </form>
           </div>
         </div>
-      )}
 
-      {/* ── Welcome Banner ── */}
-      <div className="relative overflow-hidden rounded-3xl" style={{ background: "linear-gradient(135deg, #091e3a 0%, #2f80ed 50%, #2d9cdb 100%)" }}>
-        <div className="absolute inset-0 opacity-15">
-          <div className="absolute top-0 right-0 w-96 h-96 rounded-full bg-white/20 blur-3xl" />
-          <div className="absolute bottom-0 left-0 w-64 h-64 rounded-full bg-[#7C3AED]/30 blur-2xl" />
-        </div>
-        <div className="relative px-6 py-8 md:px-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div className="flex items-center gap-5">
-            {image ? (
-              <Image src={image} alt={name || ""} width={72} height={72} className="rounded-2xl ring-4 ring-white/20 w-14 h-14 md:w-16 md:h-16 object-cover shrink-0" />
-            ) : (
-              <div className="h-14 w-14 md:h-16 md:w-16 rounded-2xl bg-white/10 text-white flex items-center justify-center text-2xl font-black ring-4 ring-white/20 shrink-0">
-                {name?.[0] ?? "F"}
-              </div>
-            )}
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-white/75 bg-white/10 px-2 py-0.5 rounded-full">Faculty Portal</span>
-                {isClassIncharge && <span className="px-2.5 py-0.5 rounded-full bg-white text-blue-600 text-[10px] font-black uppercase">Class Incharge</span>}
-              </div>
-              <h1 className="text-xl md:text-2xl font-black text-white leading-tight">Welcome, {name || "Faculty"}</h1>
-              <p className="text-white/80 text-sm mt-0.5">AIML Department</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3 shrink-0">
-            <div className="bg-white/10 backdrop-blur-sm border border-white/10 rounded-2xl px-4 py-3 text-center min-w-[90px]">
-              <p className="text-2xl font-black text-white">{loadingPortfolio ? "…" : portfolios.length}</p>
-              <p className="text-white/60 text-[9px] font-bold uppercase tracking-wider mt-0.5">Portfolios</p>
-            </div>
-            {isClassIncharge && (
-              <div className="bg-white/10 backdrop-blur-sm border border-white/10 rounded-2xl px-4 py-3 text-center min-w-[90px]">
-                <p className="text-2xl font-black text-amber-100">{loadingOD ? "…" : odRequests.length}</p>
-                <p className="text-white/60 text-[9px] font-bold uppercase tracking-wider mt-0.5">Pending OD</p>
-              </div>
-            )}
-          </div>
-        </div>
+        <LiveClock />
       </div>
 
-      {/* Content Area */}
-      <div className="space-y-4">
-          
-          {/* TAB 1: My Class (Only if incharge) */}
-          {isClassIncharge && activeTab === "class" && (
-            <div className="bg-white rounded-3xl border border-[#E5E7EB] shadow-sm overflow-hidden p-6">
-              <div className="mb-6 flex items-center justify-between">
-                <div>
-                  <h2 className="text-base font-bold text-[#111827]">My Class Students</h2>
-                  <p className="text-xs text-[#6B7280]">Class: {classId}</p>
-                </div>
-                <div className="px-4 py-1.5 bg-blue-50 border border-blue-100 rounded-xl text-blue-700 text-xs font-bold">
-                  {students.length} Students
-                </div>
-              </div>
-              {loadingStudents ? (
-                <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-[#3B5BFF]" /></div>
-              ) : students.length === 0 ? (
-                <div className="text-center py-12 text-[#6B7280] text-sm">No students found in your class.</div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {students.map(s => (
-                    <div key={s.uid} className="p-5 rounded-3xl border border-[#E5E7EB] bg-white shadow-sm hover:shadow-md transition-all flex flex-col gap-4">
-                      <div className="flex items-center gap-4">
-                        <div className="h-14 w-14 rounded-2xl bg-blue-50 flex items-center justify-center text-[#3B5BFF] font-black text-xl ring-4 ring-white shadow-sm shrink-0">
-                          {s.name[0]}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-black text-[#111827] truncate">{s.name}</p>
-                          <p className="text-xs font-bold text-[#3B5BFF] font-mono mt-0.5">{s.registerNumber || "No Reg No"}</p>
-                        </div>
-                        {s.cgpa && (
-                          <div className="shrink-0 text-right">
-                            <span className="text-[10px] font-bold text-[#6B7280] uppercase">CGPA</span>
-                            <p className="text-sm font-black text-[#16A34A]">{s.cgpa}</p>
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-3 p-3 bg-[#F5F6FA] rounded-2xl">
-                        <div>
-                          <span className="text-[10px] font-bold text-[#94A3B8] uppercase">Email</span>
-                          <p className="text-xs font-semibold text-[#111827] truncate">{s.email || "—"}</p>
-                        </div>
-                        <div>
-                          <span className="text-[10px] font-bold text-[#94A3B8] uppercase">Phone</span>
-                          <p className="text-xs font-semibold text-[#111827] truncate">{s.phone || "—"}</p>
-                        </div>
-                        <div>
-                          <span className="text-[10px] font-bold text-[#94A3B8] uppercase">Year / Sem</span>
-                          <p className="text-xs font-semibold text-[#111827] truncate">{s.currentYear || "—"} / {s.semester || "—"}</p>
-                        </div>
-                        <div>
-                          <span className="text-[10px] font-bold text-[#94A3B8] uppercase">Batch</span>
-                          <p className="text-xs font-semibold text-[#111827] truncate">{s.batch || "—"} ({s.section || "—"})</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* TAB 2: OD Approvals (Only if incharge) */}
-          {isClassIncharge && activeTab === "od" && (
-            <div className="bg-white rounded-3xl border border-[#E5E7EB] shadow-sm overflow-hidden p-6">
-              <div className="mb-5">
-                <h2 className="text-base font-bold text-[#111827]">OD Approvals</h2>
-                <p className="text-xs text-[#6B7280]">Review and approve student OD requests for your class.</p>
-              </div>
-
-              {/* Sub-tab switcher */}
-              {(() => {
-                const reqList   = odRequests.filter(od => od.status === "pending_faculty")
-                const proofList = odRequests.filter(od => od.status === "post_pending_faculty")
-                const list = odSubTab === "requests" ? reqList : proofList
-                return (
-                  <>
-                    <div className="flex bg-[#F5F6FA] border border-[#E5E7EB] rounded-xl p-1 mb-5">
-                      <button onClick={() => setOdSubTab("requests")}
-                        className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                          odSubTab === "requests" ? "bg-white shadow-sm text-[#111827]" : "text-[#6B7280]"
-                        }`}>
-                        OD Requests {reqList.length > 0 && <span className="h-4 w-4 rounded-full bg-amber-400 text-white text-[9px] font-black flex items-center justify-center">{reqList.length}</span>}
-                      </button>
-                      <button onClick={() => setOdSubTab("proofs")}
-                        className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                          odSubTab === "proofs" ? "bg-white shadow-sm text-[#111827]" : "text-[#6B7280]"
-                        }`}>
-                        Proof Approvals {proofList.length > 0 && <span className="h-4 w-4 rounded-full bg-blue-500 text-white text-[9px] font-black flex items-center justify-center">{proofList.length}</span>}
-                      </button>
-                    </div>
-
-                    {loadingOD ? (
-                      <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-[#3B5BFF]" /></div>
-                    ) : list.length === 0 ? (
-                      <div className="flex flex-col items-center py-14 text-center border-2 border-dashed border-[#E5E7EB] rounded-2xl">
-                        <div className="h-14 w-14 rounded-full bg-[#16A34A]/10 flex items-center justify-center mb-3">
-                          <CheckCircle className="h-7 w-7 text-[#16A34A]" />
-                        </div>
-                        <p className="text-sm font-bold text-[#111827]">All clear!</p>
-                        <p className="text-xs text-[#6B7280] mt-1">
-                          {odSubTab === "requests" ? "No pending OD requests from your students." : "No post-event proofs awaiting your review."}
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        {list.map(od => {
-                          const isActioning = actionLoading === od.id
-                          const isProof = od.status === "post_pending_faculty"
-                          return (
-                            <div key={od.id} className="p-5 rounded-2xl border border-[#E5E7EB] bg-white shadow-sm hover:shadow-md transition-all">
-                              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                                <div className="min-w-0">
-                                  <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${TAG_COLORS[od.eventType] || "bg-[#F5F6FA] text-[#6B7280]"}`}>{od.eventType}</span>
-                                    <span className="text-[10px] text-[#94A3B8] font-mono">Ref: {od.referenceNumber}</span>
-                                  </div>
-                                  <h3 className="text-sm font-bold text-[#111827]">{od.studentName}</h3>
-                                  <p className="text-sm font-semibold text-[#111827] mt-1">{od.eventName}</p>
-                                  <p className="text-xs text-[#6B7280] mt-0.5">{od.organiser} · {od.venue}</p>
-                                  <p className="text-xs text-[#6B7280] mt-0.5">{od.startDate}{od.startDate !== od.endDate ? ` – ${od.endDate}` : ""}</p>
-
-                                  {isProof && (
-                                    <div className="mt-3 bg-blue-50 border border-blue-100 rounded-xl p-3">
-                                      <p className="text-[10px] font-bold text-blue-700 uppercase mb-1">Post-Event Proof Submitted</p>
-                                      <p className="text-xs text-blue-900 mb-2 italic">"{od.postODDescription}"</p>
-                                      {od.postODProofsUrl && (
-                                        <a href={od.postODProofsUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-700 hover:underline bg-white px-2 py-1 rounded border border-blue-200 shadow-sm">
-                                          <ExternalLink className="h-3 w-3" /> View Proof Files
-                                        </a>
-                                      )}
-                                    </div>
-                                  )}
-
-                                  <div className="flex gap-3 mt-3">
-                                    {isProof ? (
-                                      od.finalPdfUrl && (
-                                        <a href={od.finalPdfUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[10px] font-bold text-[#16A34A] hover:underline">
-                                          <Download className="h-3 w-3" /> View Approved Letter
-                                        </a>
-                                      )
-                                    ) : (
-                                      od.pdfUrl && (
-                                        <a href={od.pdfUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[10px] font-bold text-[#3B5BFF] hover:underline">
-                                          <Download className="h-3 w-3" /> View Draft
-                                        </a>
-                                      )
-                                    )}
-                                    <a href={`/verify/${od.referenceNumber}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[10px] font-bold text-[#6B7280] hover:underline">
-                                      <ExternalLink className="h-3 w-3" /> Verify
-                                    </a>
-                                  </div>
-                                </div>
-                                <div className="flex gap-2 shrink-0">
-                                  <button onClick={() => setRejectTarget(od)} disabled={isActioning} className="flex items-center gap-1.5 px-3 py-2 bg-red-50 text-red-600 rounded-xl text-xs font-bold hover:bg-red-500 hover:text-white transition-all">
-                                    {isActioning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <XCircle className="h-3.5 w-3.5" />} {isProof ? "Reject Proof" : "Reject"}
-                                  </button>
-                                  <button onClick={() => handleApprove(od)} disabled={isActioning} className="flex items-center gap-1.5 px-3 py-2 bg-[#16A34A] text-white rounded-xl text-xs font-bold hover:bg-[#15803d] transition-all">
-                                    {isActioning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle className="h-3.5 w-3.5" />} {isProof ? "Approve Proof" : "Approve"}
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </>
-                )
-              })()}
-            </div>
-          )}
-
-          {/* TAB 3: My Portfolio */}
-          {activeTab === "portfolio" && (
-            <div className="bg-white rounded-3xl border border-[#E5E7EB] shadow-sm overflow-hidden p-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
-                <div>
-                  <h2 className="text-base font-bold text-[#111827]">My Portfolio</h2>
-                  <p className="text-xs text-[#6B7280]">Track your research, publications, and achievements.</p>
-                </div>
-                <button onClick={() => setShowAddPortfolio(true)} className="flex items-center gap-2 px-4 py-2 bg-[#3B5BFF] text-white rounded-xl text-xs font-bold hover:bg-[#2563EB] transition-all">
-                  <Plus className="h-4 w-4" /> Add Item
-                </button>
-              </div>
-
-              {loadingPortfolio ? (
-                <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-[#3B5BFF]" /></div>
-              ) : portfolios.length === 0 ? (
-                <div className="text-center py-12 border-2 border-dashed border-[#E5E7EB] rounded-2xl">
-                  <Briefcase className="h-8 w-8 text-[#94A3B8] mx-auto mb-3" />
-                  <p className="text-sm font-bold text-[#111827]">Your portfolio is empty</p>
-                  <p className="text-xs text-[#6B7280] mt-1">Submit your first research paper or certification.</p>
-                </div>
-              ) : (
-                <div className="grid gap-4">
-                  {portfolios.map(item => (
-                    <div key={item.id} className="p-5 rounded-2xl border border-[#E5E7EB] bg-[#F5F6FA] flex flex-col sm:flex-row gap-4 justify-between group">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">{item.type}</span>
-                          <span className="text-[10px] text-[#6B7280]">{item.date ? new Date(item.date).toLocaleDateString() : "No Date"}</span>
-                        </div>
-                        <h3 className="text-sm font-bold text-[#111827]">{item.title}</h3>
-                        {item.description && <p className="text-xs text-[#6B7280] mt-1">{item.description}</p>}
-                        {item.link && (
-                          <a href={item.link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 mt-2 text-xs font-bold text-[#3B5BFF] hover:underline">
-                            <ExternalLink className="h-3 w-3" /> View Reference
-                          </a>
-                        )}
-                      </div>
-                      <button onClick={() => handleDeletePortfolio(item.id)} className="shrink-0 p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl opacity-0 group-hover:opacity-100 transition-all self-start">
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* TAB 4: My Profile */}
-          {activeTab === "profile" && (
-            <div className="bg-white rounded-3xl border border-[#E5E7EB] shadow-sm overflow-hidden">
-              <div className="h-28 w-full" style={{ background: "linear-gradient(135deg, #091e3a 0%, #2f80ed 50%, #2d9cdb 100%)" }} />
-              <div className="px-6 pb-6">
-                <div className="-mt-10 mb-5 flex items-end gap-4">
-                  {image ? (
-                    <Image src={image} alt={name} width={80} height={80}
-                      className="rounded-2xl ring-4 ring-white shadow-md w-20 h-20 object-cover shrink-0" />
-                  ) : (
-                    <div className="h-20 w-20 rounded-2xl bg-[#3B5BFF] ring-4 ring-white shadow-md flex items-center justify-center text-white text-3xl font-black shrink-0">
-                      {name?.[0] ?? "F"}
-                    </div>
-                  )}
-                </div>
-                <h2 className="text-xl font-black text-[#111827]">{name}</h2>
-                <span className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full mt-2 bg-blue-50 text-blue-700 border border-blue-200">
-                  <Shield className="h-3 w-3" /> Faculty / Staff
-                </span>
-
-                <div className="mt-6 space-y-3">
-                  <div className="flex items-center gap-3 rounded-2xl border border-[#E5E7EB] bg-[#F5F6FA] px-4 py-3">
-                    <Mail className="h-4 w-4 text-[#94A3B8] shrink-0" />
-                    <div>
-                      <p className="text-[10px] font-bold text-[#6B7280] uppercase tracking-wide">Email</p>
-                      <p className="text-sm font-semibold text-[#111827] mt-0.5">{user?.email || "—"}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 rounded-2xl border border-[#E5E7EB] bg-[#F5F6FA] px-4 py-3">
-                    <Shield className="h-4 w-4 text-[#94A3B8] shrink-0" />
-                    <div>
-                      <p className="text-[10px] font-bold text-[#6B7280] uppercase tracking-wide">Role</p>
-                      <p className="text-sm font-semibold text-[#111827] mt-0.5 capitalize">Faculty / Staff</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 rounded-2xl border border-[#E5E7EB] bg-[#F5F6FA] px-4 py-3">
-                    <User className="h-4 w-4 text-[#94A3B8] shrink-0" />
-                    <div>
-                      <p className="text-[10px] font-bold text-[#6B7280] uppercase tracking-wide">Department</p>
-                      <p className="text-sm font-semibold text-[#111827] mt-0.5">Artificial Intelligence &amp; Machine Learning</p>
-                    </div>
-                  </div>
-                  {isClassIncharge && classId && (
-                    <div className="flex items-center gap-3 rounded-2xl border border-[#E5E7EB] bg-[#F5F6FA] px-4 py-3">
-                      <Users className="h-4 w-4 text-[#94A3B8] shrink-0" />
-                      <div>
-                        <p className="text-[10px] font-bold text-[#6B7280] uppercase tracking-wide">Class Assigned</p>
-                        <p className="text-sm font-semibold text-[#111827] mt-0.5">{classId}</p>
-                      </div>
-                    </div>
-                  )}
-                  <div className="mt-4 flex items-center gap-3 rounded-2xl bg-slate-900 px-4 py-3">
-                    <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24">
-                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                    </svg>
-                    <p className="text-xs text-slate-400">Signed in via <span className="text-white font-semibold">Google OAuth</span> · RIT Institutional Account</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-      </div>
+      {/* Tabs Layout */}
+      {activeTab === "dashboard" && renderDashboardOverview()}
+      {activeTab === "students" && renderMyStudents()}
+      {activeTab === "od" && renderODRequests()}
+      {activeTab === "profile" && renderComingSoon("My Profile", User, "Faculty portfolio management is coming soon.")}
+      {activeTab === "achievements" && renderComingSoon("Achievements", Award, "Review student achievements here. Coming soon.")}
+      {activeTab === "events" && renderComingSoon("Events & Activities", CalendarDays, "Department events and activities will be listed here.")}
+      {activeTab === "reports" && renderComingSoon("Reports", BarChart3, "Analytics and activity reports are under construction.")}
+      {activeTab === "notifications" && renderComingSoon("Notifications", Bell, "Your notification center is empty.")}
     </div>
   )
 }
 
 export default function StaffDash() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading dashboard...</div>}>
+    <Suspense fallback={<div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-[#003087]" /></div>}>
       <StaffDashInner />
     </Suspense>
   )
 }
-

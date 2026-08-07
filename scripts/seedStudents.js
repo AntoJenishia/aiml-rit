@@ -37,9 +37,15 @@ async function seed() {
   initAdmin();
   const adminDb = getFirestore();
 
-  const csvPath = "C:\\Users\\hp\\Downloads\\aiml_5th_sem_students.csv";
+  // CSV path: accept as first CLI arg, env var, or default download location
+  const csvPath = process.argv[2]
+    || process.env.STUDENT_CSV_PATH
+    || "C:\\Users\\hp\\Downloads\\aiml_5th_sem_students.csv";
+  
+  console.log(`📄 CSV path: ${csvPath}`);
   if (!fs.existsSync(csvPath)) {
     console.error("❌ CSV file not found at:", csvPath);
+    console.error("   Usage: node scripts/seedStudents.js [path/to/file.csv]");
     process.exit(1);
   }
 

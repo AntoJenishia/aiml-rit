@@ -1,36 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
-import { ChevronDown } from "lucide-react";
-import ParticleCanvas from "./ParticleCanvas";
+import { ChevronDown, Cpu, Network } from "lucide-react";
+import NeuralNetCanvas from "./NeuralNetCanvas";
 
-interface HeroSectionProps {
-  title: string;
-  subtitle: string;
-  ctaText: string;
-  ctaHref: string;
-  secondaryCtaText?: string;
-  secondaryCtaHref?: string;
-}
-
-export default function HeroSection({
-  title: _title,
-  subtitle,
-  ctaText,
-  ctaHref,
-  secondaryCtaText,
-  secondaryCtaHref,
-}: HeroSectionProps) {
+export default function HeroSection() {
   return (
     <section className="relative flex min-h-[100dvh] flex-col overflow-hidden bg-[#0a0f1e]">
-
-
-
-
-
-      {/* ── Particle dot background (cursor-reactive) ── */}
-      <ParticleCanvas className="pointer-events-auto" />
+      
+      {/* ── Background Animations ── */}
+      <NeuralNetCanvas />
 
       {/* ── Ambient glow orbs ── */}
       <div
@@ -45,78 +24,87 @@ export default function HeroSection({
       />
 
       {/* ── Main hero content ── */}
-      <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 flex-col justify-start px-6 pt-10 pb-8 md:justify-center md:pt-6 md:pb-12">
-
-        {/* Eyebrow */}
-        <p
-          className="hero-fadein mb-5 flex items-center gap-3 text-xs font-bold uppercase tracking-[0.25em] text-blue-400"
-          style={{ animationDelay: "0ms" }}
-        >
-          Departments of AI&ML and AI&DS
-          <span className="inline-block h-px w-20 bg-gradient-to-r from-blue-500 to-transparent" />
-        </p>
-
-        {/* Title */}
-        <h1
-          className="hero-fadein text-4xl font-black leading-[1.1] tracking-tighter text-white sm:text-5xl lg:text-6xl xl:text-7xl"
-          style={{ animationDelay: "150ms" }}
-        >
-          Artificial <span className="hero-gradient-text">Intelligence</span>
-        </h1>
+      <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-1 items-center px-6 pt-24 pb-32 lg:pt-0 lg:pb-40">
         
-        <div 
-          className="hero-fadein mt-4 flex flex-col gap-2 border-l-4 border-blue-600 pl-5 md:mt-6 md:gap-3 md:pl-6" 
-          style={{ animationDelay: "280ms" }}
-        >
-          <h2 className="text-3xl font-bold tracking-tight text-white/90 sm:text-4xl lg:text-5xl">
-            &amp; Machine Learning
-          </h2>
-          <h2 className="text-3xl font-bold tracking-tight text-white/90 sm:text-4xl lg:text-5xl">
-            &amp; Data Science
-          </h2>
-        </div>
+        <div className="flex flex-col items-center w-full text-center">
+          
+          {/* Main Content */}
+          <div className="flex flex-col items-center justify-center">
 
-        {/* Sub-text */}
-        <p
-          className="hero-fadein mt-6 md:mt-8 max-w-xl text-base md:text-lg leading-relaxed text-slate-400"
-          style={{ animationDelay: "440ms" }}
-        >
-          {subtitle}
-        </p>
 
-        {/* CTAs */}
-        <div
-          className="hero-fadein mt-12 flex flex-col gap-4 sm:flex-row"
-          style={{ animationDelay: "580ms" }}
-        >
-          <Link
-            href={ctaHref}
-            id="hero-primary-cta"
-            className="hero-btn-primary group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-full px-9 py-4 text-sm font-bold text-white"
-          >
-            <span className="relative z-10">{ctaText}</span>
-            <span className="hero-btn-shine" aria-hidden="true" />
-          </Link>
-
-          {secondaryCtaText && secondaryCtaHref && (
-            <Link
-              href={secondaryCtaHref}
-              id="hero-secondary-cta"
-              className="inline-flex items-center justify-center rounded-full border border-white/20 bg-white/5 px-9 py-4 text-sm font-semibold text-white/80 backdrop-blur-sm transition-all duration-300 hover:border-white/40 hover:bg-white/10 hover:text-white active:scale-95"
+            {/* Title */}
+            <h1
+              className="hero-fadein text-4xl font-black leading-[1.15] tracking-tighter text-white sm:text-5xl lg:text-6xl"
+              style={{ animationDelay: "150ms" }}
             >
-              {secondaryCtaText}
-            </Link>
-          )}
+              Empowering <span className="hero-gradient-text">Innovation</span>.<br/>
+              Building Intelligent <span className="hero-gradient-text">Futures</span>.
+            </h1>
+            
+            {/* Supporting Identity */}
+            <div 
+              className="hero-fadein mt-8 flex flex-col items-center justify-center gap-4 border-y border-white/10 py-6 w-full max-w-2xl" 
+              style={{ animationDelay: "300ms" }}
+            >
+              <h2 className="text-base font-semibold leading-relaxed tracking-wide text-white/90 sm:text-lg lg:text-xl px-2">
+                Department of Artificial Intelligence &amp; Machine Learning (AIML)
+              </h2>
+              <div className="h-px w-12 bg-blue-500/40 rounded-full" />
+              <h2 className="text-base font-semibold leading-relaxed tracking-wide text-white/90 sm:text-lg lg:text-xl px-2">
+                Department of Artificial Intelligence &amp; Data Science (AI&amp;DS)
+              </h2>
+            </div>
+
+            {/* Description */}
+            <p
+              className="hero-fadein mt-10 max-w-2xl text-base sm:text-lg leading-loose text-slate-400 px-4"
+              style={{ animationDelay: "450ms" }}
+            >
+              Building an intelligent academic ecosystem where students learn, innovate, research and create technology for the future.
+            </p>
+
+            {/* CTAs */}
+            <div
+              className="hero-fadein mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row"
+              style={{ animationDelay: "600ms" }}
+            >
+              <Link
+                href="/about"
+                className="hero-btn-primary group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-full px-8 py-3.5 text-sm font-bold tracking-wide text-white"
+              >
+                <span className="relative z-10">Explore Departments</span>
+                <span className="hero-btn-shine" aria-hidden="true" />
+              </Link>
+
+              <Link
+                href="/login"
+                className="inline-flex items-center justify-center rounded-full border border-white/20 bg-white/5 px-8 py-3.5 text-sm font-semibold tracking-wide text-white/90 backdrop-blur-sm transition-all duration-300 hover:border-blue-400/40 hover:bg-blue-500/10 hover:text-white active:scale-95"
+              >
+                Portal Login
+              </Link>
+            </div>
+          </div>
+
+          </div>
+
         </div>
 
 
-      </div>
 
       {/* ── Scroll indicator ── */}
       <div className="pointer-events-none absolute bottom-8 left-1/2 z-20 -translate-x-1/2 flex flex-col items-center gap-1.5 text-slate-500">
         <span className="text-[10px] uppercase tracking-widest">Scroll</span>
         <ChevronDown className="h-5 w-5 animate-bounce" />
       </div>
+
+      {/* Add keyframes inline for floating animation since it's specific to this hero */}
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes float {
+          0% { transform: translateY(0px) rotate(0deg); }
+          50% { transform: translateY(-15px) rotate(1deg); }
+          100% { transform: translateY(0px) rotate(0deg); }
+        }
+      `}} />
     </section>
   );
 }
