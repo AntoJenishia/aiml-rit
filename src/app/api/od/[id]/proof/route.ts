@@ -29,7 +29,7 @@ export async function POST(
     if (odData.studentUid !== session.user.uid) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
-    if (odData.status !== "VERIFIED") {
+    if (odData.status !== "VERIFIED" && !(odData.status === "REJECTED" && odData.postODProofsUrl)) {
       return NextResponse.json({ error: "OD is not in verified state." }, { status: 400 })
     }
 
@@ -38,9 +38,9 @@ export async function POST(
 
     const webhookPayload = {
       action: "submit_post_proof",
-      refNumber,
-      folderId,
-      description,
+      refNumber: odData.refNumber,
+      folderId: odData.driveFolderId,
+      description: description || "Post-event proof submitted via portal",
       files
     }
 

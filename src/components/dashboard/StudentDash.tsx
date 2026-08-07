@@ -1,6 +1,6 @@
 "use client"
 import { useUser } from "@/lib/hooks/useUser"
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState, useRef, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
@@ -21,6 +21,7 @@ interface ODRequest {
   status: "DRAFT"|"SUBMITTED"|"AWAITING_SIGNED_LETTER"|"FACULTY_VERIFICATION"|"VERIFIED"|"CORRECTION_REQUIRED"|"REJECTED"|"ACTIVITY_COMPLETED"|"COMPLETED"
   signedLetterUrl?: string;
   postProofUrls?: string[];
+  postODProofsUrl?: string;
   gpsLocation?: { lat: number; lng: number; accuracy: number; timestamp: number }
   facultyRejectReason?: string;
   createdAt?: any;
@@ -95,10 +96,15 @@ function SummaryCard({icon:Icon,label,value,borderColor="border-[#003087]",iconC
 }
 
 // ── OD Modal ──────────────────────────────────────────────────────────────────
-function ODModal({onClose,onSuccess}:{onClose:()=>void;onSuccess:()=>void}) {
+function ODModal({onClose,onSuccess,initialData}:{onClose:()=>void;onSuccess:()=>void;initialData?:any}) {
   const [form,setForm] = useState({
-    eventName:"",eventType:OD_EVENT_TYPES[0],organiser:"",venue:"",
-    startDate:"",endDate:"",reason:"",
+    eventName: initialData?.eventName || "",
+    eventType: initialData?.eventType || OD_EVENT_TYPES[0],
+    organiser: initialData?.organiser || "",
+    venue: initialData?.venue || "",
+    startDate: initialData?.startDate || "",
+    endDate: initialData?.endDate || "",
+    reason: initialData?.reason || ""
   })
   const [proofFile,setProofFile] = useState<File|null>(null)
   const [uploading,setUploading] = useState(false)
@@ -173,7 +179,7 @@ function ODModal({onClose,onSuccess}:{onClose:()=>void;onSuccess:()=>void}) {
       <div className="w-full max-w-xl bg-white rounded-lg shadow-xl overflow-hidden max-h-[90vh] flex flex-col" onClick={e=>e.stopPropagation()}>
         <div className="px-5 pt-5 pb-4 border-b border-[#E2E8F0] flex items-center justify-between bg-slate-50">
           <div>
-            <h2 className="text-lg font-bold text-slate-800">Apply for On-Duty (OD)</h2>
+            <h2 className="text-lg font-bold text-slate-800">{initialData ? "Re-apply for OD" : "Apply for On-Duty (OD)"}</h2>
             <p className="text-xs text-slate-500 mt-0.5">Upload your manually signed OD letter to track it digitally</p>
           </div>
           <button onClick={onClose} className="text-[#94A3B8] hover:text-[#111827] p-1 rounded-lg hover:bg-[#F5F6FA]"><X className="h-5 w-5"/></button>
@@ -342,6 +348,7 @@ export default function StudentDash() {
   const [profile,setProfile] = useState<any>(null)
   const [loadingProfile,setLoadingProfile] = useState(true)
   const [classInchargeName,setClassInchargeName] = useState<string>("—")
+  const [reapplyData, setReapplyData] = useState<any>(null)
   const searchParams = useSearchParams()
   const currentTab = searchParams.get("tab")||"dashboard"
 
@@ -364,11 +371,11 @@ export default function StudentDash() {
     load()
   },[uid])
 
-  const loadODs=async()=>{
+  const loadODs=useCallback(async()=>{
     if(!uid)return;setLoadingOD(true)
     try{const res=await fetch("/api/od");if(res.ok)setOdRequests(await res.json())}catch{}
     setLoadingOD(false)
-  }
+  },[uid])
   
   const loadAchievements = async () => {
     if(!uid)return;setLoadingAchievements(true)
@@ -402,6 +409,7 @@ export default function StudentDash() {
   return (
     <div className="min-h-full space-y-5">
       {showODForm&&<ODModal onClose={()=>setShowODForm(false)} onSuccess={loadODs}/>}
+      {reapplyData&&<ODModal onClose={()=>setReapplyData(null)} onSuccess={() => { setReapplyData(null); loadODs(); }} initialData={reapplyData}/>}
       {showAchievementForm&&<AchievementModal onClose={()=>setShowAchievementForm(false)} onSuccess={loadAchievements}/>}
       {selectedODForProof&&<PostODProofModal od={selectedODForProof} onClose={()=>setSelectedODForProof(null)} onSuccess={loadODs}/>}
       {previewUrl&&<DocumentPreviewModal url={previewUrl} title="Document Preview" onClose={()=>setPreviewUrl(null)}/>}
@@ -572,7 +580,20 @@ export default function StudentDash() {
                           </div>
                           <p className="text-xs text-slate-500">{od.organiser} · {od.startDate}{od.startDate!==od.endDate?` – ${od.endDate}`:""}</p>
                           <p className="text-[10px] font-mono text-slate-400 mt-1">Ref: {od.referenceNumber}</p>
-                          {isRejected&&<p className="text-xs text-[#EF4444] mt-1 font-medium">Reason: {od.facultyRejectReason||"—"}</p>}
+                          {isRejected&& (
+                            <div className="mt-2">
+                              <p className="text-xs text-[#EF4444] font-medium">Reason: {od.facultyRejectReason||"—"}</p>
+                              {od.postODProofsUrl ? (
+                                <button onClick={()=>setSelectedODForProof(od)} className="mt-2 text-[10px] font-bold px-3 py-1.5 rounded bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors">
+                                  Upload Proof Again
+                                </button>
+                              ) : (
+                                <button onClick={() => setReapplyData(od)} className="mt-2 text-[10px] font-bold px-3 py-1.5 rounded bg-red-100 text-red-700 hover:bg-red-200 transition-colors">
+                                  Edit & Re-Apply
+                                </button>
+                              )}
+                            </div>
+                          )}
                           
                           {od.status==="VERIFIED"&&od.eventType!=="Meeting"&&od.eventType!=="Official Department Work"&&(
                             <div className="mt-3 p-2.5 bg-rose-50 border border-rose-200 rounded text-xs text-rose-700 font-medium flex flex-col gap-2">

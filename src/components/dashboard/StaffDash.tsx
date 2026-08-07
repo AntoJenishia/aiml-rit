@@ -139,6 +139,16 @@ function LiveClock() {
 
 // ── Document Preview Modal ───────────────────────────────────────────────────
 function DocumentPreviewModal({url, title, onClose}: {url: string, title: string, onClose: ()=>void}) {
+  let finalUrl = url;
+  if (url.includes('drive.google.com/drive/folders/')) {
+    const match = url.match(/\/folders\/([a-zA-Z0-9-_]+)/);
+    if (match && match[1]) {
+      finalUrl = `https://drive.google.com/embeddedfolderview?id=${match[1]}#list`;
+    }
+  } else if (url.includes('drive.google.com')) {
+    finalUrl = url.replace('/view', '/preview');
+  }
+
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 md:p-8" onClick={onClose}>
       <div className="w-full max-w-4xl h-full max-h-[90vh] bg-white rounded-lg shadow-xl overflow-hidden flex flex-col" onClick={e=>e.stopPropagation()}>
@@ -148,7 +158,7 @@ function DocumentPreviewModal({url, title, onClose}: {url: string, title: string
         </div>
         <div className="flex-1 bg-slate-100 p-2 md:p-4 overflow-hidden relative">
           <iframe 
-            src={url.includes('drive.google.com') ? url.replace('/view', '/preview') : url} 
+            src={finalUrl} 
             className="w-full h-full rounded shadow-sm border-0 bg-white" 
             title="Document Preview"
             allow="autoplay"
@@ -207,7 +217,7 @@ function StaffDashInner() {
 
   useEffect(() => { loadData() }, [loadData])
 
-  const pendingODs = odRequests.filter(o => o.status === "FACULTY_VERIFICATION")
+  const pendingODs = odRequests.filter(o => o.status === "FACULTY_VERIFICATION" || o.status === "post_pending_faculty")
   const approvedODs = odRequests.filter(o => ["VERIFIED", "COMPLETED", "ACTIVITY_COMPLETED"].includes(o.status))
 
   // Generate Recent Activities
@@ -425,9 +435,14 @@ function StaffDashInner() {
                     <p className="text-xs text-slate-500 mt-0.5">{od.startDate}{od.startDate !== od.endDate ? ` – ${od.endDate}` : ""}</p>
                   </div>
                   <div className="flex flex-col items-start md:items-end gap-3 shrink-0">
-                    {od.signedLetterUrl && (
+                    {od.signedLetterUrl && od.status === "FACULTY_VERIFICATION" && (
                       <button onClick={() => setPreviewUrl(od.signedLetterUrl!)} className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-slate-100 text-xs font-bold text-[#003087] hover:bg-slate-200 transition-colors border border-slate-200 shadow-sm">
                         <FileText className="h-4 w-4" /> View Signed Letter
+                      </button>
+                    )}
+                    {od.postODProofsUrl && od.status === "post_pending_faculty" && (
+                      <button onClick={() => setPreviewUrl(od.postODProofsUrl!)} className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-blue-100 text-xs font-bold text-[#003087] hover:bg-blue-200 transition-colors border border-blue-200 shadow-sm">
+                        <FileText className="h-4 w-4" /> View Proof
                       </button>
                     )}
                     <div className="flex gap-2">
@@ -435,7 +450,7 @@ function StaffDashInner() {
                         {actionLoading === od.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <XCircle className="h-3 w-3" />} Reject
                       </button>
                       <button onClick={() => handleApprove(od)} disabled={actionLoading === od.id} className="flex items-center gap-1.5 px-3 py-1.5 bg-[#16A34A] text-white rounded text-xs font-bold hover:bg-[#15803d] transition-colors shadow-sm disabled:opacity-50">
-                        {actionLoading === od.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle className="h-3 w-3" />} Verify OD
+                        {actionLoading === od.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle className="h-3 w-3" />} {od.status === "post_pending_faculty" ? "Verify Proof" : "Verify OD"}
                       </button>
                     </div>
                   </div>
