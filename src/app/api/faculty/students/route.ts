@@ -29,10 +29,10 @@ export async function GET(req: Request) {
       .where("classId", "==", classId)
       .get()
 
-    const students = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() }))
+    const students = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as any))
     
     // Sort by register number
-    students.sort((a, b) => (a.registerNumber || "").localeCompare(b.registerNumber || ""))
+    students.sort((a: any, b: any) => (a.registerNumber || "").localeCompare(b.registerNumber || ""))
 
     return NextResponse.json(students)
   } catch (error) {
