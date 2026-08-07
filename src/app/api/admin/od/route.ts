@@ -62,18 +62,41 @@ export async function PATCH(req: Request) {
 
     let newStatus = ""
     if (action === "approve") {
-      newStatus = "HOD_APPROVED"
+      newStatus = "VERIFIED"
     } else if (action === "reject") {
-      newStatus = "HOD_REJECTED"
+      newStatus = "REJECTED"
     } else {
       return NextResponse.json({ error: "Invalid action" }, { status: 400 })
     }
+
+    const odDoc = await adminDb.collection("odRequests").doc(odId).get()
+    const odData = odDoc.exists ? odDoc.data() : null
 
     await adminDb.collection("odRequests").doc(odId).update({
       status: newStatus,
       hodRemarks: remarks || null,
       updatedAt: new Date().toISOString()
     })
+
+    // Trigger Google Apps Script Webhook
+    if (odData) {
+      try {
+        const webhookPayload = {
+          action: "update_status",
+          referenceNumber: odData.referenceNumber,
+          status: newStatus,
+          rejectReason: remarks || "",
+          verifiedBy: "HOD",
+        }
+        fetch("https://script.google.com/macros/s/AKfycby5t4cZc8_R321F5aU9w3GgXmKIDQG872wzJ5N66Rj-5iF9R6qfJ3E5728oV28wX7J9/exec", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(webhookPayload),
+        }).catch(console.error)
+      } catch (e) {
+        console.error("Webhook trigger failed", e)
+      }
+    }
 
     return NextResponse.json({ success: true, status: newStatus })
   } catch (error: any) {
