@@ -40,7 +40,10 @@ export default function SectionHeading({ title, subtitle, align = "left", eyebro
         style={{ transformOrigin: align === "center" ? "center" : "left" }}
       />
       {subtitle && (
-        <p className="mt-4 max-w-2xl text-sm leading-relaxed text-slate-500 sm:text-base">
+        <p className={clsx(
+          "mt-4 max-w-2xl text-sm leading-relaxed text-slate-500 sm:text-base",
+          align === "center" ? "mx-auto" : ""
+        )}>
           {subtitle}
         </p>
       )}
