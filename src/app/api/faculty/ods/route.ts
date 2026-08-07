@@ -8,8 +8,8 @@ export async function GET(req: Request) {
     const session = await getServerSession(authOptions)
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     
-    // 1. Fetch Faculty Profile
-    const facultyDoc = await adminDb.collection("users").doc(session.user.id).get()
+    const uid = (session.user as any).uid || (session.user as any).id
+    const facultyDoc = await adminDb.collection("users").doc(uid).get()
     if (!facultyDoc.exists) return NextResponse.json({ error: "Faculty not found" }, { status: 404 })
     
     const facultyData = facultyDoc.data()
