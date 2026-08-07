@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import { db } from "@/lib/firebase"
-import { collection, addDoc, getDocs, query, where, orderBy, deleteDoc, doc } from "firebase/firestore"
+import { adminDb } from "@/lib/firebaseAdmin"
+import { FieldValue } from "firebase-admin/firestore"
 
 export async function GET(req: Request) {
   try {
@@ -12,13 +12,16 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url)
     const uid = searchParams.get("uid") || session.user.uid
 
-    const q = query(
-      collection(db, "faculty_portfolios"),
-      where("uid", "==", uid),
-      orderBy("createdAt", "desc")
-    )
-    const snap = await getDocs(q)
-    const data = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    const snap = await adminDb.collection("faculty_portfolios")
+      .where("uid", "==", uid)
+      .get()
+      
+    let data = snap.docs.map(d => ({ id: d.id, ...d.data() } as any))
+    data.sort((a: any, b: any) => {
+      const aTime = a.createdAt?.toMillis?.() || new Date(a.createdAt).getTime() || 0
+      const bTime = b.createdAt?.toMillis?.() || new Date(b.createdAt).getTime() || 0
+      return bTime - aTime
+    })
     
     return NextResponse.json(data)
   } catch (e) {
@@ -41,7 +44,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Title and Type are required" }, { status: 400 })
     }
 
-    const docRef = await addDoc(collection(db, "faculty_portfolios"), {
+    const docRef = await adminDb.collection("faculty_portfolios").add({
       uid: session.user.uid,
       title,
       type,
@@ -49,7 +52,7 @@ export async function POST(req: Request) {
       description: description || "",
       link: link || "",
       status: "submitted",
-      createdAt: new Date().toISOString(),
+      createdAt: FieldValue.serverTimestamp(),
     })
 
     return NextResponse.json({ ok: true, id: docRef.id })
@@ -71,7 +74,7 @@ export async function DELETE(req: Request) {
 
     if (!id) return NextResponse.json({ error: "ID required" }, { status: 400 })
 
-    await deleteDoc(doc(db, "faculty_portfolios", id))
+    await adminDb.collection("faculty_portfolios").doc(id).delete()
     return NextResponse.json({ ok: true })
   } catch (e) {
     console.error("[API /faculty/portfolio DELETE]", e)

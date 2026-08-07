@@ -83,10 +83,10 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   const homeHref = user?.role === "hod" ? "/admin" : user?.role === "staff" ? "/dashboard/faculty" : "/dashboard/student"
 
   return (
-    <div className="h-[100dvh] flex flex-col md:flex-row bg-[#F0F2F5] text-[#111827] overflow-hidden">
+    <div className="h-[100dvh] flex flex-col md:flex-row bg-[#F0F2F5] text-[#111827] overflow-hidden print:h-auto print:overflow-visible">
 
       {/* Mobile top bar */}
-      <div className="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-[#E5E7EB] shadow-sm">
+      <div className="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-[#E5E7EB] shadow-sm print:hidden">
         <Link href={homeHref} className="block">
           <div className="relative h-12 w-48">
             <Image src="/new-logo.png" alt="RIT AIML" fill sizes="192px" className="object-contain object-left" />
@@ -108,7 +108,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
 
       {/* ── Sidebar ── */}
       <aside className={clsx(
-        "fixed inset-y-0 left-0 z-50 w-64 flex flex-col transition-transform duration-300 ease-out md:sticky md:top-0 md:translate-x-0 md:shrink-0 md:h-[100dvh] border-r border-[#D1D5DB] bg-white shadow-sm",
+        "fixed inset-y-0 left-0 z-50 w-64 flex flex-col transition-transform duration-300 ease-out md:sticky md:top-0 md:translate-x-0 md:shrink-0 md:h-[100dvh] border-r border-[#D1D5DB] bg-white shadow-sm print:hidden",
         sidebarOpen ? "translate-x-0" : "-translate-x-full"
       )}>
 
@@ -224,7 +224,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* ── Main content ── */}
-      <main className="flex-1 overflow-y-auto min-w-0 p-4 md:p-6 bg-[#F0F2F5]">
+      <main className="flex-1 overflow-y-auto min-w-0 p-4 md:p-6 bg-[#F0F2F5] print:overflow-visible print:bg-white print:p-0">
         <div className="max-w-5xl mx-auto">
           {children}
         </div>

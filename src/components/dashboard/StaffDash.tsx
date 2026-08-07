@@ -3,7 +3,7 @@ import { useUser } from "@/lib/hooks/useUser"
 import { useAuth } from "@/lib/hooks/useAuth"
 import Image from "next/image"
 import { useSearchParams } from "next/navigation"
-import { useState, useEffect, useCallback, Suspense } from "react"
+import { useState, useEffect, useCallback, Suspense, useMemo } from "react"
 import {
   Users, CheckCircle, XCircle, FileText,
   Clock, AlertCircle, Loader2, Award,
@@ -11,6 +11,10 @@ import {
   Mail, Shield, User, Activity, LayoutDashboard, CalendarDays,
   BarChart3, Bell, Search
 } from "lucide-react"
+
+import AchievementModal from "./AchievementModal"
+import FacultyProfileTab from "./faculty/FacultyProfileTab"
+import ReportsTab from "./faculty/ReportsTab"
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface ODRequest {
@@ -43,6 +47,14 @@ interface Student {
   phone?: string
   currentYear?: string
   semester?: number
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function getGreeting() {
+  const hour = new Date().getHours()
+  if (hour < 12) return "Good Morning,"
+  if (hour < 17) return "Good Afternoon,"
+  return "Good Evening,"
 }
 
 // ── Empty State ───────────────────────────────────────────────────────────────
@@ -156,10 +168,20 @@ function StaffDashInner() {
   const [loading, setLoading] = useState(true)
   const [students, setStudents] = useState<Student[]>([])
   const [odRequests, setOdRequests] = useState<ODRequest[]>([])
+  const [achievements, setAchievements] = useState<any[]>([])
   
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+  
+  // Student Profile Modal State
+  const [selectedStudentProfile, setSelectedStudentProfile] = useState<any>(null)
+  
   const [rejectTarget, setRejectTarget] = useState<ODRequest | null>(null)
+  const [rejectAchievementTarget, setRejectAchievementTarget] = useState<any | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+
+  // Reports Tab State
+  const [reportStartDate, setReportStartDate] = useState<string>("")
+  const [reportEndDate, setReportEndDate] = useState<string>("")
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -172,6 +194,10 @@ function StaffDashInner() {
       const odRes = await fetch("/api/faculty/ods")
       if (odRes.ok) setOdRequests(await odRes.json())
 
+      // 3. Fetch Achievements
+      const achRes = await fetch("/api/faculty/achievements")
+      if (achRes.ok) setAchievements(await achRes.json())
+
     } catch (err) {
       console.error(err)
     } finally {
@@ -183,6 +209,32 @@ function StaffDashInner() {
 
   const pendingODs = odRequests.filter(o => o.status === "FACULTY_VERIFICATION")
   const approvedODs = odRequests.filter(o => ["VERIFIED", "COMPLETED", "ACTIVITY_COMPLETED"].includes(o.status))
+
+  // Generate Recent Activities
+  const recentActivities = useMemo(() => {
+    const ods = odRequests.map(od => ({
+      id: od.id,
+      type: 'OD',
+      title: od.eventName,
+      studentName: od.studentName,
+      status: od.status,
+      date: od.createdAt ? new Date(od.createdAt._seconds ? od.createdAt._seconds * 1000 : od.createdAt).getTime() : 0
+    }));
+    
+    const achs = achievements.map(ach => ({
+      id: ach.id,
+      type: 'Achievement',
+      title: ach.title,
+      studentName: ach.studentName,
+      status: ach.status,
+      date: ach.createdAt ? new Date(ach.createdAt._seconds ? ach.createdAt._seconds * 1000 : ach.createdAt).getTime() : 0
+    }));
+
+    return [...ods, ...achs]
+      .filter(item => item.date > 0)
+      .sort((a, b) => b.date - a.date)
+      .slice(0, 5);
+  }, [odRequests, achievements]);
 
   const handleApprove = async (od: ODRequest) => {
     setActionLoading(od.id)
@@ -197,6 +249,26 @@ function StaffDashInner() {
   const handleReject = async (od: ODRequest, reason: string) => {
     setActionLoading(od.id)
     const res = await fetch(`/api/faculty/ods/${od.id}/status`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "reject", reason }),
+    })
+    if (res.ok) await loadData()
+    setActionLoading(null)
+  }
+
+  const handleApproveAchievement = async (ach: any) => {
+    setActionLoading(ach.id)
+    const res = await fetch(`/api/faculty/achievements/${ach.id}/status`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "approve" }),
+    })
+    if (res.ok) await loadData()
+    setActionLoading(null)
+  }
+
+  const handleRejectAchievement = async (ach: any, reason: string) => {
+    setActionLoading(ach.id)
+    const res = await fetch(`/api/faculty/achievements/${ach.id}/status`, {
       method: "PATCH", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "reject", reason }),
     })
@@ -242,7 +314,35 @@ function StaffDashInner() {
         <div className="px-5 py-4 border-b border-[#E2E8F0] bg-slate-50">
           <h3 className="text-sm font-bold text-slate-800">Recent Activity</h3>
         </div>
-        <EmptyState icon={Activity} title="No recent activity" subtitle="Check back later for updates." />
+        {recentActivities.length === 0 ? (
+          <EmptyState icon={Activity} title="No recent activity" subtitle="Check back later for updates." />
+        ) : (
+          <div className="divide-y divide-[#E2E8F0]">
+            {recentActivities.map(activity => (
+              <div key={`${activity.type}-${activity.id}`} className="px-5 py-4 flex items-start gap-4 hover:bg-slate-50 transition-colors">
+                <div className={`mt-0.5 p-2 rounded-full shrink-0 ${activity.type === 'OD' ? 'bg-indigo-100 text-indigo-600' : 'bg-amber-100 text-amber-600'}`}>
+                  {activity.type === 'OD' ? <FileText className="h-4 w-4" /> : <Award className="h-4 w-4" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-slate-800 truncate">{activity.title}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">Submitted by {activity.studentName}</p>
+                </div>
+                <div className="shrink-0 text-right">
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                    activity.status === 'VERIFIED' || activity.status === 'COMPLETED' || activity.status === 'ACTIVITY_COMPLETED' ? 'bg-green-100 text-green-700' :
+                    activity.status === 'REJECTED' ? 'bg-red-100 text-red-700' :
+                    'bg-slate-100 text-slate-700'
+                  }`}>
+                    {activity.status.replace(/_/g, ' ')}
+                  </span>
+                  <p className="text-[10px] text-slate-400 mt-1 font-medium">
+                    {new Date(activity.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
@@ -285,7 +385,7 @@ function StaffDashInner() {
                     <td className="px-5 py-3.5 text-sm text-slate-600">{s.classId || "—"}</td>
                     <td className="px-5 py-3.5 text-xs text-slate-500">{s.email || "—"}</td>
                     <td className="px-5 py-3.5 text-sm">
-                      <button className="text-[#003087] font-bold text-xs hover:underline">View Profile</button>
+                      <button onClick={() => setSelectedStudentProfile(s)} className="text-[#003087] font-bold text-xs hover:underline">View Profile</button>
                     </td>
                   </tr>
                 ))}
@@ -319,7 +419,7 @@ function StaffDashInner() {
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-700">{od.eventType}</span>
                       <span className="text-[10px] text-slate-400 font-mono">Ref: {od.referenceNumber}</span>
                     </div>
-                    <h3 className="text-sm font-bold text-slate-800">{od.studentName}</h3>
+                    <h3 className="text-sm font-bold text-slate-800">{students.find(s => s.uid === od.studentUid)?.name || "Unknown"}</h3>
                     <p className="text-sm font-semibold text-slate-700 mt-1">{od.eventName}</p>
                     <p className="text-xs text-slate-500 mt-0.5">{od.organiser} · {od.venue}</p>
                     <p className="text-xs text-slate-500 mt-0.5">{od.startDate}{od.startDate !== od.endDate ? ` – ${od.endDate}` : ""}</p>
@@ -348,22 +448,248 @@ function StaffDashInner() {
     </div>
   )
 
+  const renderAchievements = () => {
+    const pendingAch = achievements.filter(a => a.status === "PENDING_VERIFICATION")
+    const verifiedAch = achievements.filter(a => a.status === "VERIFIED")
+
+    return (
+      <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div>
+          <h2 className="text-xl font-black text-slate-800">Student Achievements</h2>
+          <p className="text-sm font-medium text-slate-500 mt-1">Review and verify student awards and publications.</p>
+        </div>
+
+        {loading ? (
+          <div className="bg-white rounded-lg border border-[#E2E8F0] p-12 flex flex-col items-center justify-center">
+            <Loader2 className="h-8 w-8 text-[#003087] animate-spin mb-4" />
+            <p className="text-sm font-bold text-slate-500">Loading achievements...</p>
+          </div>
+        ) : achievements.length === 0 ? (
+          <EmptyState icon={Award} title="No achievements found" subtitle="Your students have not logged any achievements yet." />
+        ) : (
+          <div className="space-y-6">
+            {pendingAch.length > 0 && (
+              <div className="bg-white rounded-lg border border-amber-200 shadow-sm overflow-hidden">
+                <div className="bg-amber-50 px-6 py-4 border-b border-amber-100 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-base font-bold text-amber-900">Pending Verification</h3>
+                    <p className="text-xs text-amber-700">Needs your review</p>
+                  </div>
+                  <span className="px-3 py-1 rounded-full bg-amber-200 text-amber-800 text-xs font-bold">{pendingAch.length} Pending</span>
+                </div>
+                <div className="divide-y divide-[#E2E8F0]">
+                  {pendingAch.map((ach: any) => (
+                    <div key={ach.id} className="p-6 flex flex-col lg:flex-row gap-6 hover:bg-slate-50 transition-colors">
+                      <div className="flex-1 space-y-3">
+                        <div className="flex items-center gap-3">
+                          <h4 className="text-base font-bold text-slate-800">{ach.title}</h4>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800">{ach.category}</span>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-800">{ach.position}</span>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          <div><p className="text-[10px] font-bold text-slate-400 uppercase">Student</p><p className="text-sm font-semibold text-slate-700">{ach.studentName}</p></div>
+                          <div><p className="text-[10px] font-bold text-slate-400 uppercase">Reg No</p><p className="text-sm font-semibold text-slate-700">{ach.registerNumber}</p></div>
+                          <div><p className="text-[10px] font-bold text-slate-400 uppercase">Event / Organizer</p><p className="text-sm font-semibold text-slate-700">{ach.eventName}</p></div>
+                          <div><p className="text-[10px] font-bold text-slate-400 uppercase">Date</p><p className="text-sm font-semibold text-slate-700">{ach.date}</p></div>
+                        </div>
+                        {ach.description && (
+                          <div className="bg-slate-50 rounded p-3 text-sm text-slate-600 border border-slate-100">{ach.description}</div>
+                        )}
+                        <div className="flex items-center gap-4">
+                          {ach.proofFileUrl && (
+                            <button onClick={() => setPreviewUrl(ach.proofFileUrl)} className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-slate-100 text-xs font-bold text-[#003087] hover:bg-slate-200 transition-colors">
+                              <FileText className="h-4 w-4" /> View Proof
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex lg:flex-col gap-3 shrink-0">
+                        <button onClick={() => handleApproveAchievement(ach)} disabled={actionLoading === ach.id} className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-6 py-2.5 bg-[#16A34A] text-white text-sm font-bold rounded shadow-sm hover:bg-[#15803D] transition-colors disabled:opacity-70">
+                          {actionLoading === ach.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />} Approve
+                        </button>
+                        <button onClick={() => setRejectAchievementTarget(ach)} disabled={actionLoading === ach.id} className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-6 py-2.5 bg-white border border-[#EF4444] text-[#EF4444] text-sm font-bold rounded hover:bg-red-50 transition-colors disabled:opacity-70">
+                          <XCircle className="h-4 w-4" /> Reject
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {verifiedAch.length > 0 && (
+              <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+                <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
+                  <h3 className="text-base font-bold text-slate-800">Verified Achievements</h3>
+                </div>
+                <div className="divide-y divide-[#E2E8F0]">
+                  {verifiedAch.map((ach: any) => (
+                    <div key={ach.id} className="p-4 sm:p-6 flex flex-col sm:flex-row gap-4 hover:bg-slate-50 transition-colors justify-between items-start">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <p className="text-sm font-bold text-slate-800">{ach.title}</p>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-200 text-slate-700">{ach.category}</span>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-green-100 text-green-800">Verified</span>
+                        </div>
+                        <p className="text-xs text-slate-500">{ach.studentName} ({ach.registerNumber}) · {ach.eventName} · {ach.date}</p>
+                      </div>
+                      {ach.proofFileUrl && (
+                        <button onClick={() => setPreviewUrl(ach.proofFileUrl)} className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-slate-100 text-xs font-bold text-[#003087] hover:bg-slate-200 transition-colors">
+                          <FileText className="h-4 w-4" /> View
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    )
+  }
+
   const renderComingSoon = (title: string, icon: any, desc: string) => (
     <div className="bg-white rounded-lg border border-[#E2E8F0] shadow-sm">
       <EmptyState icon={icon} title={title} subtitle={desc} />
     </div>
   )
 
+  const renderStudentModal = () => {
+    if (!selectedStudentProfile) return null;
+    const stuODs = odRequests.filter(od => od.studentUid === selectedStudentProfile.uid);
+    const stuAch = achievements.filter(ach => ach.studentUid === selectedStudentProfile.uid);
+
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4" onClick={() => setSelectedStudentProfile(null)}>
+        <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+          <div className="bg-[#003087] px-6 py-4 flex items-center justify-between shrink-0">
+            <h2 className="text-lg font-bold text-white">Student Portfolio</h2>
+            <button onClick={() => setSelectedStudentProfile(null)} className="text-white/70 hover:text-white transition-colors">
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          
+          <div className="overflow-y-auto flex-1 p-6">
+            {/* Header / Bio Info */}
+            <div className="flex flex-col md:flex-row items-center md:items-start gap-6 border-b border-slate-100 pb-6 mb-6">
+              <div className="h-24 w-24 rounded-full bg-[#003087]/10 text-[#003087] flex items-center justify-center text-4xl font-black shrink-0 border-4 border-white shadow-sm">
+                {selectedStudentProfile.name?.[0] || "S"}
+              </div>
+              <div className="flex-1 text-center md:text-left space-y-1">
+                <h3 className="text-2xl font-black text-slate-800">{selectedStudentProfile.name}</h3>
+                <p className="text-sm font-medium text-slate-500">{selectedStudentProfile.email}</p>
+                <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 pt-2">
+                  <span className="text-xs font-bold text-slate-600 bg-slate-100 px-3 py-1 rounded-full">Reg: {selectedStudentProfile.registerNumber || "—"}</span>
+                  <span className="text-xs font-bold text-slate-600 bg-slate-100 px-3 py-1 rounded-full">Class: {selectedStudentProfile.classId || "—"}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Stats */}
+            <div className="grid grid-cols-2 gap-4 mb-8">
+              <div className="bg-blue-50 border border-blue-100 p-4 rounded-lg flex flex-col items-center justify-center">
+                <p className="text-3xl font-black text-blue-700">{stuODs.length}</p>
+                <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mt-1">Total ODs</p>
+              </div>
+              <div className="bg-green-50 border border-green-100 p-4 rounded-lg flex flex-col items-center justify-center">
+                <p className="text-3xl font-black text-green-700">{stuAch.length}</p>
+                <p className="text-[10px] font-bold text-green-600 uppercase tracking-widest mt-1">Achievements</p>
+              </div>
+            </div>
+
+            {/* OD History */}
+            <div className="mb-8">
+              <h4 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <FileText className="h-4 w-4 text-[#003087]" /> OD History
+              </h4>
+              {stuODs.length === 0 ? (
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg text-center text-xs font-medium text-slate-500">No OD requests found for this student.</div>
+              ) : (
+                <div className="space-y-3">
+                  {stuODs.map(od => (
+                    <div key={od.id} className="p-4 border border-[#E2E8F0] rounded-lg flex flex-col sm:flex-row sm:items-start justify-between gap-3 bg-white shadow-sm hover:shadow-md transition-shadow">
+                      <div>
+                        <p className="text-sm font-bold text-slate-800">{od.eventName}</p>
+                        <p className="text-xs font-medium text-slate-500 mt-0.5">{od.organiser} • {od.startDate}</p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className={`text-[10px] font-bold px-2.5 py-1 rounded uppercase tracking-wider ${od.status === "VERIFIED" || od.status === "ACTIVITY_COMPLETED" || od.status === "COMPLETED" ? "bg-green-100 text-green-700" : od.status === "REJECTED" ? "bg-red-100 text-red-700" : "bg-slate-100 text-slate-700"}`}>
+                          {od.status.replace(/_/g, " ")}
+                        </span>
+                        {od.signedLetterUrl && (
+                          <button onClick={() => setPreviewUrl(od.signedLetterUrl!)} className="p-1.5 bg-slate-100 text-[#003087] hover:bg-slate-200 rounded transition-colors" title="View Signed Letter">
+                            <ExternalLink className="h-4 w-4" />
+                          </button>
+                        )}
+                        {od.postODProofsUrl && (
+                          <button onClick={() => setPreviewUrl(od.postODProofsUrl!)} className="p-1.5 bg-green-50 text-green-700 hover:bg-green-100 rounded transition-colors" title="View Event Proof">
+                            <CheckCircle className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Achievements */}
+            <div>
+              <h4 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <Award className="h-4 w-4 text-[#003087]" /> Achievements
+              </h4>
+              {stuAch.length === 0 ? (
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg text-center text-xs font-medium text-slate-500">No achievements found for this student.</div>
+              ) : (
+                <div className="space-y-3">
+                  {stuAch.map(ach => (
+                    <div key={ach.id} className="p-4 border border-[#E2E8F0] rounded-lg flex flex-col sm:flex-row sm:items-start justify-between gap-3 bg-white shadow-sm hover:shadow-md transition-shadow">
+                      <div>
+                        <p className="text-sm font-bold text-slate-800">{ach.title}</p>
+                        <p className="text-xs font-medium text-slate-500 mt-0.5">{ach.eventName} • {ach.date}</p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className={`text-[10px] font-bold px-2.5 py-1 rounded uppercase tracking-wider ${ach.status === "VERIFIED" ? "bg-green-100 text-green-700" : ach.status === "REJECTED" ? "bg-red-100 text-red-700" : "bg-slate-100 text-slate-700"}`}>
+                          {ach.status || "PENDING"}
+                        </span>
+                        {ach.proofFileUrl && (
+                          <button onClick={() => setPreviewUrl(ach.proofFileUrl)} className="p-1.5 bg-slate-100 text-[#003087] hover:bg-slate-200 rounded transition-colors" title="View Document">
+                            <ExternalLink className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6 pb-20">
-      {/* Reject Modal */}
+      {/* Reject Modals */}
       {rejectTarget && <RejectModal od={rejectTarget} onClose={() => setRejectTarget(null)} onConfirm={(reason) => handleReject(rejectTarget, reason)} />}
+      {rejectAchievementTarget && (
+        <RejectModal 
+          od={{ studentName: rejectAchievementTarget.studentName, eventName: rejectAchievementTarget.title } as any} 
+          onClose={() => setRejectAchievementTarget(null)} 
+          onConfirm={(reason) => handleRejectAchievement(rejectAchievementTarget, reason)} 
+        />
+      )}
       
       {/* Preview Modal */}
       {previewUrl && <DocumentPreviewModal url={previewUrl} title="Document Preview" onClose={() => setPreviewUrl(null)} />}
 
+      {/* Student Profile Modal */}
+      {renderStudentModal()}
+
       {/* Header Banner */}
-      <div className="bg-[#003087] rounded-lg shadow-md p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-5 relative overflow-hidden">
+      <div className="bg-[#003087] rounded-lg shadow-md p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-5 relative overflow-hidden print:hidden">
         <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
           <Shield className="w-48 h-48 text-white -translate-y-12 translate-x-4" />
         </div>
@@ -373,7 +699,7 @@ function StaffDashInner() {
             {name?.[0] ?? "F"}
           </div>
           <div className="relative z-10">
-            <p className="text-white/80 text-sm font-medium">Good Morning,</p>
+            <p className="text-white/80 text-sm font-medium">{getGreeting()}</p>
             <h1 className="text-xl md:text-2xl font-black text-white mt-1">{name || "Faculty Name"} 👋</h1>
             <div className="flex items-center gap-2 mt-2">
               <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-white/20 px-2 py-0.5 rounded">Faculty</span>
@@ -389,10 +715,10 @@ function StaffDashInner() {
       {activeTab === "dashboard" && renderDashboardOverview()}
       {activeTab === "students" && renderMyStudents()}
       {activeTab === "od" && renderODRequests()}
-      {activeTab === "profile" && renderComingSoon("My Profile", User, "Faculty portfolio management is coming soon.")}
-      {activeTab === "achievements" && renderComingSoon("Achievements", Award, "Review student achievements here. Coming soon.")}
+      {activeTab === "profile" && <FacultyProfileTab />}
+      {activeTab === "achievements" && renderAchievements()}
       {activeTab === "events" && renderComingSoon("Events & Activities", CalendarDays, "Department events and activities will be listed here.")}
-      {activeTab === "reports" && renderComingSoon("Reports", BarChart3, "Analytics and activity reports are under construction.")}
+      {activeTab === "reports" && <ReportsTab students={students} odRequests={odRequests} achievements={achievements} classId={classId} facultyName={name} />}
       {activeTab === "notifications" && renderComingSoon("Notifications", Bell, "Your notification center is empty.")}
     </div>
   )

@@ -25,6 +25,7 @@ export interface QuickLinkItem {
 }
 
 export interface Faculty {
+  uid: string;
   name: string;
   qualification: string;
   specialization: string;

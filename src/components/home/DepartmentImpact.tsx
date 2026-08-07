@@ -38,7 +38,6 @@ export default function DepartmentImpact() {
               label={stat.label} 
               value={stat.value} 
               suffix={stat.suffix} 
-              delay={i * 100} 
             />
           ))}
         </div>

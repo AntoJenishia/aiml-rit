@@ -9,8 +9,10 @@ import {
   GraduationCap, Users, FileText, PlusCircle,
   Upload, AlertCircle, XCircle, Download, User,
   Award, CalendarDays, FolderOpen, Hash, Building2,
-  Activity, Shield,
+  Activity, Shield, Plus,
 } from "lucide-react"
+
+import AchievementModal from "./AchievementModal"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface ODRequest {
@@ -332,6 +334,9 @@ export default function StudentDash() {
   const [odRequests,setOdRequests] = useState<ODRequest[]>([])
   const [loadingOD,setLoadingOD] = useState(true)
   const [showODForm,setShowODForm] = useState(false)
+  const [achievements, setAchievements] = useState<any[]>([])
+  const [loadingAchievements, setLoadingAchievements] = useState(true)
+  const [showAchievementForm, setShowAchievementForm] = useState(false)
   const [selectedODForProof,setSelectedODForProof] = useState<ODRequest|null>(null)
   const [previewUrl,setPreviewUrl] = useState<string|null>(null)
   const [profile,setProfile] = useState<any>(null)
@@ -364,7 +369,17 @@ export default function StudentDash() {
     try{const res=await fetch("/api/od");if(res.ok)setOdRequests(await res.json())}catch{}
     setLoadingOD(false)
   }
-  useEffect(()=>{loadODs()},[uid])
+  
+  const loadAchievements = async () => {
+    if(!uid)return;setLoadingAchievements(true)
+    try{const res=await fetch("/api/achievements");if(res.ok)setAchievements(await res.json())}catch{}
+    setLoadingAchievements(false)
+  }
+
+  useEffect(()=>{
+    loadODs()
+    loadAchievements()
+  },[uid])
 
   const pendingODs=odRequests.filter(o=>["SUBMITTED","AWAITING_SIGNED_LETTER","FACULTY_VERIFICATION","CORRECTION_REQUIRED"].includes(o.status)).length
   const approvedODs=odRequests.filter(o=>["VERIFIED","ACTIVITY_COMPLETED","COMPLETED"].includes(o.status)).length
@@ -387,6 +402,7 @@ export default function StudentDash() {
   return (
     <div className="min-h-full space-y-5">
       {showODForm&&<ODModal onClose={()=>setShowODForm(false)} onSuccess={loadODs}/>}
+      {showAchievementForm&&<AchievementModal onClose={()=>setShowAchievementForm(false)} onSuccess={loadAchievements}/>}
       {selectedODForProof&&<PostODProofModal od={selectedODForProof} onClose={()=>setSelectedODForProof(null)} onSuccess={loadODs}/>}
       {previewUrl&&<DocumentPreviewModal url={previewUrl} title="Document Preview" onClose={()=>setPreviewUrl(null)}/>}
 
@@ -587,10 +603,62 @@ export default function StudentDash() {
 
       {currentTab==="achievements"&&(
         <div className="space-y-4">
-          <div><h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">My Achievements</h2><p className="text-xs text-slate-500 mt-0.5">Awards, recognitions, and competition results</p></div>
-          <div className="bg-white rounded-lg border border-[#E2E8F0] shadow-sm">
-            <EmptyState icon={Award} title="No achievements added yet" subtitle="Your achievements, awards, and competition results will appear here once submitted and verified by the department." accent="#D97706" accentBg="bg-amber-100"/>
-            <div className="px-5 pb-5"><div className="rounded border border-blue-100 bg-blue-50 p-3"><p className="text-xs font-medium text-blue-700 flex items-start gap-2"><AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0"/>Future fields: Achievement Title, Event, Position, Date, Organizer, Certificate, Verification Status. Only department-approved achievements become public.</p></div></div>
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">My Achievements</h2>
+              <p className="text-xs text-slate-500 mt-0.5">Awards, recognitions, and competition results</p>
+            </div>
+            <button onClick={() => setShowAchievementForm(true)} className="flex items-center gap-2 px-4 py-2 bg-[#003087] text-white text-sm font-bold rounded-lg hover:bg-[#002266] transition-colors shadow-sm">
+              <Plus className="h-4 w-4" /> Add Achievement
+            </button>
+          </div>
+          
+          <div className="bg-white rounded-lg border border-[#E2E8F0] shadow-sm overflow-hidden">
+            {loadingAchievements ? (
+              <div className="p-10 flex flex-col items-center justify-center space-y-4">
+                <Loader2 className="h-8 w-8 text-[#003087] animate-spin" />
+                <p className="text-sm text-slate-500 font-medium">Loading achievements...</p>
+              </div>
+            ) : achievements.length === 0 ? (
+              <EmptyState icon={Award} title="No achievements added yet" subtitle="Your achievements, awards, and competition results will appear here once submitted and verified by the department." accent="#D97706" accentBg="bg-amber-100"/>
+            ) : (
+              <div className="divide-y divide-[#E5E7EB]">
+                {achievements.map((ach: any) => {
+                  const isVerified = ach.status === "VERIFIED"
+                  const isRejected = ach.status === "REJECTED"
+                  
+                  return (
+                    <div key={ach.id} className={`px-5 py-4 hover:bg-slate-50 transition-colors ${isVerified ? "border-l-4 border-l-[#16A34A]" : isRejected ? "border-l-4 border-l-[#EF4444]" : "border-l-4 border-l-[#F59E0B]"}`}>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <p className="text-sm font-bold text-slate-800">{ach.title}</p>
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800">{ach.category}</span>
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-800">{ach.position}</span>
+                          </div>
+                          <p className="text-xs text-slate-500">{ach.eventName} · {ach.date}</p>
+                          {ach.description && <p className="text-xs text-slate-600 mt-2">{ach.description}</p>}
+                          {isRejected && <p className="text-xs text-[#EF4444] mt-1 font-medium">Reason: {ach.facultyRemarks || "—"}</p>}
+                        </div>
+                        <div className="flex flex-col items-end gap-2 shrink-0">
+                          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-[10px] font-bold ${
+                            isVerified ? "bg-green-100 text-green-700" :
+                            isRejected ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"
+                          }`}>
+                            {isVerified ? "Verified" : isRejected ? "Rejected" : "Pending Verification"}
+                          </div>
+                          {ach.proofFileUrl && (
+                            <button onClick={() => setPreviewUrl(ach.proofFileUrl)} className="flex items-center gap-1 px-2.5 py-1.5 rounded bg-slate-100 text-[10px] font-bold text-[#003087] hover:bg-slate-200 transition-colors">
+                              <FileText className="h-3 w-3" /> View Proof
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
         </div>
       )}

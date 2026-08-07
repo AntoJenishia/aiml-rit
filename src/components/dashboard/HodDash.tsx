@@ -7,6 +7,7 @@ import HodOverviewTab from "./hod/HodOverviewTab"
 import HodStaffTab from "./hod/HodStaffTab"
 import HodStudentsTab from "./hod/HodStudentsTab"
 import HodOdTab from "./hod/HodOdTab"
+import HodAchievementsTab from "./hod/HodAchievementsTab"
 
 // ── Department Filter ──
 
@@ -109,6 +110,8 @@ function HodDashInner() {
         <HodStudentsTab departmentFilter={departmentFilter} />
       ) : activeTab === "od" ? (
         <HodOdTab departmentFilter={departmentFilter} />
+      ) : activeTab === "achievements" ? (
+        <HodAchievementsTab previewDoc={(url) => window.open(url, '_blank')} />
       ) : (
         <div className="bg-white rounded-xl border border-[#E5E7EB] shadow-sm p-12 text-center flex flex-col items-center">
           <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mb-4">

@@ -5,6 +5,7 @@ const avatarUrl = (name: string) =>
 
 export const faculty: Faculty[] = [
   {
+    uid: "dummy-1",
     name: "Dr. S. Karthikeyan",
     qualification: "Ph.D., M.E.",
     specialization: "Deep Learning",
@@ -12,6 +13,7 @@ export const faculty: Faculty[] = [
     photo: avatarUrl("S Karthikeyan")
   },
   {
+    uid: "dummy-2",
     name: "Dr. P. Nandhini",
     qualification: "Ph.D., M.Tech.",
     specialization: "NLP",
@@ -19,6 +21,7 @@ export const faculty: Faculty[] = [
     photo: avatarUrl("P Nandhini")
   },
   {
+    uid: "dummy-3",
     name: "Mr. V. Arun Kumar",
     qualification: "M.E.",
     specialization: "Computer Vision",
@@ -26,6 +29,7 @@ export const faculty: Faculty[] = [
     photo: avatarUrl("V Arun Kumar")
   },
   {
+    uid: "dummy-4",
     name: "Dr. M. Priyanka",
     qualification: "Ph.D., M.E.",
     specialization: "Data Science",
@@ -33,6 +37,7 @@ export const faculty: Faculty[] = [
     photo: avatarUrl("M Priyanka")
   },
   {
+    uid: "dummy-5",
     name: "Ms. A. Shalini",
     qualification: "M.Tech.",
     specialization: "Reinforcement Learning",
@@ -40,6 +45,7 @@ export const faculty: Faculty[] = [
     photo: avatarUrl("A Shalini")
   },
   {
+    uid: "dummy-6",
     name: "Dr. K. Suresh",
     qualification: "Ph.D., M.E.",
     specialization: "AI Ethics",
@@ -47,6 +53,7 @@ export const faculty: Faculty[] = [
     photo: avatarUrl("K Suresh")
   },
   {
+    uid: "dummy-7",
     name: "Mr. R. Naveen",
     qualification: "M.E.",
     specialization: "IoT & AI",
@@ -54,6 +61,7 @@ export const faculty: Faculty[] = [
     photo: avatarUrl("R Naveen")
   },
   {
+    uid: "dummy-8",
     name: "Ms. T. Divya",
     qualification: "M.Tech.",
     specialization: "Cloud ML",

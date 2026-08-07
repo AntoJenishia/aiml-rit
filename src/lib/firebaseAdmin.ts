@@ -46,7 +46,10 @@ function getAdminApp() {
 
   if (serviceAccount) {
     try {
-      return initializeApp({ credential: cert(serviceAccount) })
+      return initializeApp({ 
+        credential: cert(serviceAccount),
+        storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET 
+      })
     } catch (err) {
       console.error("[Firebase Admin] initializeApp threw an error with the parsed credential:", err)
     }
