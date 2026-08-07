@@ -3,7 +3,7 @@ import { adminDb } from "@/lib/firebaseAdmin"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -18,7 +18,8 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     const body = await req.json()
     const { action, reason } = body
 
-    const odRef = adminDb.collection("odRequests").doc(params.id)
+    const { id } = await params
+    const odRef = adminDb.collection("odRequests").doc(id)
     const odDoc = await odRef.get()
     if (!odDoc.exists) return NextResponse.json({ error: "OD not found" }, { status: 404 })
     

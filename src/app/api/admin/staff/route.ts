@@ -17,10 +17,10 @@ export async function GET(req: Request) {
 
     // Fetch all staff
     const snapshot = await adminDb.collection("users").where("role", "==", "staff").get()
-    const staff = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() }))
+    const staff = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as any))
     
     // Sort alphabetically by name
-    staff.sort((a, b) => (a.name || "").localeCompare(b.name || ""))
+    staff.sort((a: any, b: any) => (a.name || "").localeCompare(b.name || ""))
 
     return NextResponse.json(staff)
   } catch (error) {

@@ -17,10 +17,10 @@ export async function GET(req: Request) {
 
     // Fetch all students
     const snapshot = await adminDb.collection("users").where("role", "==", "student").get()
-    const students = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() }))
+    const students = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as any))
     
     // Sort by register number or name
-    students.sort((a, b) => (a.registerNumber || a.name || "").localeCompare(b.registerNumber || b.name || ""))
+    students.sort((a: any, b: any) => (a.registerNumber || a.name || "").localeCompare(b.registerNumber || b.name || ""))
 
     return NextResponse.json(students)
   } catch (error) {

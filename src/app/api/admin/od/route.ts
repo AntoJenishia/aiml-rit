@@ -8,7 +8,7 @@ export async function GET(req: Request) {
     const session = await getServerSession(authOptions)
     const uid = (session?.user as any)?.uid || (session?.user as any)?.id
 
-    if (!uid || (session?.user?.role !== "admin" && session?.user?.role !== "hod")) {
+    if (!uid || session?.user?.role !== "hod") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
@@ -49,7 +49,7 @@ export async function PATCH(req: Request) {
     const session = await getServerSession(authOptions)
     const uid = (session?.user as any)?.uid || (session?.user as any)?.id
 
-    if (!uid || (session?.user?.role !== "admin" && session?.user?.role !== "hod")) {
+    if (!uid || session?.user?.role !== "hod") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
