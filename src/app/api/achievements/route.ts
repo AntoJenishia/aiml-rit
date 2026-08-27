@@ -100,7 +100,6 @@ export async function GET(req: NextRequest) {
     const uid = session.user.uid!
     const snapshot = await adminDb.collection("achievements")
       .where("studentUid", "==", uid)
-      .orderBy("createdAt", "desc")
       .get()
 
     const achievements = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))

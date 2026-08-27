@@ -2,6 +2,7 @@ import { adminDb } from "@/lib/firebaseAdmin"
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { CheckCircle, Clock, XCircle, AlertTriangle, ArrowLeft } from "lucide-react"
+import { formatDate } from "@/lib/dateUtils"
 
 interface ODData {
   referenceNumber: string
@@ -24,11 +25,7 @@ interface ODData {
 
 function formatTs(ts?: { _seconds: number }) {
   if (!ts) return null
-  return new Date(ts._seconds * 1000).toLocaleString("en-IN", {
-    timeZone: "Asia/Kolkata",
-    day: "2-digit", month: "short", year: "numeric",
-    hour: "2-digit", minute: "2-digit",
-  })
+  return formatDate(ts)
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string; icon: any }> = {
@@ -125,7 +122,7 @@ export default async function VerifyPage({
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">Date(s)</p>
                 <p className="font-semibold text-[#111827]">
-                  {od.startDate === od.endDate ? od.startDate : `${od.startDate} → ${od.endDate}`}
+                  {od.startDate === od.endDate ? formatDate(od.startDate) : `${formatDate(od.startDate)} → ${formatDate(od.endDate)}`}
                 </p>
               </div>
             </div>

@@ -1,5 +1,6 @@
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib"
 import QRCode from "qrcode"
+import { formatDate } from "./dateUtils"
 
 interface ODPdfParams {
   referenceNumber: string
@@ -46,7 +47,7 @@ export async function generateFormalODPdf(params: ODPdfParams): Promise<Uint8Arr
   page.drawText("ON-DUTY REQUISITION FORM", { x: width / 2 - 80, y, size: 12, font: fontBold, color: black })
   
   y -= 30
-  const dateStr = new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
+  const dateStr = formatDate(new Date())
   page.drawText(`Date: ${dateStr}`, { x: width - 150, y, size: 10, font: fontReg, color: black })
   page.drawText(`Ref: ${params.referenceNumber}`, { x: 50, y, size: 10, font: fontBold, color: black })
   
@@ -85,8 +86,8 @@ export async function generateFormalODPdf(params: ODPdfParams): Promise<Uint8Arr
 
   // ── Body ──
   const dateText = params.startDate === params.endDate
-    ? `on ${params.startDate}`
-    : `from ${params.startDate} to ${params.endDate}`
+    ? `on ${formatDate(new Date(params.startDate))}`
+    : `from ${formatDate(new Date(params.startDate))} to ${formatDate(new Date(params.endDate))}`
   const bodyText = `I would like to bring to your kind notice that I have planned to attend the ${params.eventType} on "${params.eventName}" organized by ${params.organiser} at ${params.venue} ${dateText}.`
   
   const words = bodyText.split(" ")
@@ -133,6 +134,7 @@ export async function generateFormalODPdf(params: ODPdfParams): Promise<Uint8Arr
 
   // ── Signatures ──
   page.drawText("Thanking you,", { x: 50, y, size: 11, font: fontReg, color: black })
+  const signY = y
   y -= 40
   
   page.drawText("Yours obediently,", { x: width - 180, y, size: 11, font: fontReg, color: black })
@@ -155,8 +157,8 @@ export async function generateFormalODPdf(params: ODPdfParams): Promise<Uint8Arr
   if (params.facultyApproved) {
     page.drawText("APPROVED", { x: 250, y, size: 10, font: fontBold, color: rgb(0, 0.5, 0) })
     if (params.facultyRespondedAt) {
-       const fd = new Date(params.facultyRespondedAt._seconds * 1000).toLocaleDateString("en-IN")
-       page.drawText(`(${fd})`, { x: 330, y, size: 9, font: fontReg, color: darkGray })
+       const fd = formatDate(new Date(params.facultyRespondedAt._seconds * 1000))
+       page.drawText(fd, { x: 330, y, size: 9, font: fontReg, color: darkGray })
     }
   } else {
     page.drawText("Pending", { x: 250, y, size: 10, font: fontReg, color: darkGray })
@@ -170,8 +172,8 @@ export async function generateFormalODPdf(params: ODPdfParams): Promise<Uint8Arr
   if (params.hodApproved) {
     page.drawText("APPROVED", { x: 250, y, size: 10, font: fontBold, color: rgb(0, 0.5, 0) })
     if (params.hodRespondedAt) {
-       const hd = new Date(params.hodRespondedAt._seconds * 1000).toLocaleDateString("en-IN")
-       page.drawText(`(${hd})`, { x: 330, y, size: 9, font: fontReg, color: darkGray })
+       const hd = formatDate(new Date(params.hodRespondedAt._seconds * 1000))
+       page.drawText(hd, { x: 330, y, size: 9, font: fontReg, color: darkGray })
     }
   } else {
     page.drawText("Pending", { x: 250, y, size: 10, font: fontReg, color: darkGray })

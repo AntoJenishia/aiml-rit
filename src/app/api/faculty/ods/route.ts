@@ -49,14 +49,29 @@ export async function GET(req: Request) {
       })
     }
     
+    // Enrich each OD with the student's name
+    const enriched = await Promise.all(
+      odRequests.map(async (od) => {
+        if (od.studentUid) {
+          try {
+            const stuDoc = await adminDb.collection("users").doc(od.studentUid).get()
+            if (stuDoc.exists) {
+              return { ...od, studentName: stuDoc.data()?.name || "Unknown" }
+            }
+          } catch {}
+        }
+        return { ...od, studentName: od.studentName || "Unknown" }
+      })
+    )
+
     // Sort combined results by descending creation date
-    odRequests.sort((a, b) => {
+    enriched.sort((a, b) => {
       const timeA = a.createdAt?.seconds || 0
       const timeB = b.createdAt?.seconds || 0
       return timeB - timeA
     })
 
-    return NextResponse.json(odRequests)
+    return NextResponse.json(enriched)
   } catch (error) {
     console.error("Error fetching faculty ODs:", error)
     return NextResponse.json({ error: "Internal error" }, { status: 500 })

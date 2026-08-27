@@ -2,6 +2,7 @@
 import { useUser } from "@/lib/hooks/useUser"
 import { useEffect, useState, useRef, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
+import { formatDate } from "@/lib/dateUtils"
 import Image from "next/image"
 import Link from "next/link"
 import {
@@ -9,7 +10,8 @@ import {
   GraduationCap, Users, FileText, PlusCircle,
   Upload, AlertCircle, XCircle, Download, User,
   Award, CalendarDays, FolderOpen, Hash, Building2,
-  Activity, Shield, Plus,
+  Activity, Shield, Plus, BookOpen, Trophy, TrendingUp,
+  CheckCircle2, Star, ChevronRight, Megaphone
 } from "lucide-react"
 
 import AchievementModal from "./AchievementModal"
@@ -137,10 +139,14 @@ function ODModal({onClose,onSuccess,initialData}:{onClose:()=>void;onSuccess:()=
     })
   }
 
+  const today = new Date().toISOString().split("T")[0]
+
   const handleSubmit = async () => {
     setError("")
     if(!form.eventName||!form.organiser||!form.venue||!form.startDate||!form.endDate||!form.reason){setError("Please fill all required fields.");return}
-    if(!proofFile){setError("Please upload the signed OD letter.");return}
+    if(form.startDate < today){setError("Start date cannot be in the past.");return}
+    if(form.endDate < form.startDate){setError("End date cannot be before start date.");return}
+    if(!proofFile){setError("Please upload your proof document (e.g. event brochure, registration confirmation).");return}
     
     setUploading(true)
     let gpsLocation;
@@ -191,16 +197,17 @@ function ODModal({onClose,onSuccess,initialData}:{onClose:()=>void;onSuccess:()=
             <div><label className="block text-xs font-semibold text-slate-700 mb-1.5">Event Type *</label><select value={form.eventType} onChange={e=>set("eventType",e.target.value)} className={inp}>{OD_EVENT_TYPES.map(t=><option key={t}>{t}</option>)}</select></div>
             <div><label className="block text-xs font-semibold text-slate-700 mb-1.5">Organiser *</label><input value={form.organiser} onChange={e=>set("organiser",e.target.value)} placeholder="e.g. IIT Madras" className={inp}/></div>
             <div className="col-span-2"><label className="block text-xs font-semibold text-slate-700 mb-1.5">Venue *</label><input value={form.venue} onChange={e=>set("venue",e.target.value)} placeholder="e.g. IIT Madras Campus, Chennai" className={inp}/></div>
-            <div><label className="block text-xs font-semibold text-slate-700 mb-1.5">Start Date *</label><input type="date" value={form.startDate} onChange={e=>set("startDate",e.target.value)} className={inp}/></div>
-            <div><label className="block text-xs font-semibold text-slate-700 mb-1.5">End Date *</label><input type="date" value={form.endDate} onChange={e=>set("endDate",e.target.value)} className={inp}/></div>
+            <div><label className="block text-xs font-semibold text-slate-700 mb-1.5">Start Date *</label><input type="date" min={today} value={form.startDate} onChange={e=>set("startDate",e.target.value)} className={inp}/></div>
+            <div><label className="block text-xs font-semibold text-slate-700 mb-1.5">End Date *</label><input type="date" min={form.startDate || today} value={form.endDate} onChange={e=>set("endDate",e.target.value)} className={inp}/></div>
           </div>
           <div><label className="block text-xs font-semibold text-slate-700 mb-1.5">Reason / Purpose *</label><textarea value={form.reason} onChange={e=>set("reason",e.target.value)} placeholder="Briefly explain why you need this OD..." rows={3} className={`${inp} resize-none`}/></div>
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Upload Signed OD Letter <span className="text-red-500">*</span></label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Upload Proof Document <span className="text-red-500">*</span></label>
+            <p className="text-[10px] text-slate-500 mb-2">Upload event brochure, registration confirmation, or invitation letter</p>
             <input ref={fileRef} type="file" accept="application/pdf,image/*" className="hidden" onChange={e=>setProofFile(e.target.files?.[0]??null)}/>
             <button onClick={()=>fileRef.current?.click()} className={`w-full flex flex-col items-center justify-center gap-2 rounded border-2 border-dashed py-5 text-sm font-semibold transition-all ${proofFile?"border-[#16A34A] bg-green-50 text-[#16A34A]":"border-[#E2E8F0] bg-slate-50 text-slate-500 hover:border-[#003087] hover:text-[#003087]"}`}>
               {proofFile?<CheckCircle className="h-5 w-5"/>:<Upload className="h-5 w-5"/>}
-              {proofFile?proofFile.name:"Click to upload signed letter"}
+              {proofFile?proofFile.name:"Click to upload proof document"}
             </button>
             <p className="text-[10px] text-slate-500 mt-2 text-center flex items-center justify-center gap-1"><Shield className="h-3 w-3"/> GPS location will be captured securely on submit</p>
           </div>
@@ -337,22 +344,26 @@ function RecentActivity({odRequests}:{odRequests:ODRequest[]}) {
 // ── MAIN ──────────────────────────────────────────────────────────────────────
 export default function StudentDash() {
   const {uid,name,email,image} = useUser()
-  const [odRequests,setOdRequests] = useState<ODRequest[]>([])
-  const [loadingOD,setLoadingOD] = useState(true)
-  const [showODForm,setShowODForm] = useState(false)
+  const [odRequests,    setOdRequests]    = useState<ODRequest[]>([])
+  const [loadingOD,     setLoadingOD]     = useState(true)
+  const [showODForm,    setShowODForm]    = useState(false)
   const [achievements, setAchievements] = useState<any[]>([])
   const [loadingAchievements, setLoadingAchievements] = useState(true)
   const [showAchievementForm, setShowAchievementForm] = useState(false)
-  const [selectedODForProof,setSelectedODForProof] = useState<ODRequest|null>(null)
+  const [selectedODForProof, setSelectedODForProof] = useState<ODRequest | null>(null)
+  const [activeTab,     setActiveTab]     = useState<"courses" | "od">("courses")
+  const [profile,       setProfile]       = useState<any>(null)
+  const [loadingProfile, setLoadingProfile] = useState(true)
+  const [classInchargeName, setClassInchargeName] = useState<string>("—")
+  const [announcements, setAnnouncements] = useState<any[]>([])
+  const [upcomingEvents, setUpcomingEvents] = useState<any[]>([])
   const [previewUrl,setPreviewUrl] = useState<string|null>(null)
-  const [profile,setProfile] = useState<any>(null)
-  const [loadingProfile,setLoadingProfile] = useState(true)
-  const [classInchargeName,setClassInchargeName] = useState<string>("—")
   const [reapplyData, setReapplyData] = useState<any>(null)
-  const searchParams = useSearchParams()
-  const currentTab = searchParams.get("tab")||"dashboard"
 
-  useEffect(()=>{
+  const searchParams = useSearchParams()
+  const currentTab = searchParams.get("tab") || "dashboard"
+
+  useEffect(() => {
     async function load() {
       try {
         if(uid) {
@@ -387,6 +398,33 @@ export default function StudentDash() {
     loadODs()
     loadAchievements()
   },[uid])
+
+  // Load announcements + upcoming events (shared data, public to all roles)
+  useEffect(() => {
+    async function loadFeed() {
+      try {
+        const [annRes, evRes] = await Promise.all([
+          fetch("/api/announcements"),
+          fetch("/api/events"),
+        ])
+        if (annRes.ok) {
+          const all: any[] = await annRes.json()
+          setAnnouncements(all.filter((a: any) => a.target === "all" || a.target === "students"))
+        }
+        if (evRes.ok) {
+          const all: any[] = await evRes.json()
+          const today = new Date().toISOString().split("T")[0]
+          setUpcomingEvents(all.filter((e: any) => e.startDate >= today).sort((a: any, b: any) => a.startDate.localeCompare(b.startDate)))
+        }
+      } catch { /* silently fail */ }
+    }
+    loadFeed()
+  }, [])
+
+  const realSemester      = profile?.semester ?? "—"
+  const realCGPA          = profile?.cgpa ?? "—"
+  const realSection       = profile?.section ?? ""
+  const realBatch         = profile?.batch ?? ""
 
   const pendingODs=odRequests.filter(o=>["SUBMITTED","AWAITING_SIGNED_LETTER","FACULTY_VERIFICATION","CORRECTION_REQUIRED"].includes(o.status)).length
   const approvedODs=odRequests.filter(o=>["VERIFIED","ACTIVITY_COMPLETED","COMPLETED"].includes(o.status)).length
@@ -494,29 +532,71 @@ export default function StudentDash() {
         </div>
       )}
 
-      {currentTab==="profile"&&(
-        <div className="space-y-5">
-          {/* Profile Header */}
-          <div className="bg-[#003087] rounded-lg shadow-sm overflow-hidden">
-            <div className="px-6 py-6 flex flex-col sm:flex-row items-center sm:items-start gap-5">
-              {image ? (
-                <Image src={image} alt={displayName} width={80} height={80} className="rounded-full ring-4 ring-white/30 w-18 h-18 object-cover shadow-md shrink-0"/>
-              ) : (
-                <div className="h-18 w-18 rounded-full bg-white/20 text-white flex items-center justify-center text-3xl font-bold ring-4 ring-white/30 shadow-md shrink-0" style={{width:72,height:72}}>
-                  {displayName[0]}
-                </div>
-              )}
-              <div>
-                <p className="text-white/60 text-[10px] font-semibold uppercase tracking-widest mb-1">Student Profile</p>
-                <h2 className="text-xl font-bold text-white leading-tight">{displayName}</h2>
-                <p className="text-white/70 text-sm mt-1">{department} &nbsp;•&nbsp; {semesterLabel} &nbsp;•&nbsp; Section {section}</p>
-                <p className="text-white/50 text-xs mt-1 font-mono">Reg. No: {registerNumber}</p>
+      {/* ── Welcome Banner ── */}
+      <div className="relative overflow-hidden rounded-2xl"
+        style={{ background: "linear-gradient(135deg, #1e1b4b 0%, #3B5BFF 60%, #7C3AED 100%)" }}>
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute -top-10 -right-10 w-64 h-64 rounded-full bg-white/20" />
+          <div className="absolute -bottom-16 -left-10 w-80 h-80 rounded-full bg-white/10" />
+        </div>
+        <div className="relative px-6 py-8 md:px-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div className="flex items-center gap-4 w-full md:w-auto">
+            {image ? (
+              <Image src={image} alt={displayName} width={72} height={72}
+                className="rounded-full ring-4 ring-white/30 w-14 h-14 md:w-16 md:h-16 object-cover shrink-0" />
+            ) : (
+              <div className="h-14 w-14 md:h-16 md:w-16 rounded-full bg-white/20 text-white flex items-center justify-center text-2xl font-black ring-4 ring-white/30 shrink-0">
+                {displayName[0] ?? "S"}
               </div>
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="text-white/60 text-xs font-semibold uppercase tracking-widest mb-1">Student Portal</p>
+              <h1 className="text-xl md:text-2xl font-black text-white leading-tight">
+                Welcome back, {displayName.split(" ")[0]} 👋
+              </h1>
+              <p className="text-white/70 text-sm mt-1 truncate">
+                {registerNumber}
+              </p>
             </div>
           </div>
-          {loadingProfile?(
+          <div className="flex flex-wrap gap-3 shrink-0">
+            <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl px-4 py-3 text-center min-w-[90px]">
+              <p className="text-white/60 text-[10px] font-bold uppercase tracking-wider">Class Incharge</p>
+              <p className="text-white font-bold text-sm mt-1">{classInchargeName}</p>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl px-4 py-3 text-center min-w-[90px]">
+              <p className="text-white/60 text-[10px] font-bold uppercase tracking-wider">Semester</p>
+              <p className="text-white font-black text-xl mt-0.5">{semesterNum ?? "—"}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Stat Cards ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: "Awards",     value: achievements.length,      icon: Trophy,    border: "border-l-[#D97706]", iconBg: "bg-[#D97706]/10", iconColor: "text-[#D97706]", sub: "Achievements" },
+          { label: "OD Pending", value: pendingODs, icon: FileText, border: "border-l-[#EF4444]", iconBg: "bg-[#EF4444]/10", iconColor: "text-[#EF4444]", sub: `${approvedODs} approved` },
+        ].map(s => (
+          <div key={s.label} className={`bg-white rounded-xl p-5 shadow-sm border border-[#E5E7EB] border-l-4 ${s.border} hover:shadow-md transition-shadow`}>
+            <div className="flex items-start justify-between mb-3">
+              <div className={`h-9 w-9 rounded-lg flex items-center justify-center ${s.iconBg}`}>
+                <s.icon className={`h-5 w-5 ${s.iconColor}`} />
+              </div>
+            </div>
+            <p className="text-3xl font-black text-[#111827]">{s.value}</p>
+            <p className="text-xs font-bold text-[#6B7280] mt-1">{s.label}</p>
+            <p className="text-[10px] text-[#94A3B8] mt-0.5">{s.sub}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Profile Tab ── */}
+      {currentTab === "profile" && (
+        <div className="space-y-5">
+          {loadingProfile ? (
             <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-[#3B5BFF]"/></div>
-          ):(
+          ) : (
             <div className="bg-white rounded-lg border border-[#E2E8F0] shadow-sm p-5 lg:p-6">
               <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-5 flex items-center gap-2">
                 <User className="h-3.5 w-3.5"/> Academic Information
@@ -540,6 +620,139 @@ export default function StudentDash() {
                   <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0"/>
                   Academic information (Register Number, Department, Semester, Section) is controlled by the department. For corrections, contact the department office or HOD.
                 </p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Default / Dashboard Content: Announcements, Events, Courses/OD tabs ── */}
+      {currentTab !== "profile" && currentTab !== "od" && currentTab !== "achievements" && currentTab !== "events" && currentTab !== "certificates" && currentTab !== "notifications" && (
+        <div className="space-y-6">
+
+          {/* Announcements */}
+          {announcements.length > 0 && (
+            <div className="bg-white rounded-2xl border border-[#E5E7EB] shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-[#E5E7EB] flex items-center gap-2">
+                <Megaphone className="h-4 w-4 text-[#D97706]" />
+                <h2 className="text-sm font-bold text-[#111827]">Announcements</h2>
+              </div>
+              <div className="divide-y divide-[#E5E7EB]">
+                {announcements.map((ann: any) => (
+                  <div key={ann.id} className="px-6 py-4">
+                    <p className="text-sm font-bold text-[#111827]">{ann.title}</p>
+                    <p className="text-xs text-[#4B5563] mt-1 leading-relaxed">{ann.body}</p>
+                    {ann.createdAt && (
+                      <p className="text-[10px] text-[#94A3B8] mt-2">Posted {formatDate(ann.createdAt)}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Upcoming Events */}
+          {upcomingEvents.length > 0 && (
+            <div className="bg-white rounded-2xl border border-[#E5E7EB] shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-[#E5E7EB] flex items-center gap-2">
+                <CalendarDays className="h-4 w-4 text-[#3B5BFF]" />
+                <h2 className="text-sm font-bold text-[#111827]">Upcoming Events</h2>
+              </div>
+              <div className="divide-y divide-[#E5E7EB]">
+                {upcomingEvents.map((ev: any) => (
+                  <div key={ev.id} className="px-6 py-4 flex items-start gap-4">
+                    <div className="flex-shrink-0 flex flex-col items-center justify-center w-12 h-12 rounded-xl bg-[#3B5BFF]/10 text-[#3B5BFF]">
+                      <span className="text-lg font-black leading-none">{new Date(ev.startDate).getDate()}</span>
+                      <span className="text-[9px] uppercase font-bold">{new Date(ev.startDate).toLocaleString("en", { month: "short" })}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-bold text-[#111827]">{ev.title}</p>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${TAG_COLORS[ev.type] || "bg-[#F5F6FA] text-[#6B7280]"}`}>{ev.type}</span>
+                      </div>
+                      <p className="text-xs text-[#4B5563] mt-1 line-clamp-2">{ev.description}</p>
+                      <p className="text-[10px] font-bold text-[#6B7280] mt-1.5">{ev.venue} · {formatDate(ev.startDate)}{ev.startDate !== ev.endDate ? ` – ${formatDate(ev.endDate)}` : ""}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Tab nav — Courses | OD */}
+          <div className="flex gap-1 bg-[#F5F6FA] border border-[#E5E7EB] rounded-xl p-1">
+            {(["courses", "od"] as const).map(tab => (
+              <button key={tab} onClick={() => setActiveTab(tab)}
+                className={`flex-1 py-2.5 px-3 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${
+                  activeTab === tab ? "bg-white shadow-sm text-[#111827]" : "text-[#6B7280] hover:text-[#111827]"
+                }`}>
+                {tab === "courses" ? <BookOpen className={`h-4 w-4 ${activeTab === tab ? "text-[#3B5BFF]" : "text-[#94A3B8]"}`} /> : <FileText className={`h-4 w-4 ${activeTab === tab ? "text-[#3B5BFF]" : "text-[#94A3B8]"}`} />}
+                {tab === "courses" ? "My Courses" : "My OD Requests"}
+                {tab === "od" && pendingODs > 0 && (
+                  <span className="h-4 w-4 rounded-full bg-[#EF4444] text-white text-[9px] font-black flex items-center justify-center">
+                    {pendingODs}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+
+          {/* Courses Tab */}
+          {activeTab === "courses" && (
+            <div className="bg-white rounded-2xl border border-[#E5E7EB] shadow-sm overflow-hidden">
+              <div className="px-6 py-5 border-b border-[#E5E7EB] flex items-center justify-between">
+                <h2 className="text-base font-bold text-[#111827] flex items-center gap-2">
+                  <BookOpen className="h-4 w-4 text-[#3B5BFF]" /> My Courses
+                </h2>
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-[#3B5BFF]/10 text-[#3B5BFF]">
+                  Semester {realSemester}{realSection ? ` · Section ${realSection}` : ""}
+                </span>
+              </div>
+              <div className="divide-y divide-[#E5E7EB]">
+                <div className="flex flex-col items-center justify-center py-14 text-center">
+                  <BookOpen className="h-8 w-8 text-[#94A3B8] mb-3" />
+                  <p className="text-sm font-bold text-[#111827]">Course data not available</p>
+                  <p className="text-xs text-[#6B7280] mt-1">Your courses will appear here once linked by the department.</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* OD Tab (within default/dashboard view) */}
+          {activeTab === "od" && (
+            <div className="bg-white rounded-2xl border border-[#E5E7EB] shadow-sm overflow-hidden">
+              <div className="px-6 py-5 border-b border-[#E5E7EB] flex items-center justify-between">
+                <h2 className="text-base font-bold text-[#111827] flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-[#3B5BFF]" /> My OD Requests
+                </h2>
+                <button onClick={()=>setShowODForm(true)} className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#003087] text-white rounded text-xs font-semibold hover:bg-[#002070] transition-colors">
+                  <PlusCircle className="h-3.5 w-3.5"/> Apply for OD
+                </button>
+              </div>
+              <div>
+                {loadingOD?(
+                  <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-[#3B5BFF]"/></div>
+                ):odRequests.length===0?(
+                  <EmptyState icon={FileText} title="No OD requests yet" subtitle="Apply for On-Duty when you need to attend an external event, workshop, hackathon, or conference."/>
+                ):(
+                  <div className="divide-y divide-[#E5E7EB]">
+                    {odRequests.slice(0,5).map(od=>{
+                      const sc=OD_STATUS[od.status]||OD_STATUS.FACULTY_VERIFICATION
+                      const StatusIcon=sc.icon
+                      return (
+                        <div key={od.id} className="px-5 py-3 flex items-center justify-between gap-3 hover:bg-slate-50">
+                          <div className="min-w-0">
+                            <p className="text-sm font-bold text-slate-800 truncate">{od.eventName}</p>
+                            <p className="text-xs text-slate-500">{od.startDate}</p>
+                          </div>
+                          <div className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold ${sc.bg} ${sc.color}`}>
+                            <StatusIcon className="h-3 w-3"/>{sc.label}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -609,7 +822,10 @@ export default function StudentDash() {
                             <StatusIcon className="h-3 w-3"/> {sc.label}
                           </div>
                           <div className="flex gap-2 items-center flex-wrap justify-end">
-                            {od.signedLetterUrl&&<button onClick={()=>setPreviewUrl(od.signedLetterUrl!)} className="flex items-center gap-1 px-2.5 py-1.5 rounded bg-slate-100 text-[10px] font-bold text-[#003087] hover:bg-slate-200 transition-colors"><FileText className="h-3 w-3"/> Signed Letter</button>}
+                            {od.pdfUrl && !od.finalPdfUrl && <button onClick={()=>setPreviewUrl(od.pdfUrl!)} className="flex items-center gap-1 px-2.5 py-1.5 rounded bg-slate-100 text-[10px] font-bold text-[#003087] hover:bg-slate-200 transition-colors"><FileText className="h-3 w-3"/> Draft OD</button>}
+                            {od.signedLetterUrl && <button onClick={()=>setPreviewUrl(od.signedLetterUrl!)} className="flex items-center gap-1 px-2.5 py-1.5 rounded bg-blue-50 text-[10px] font-bold text-blue-700 hover:bg-blue-100 transition-colors"><FileText className="h-3 w-3"/> Uploaded Proof</button>}
+                            {od.finalPdfUrl && <button onClick={()=>setPreviewUrl(od.finalPdfUrl!)} className="flex items-center gap-1 px-2.5 py-1.5 rounded bg-green-50 text-[10px] font-bold text-green-700 hover:bg-green-100 transition-colors"><FileText className="h-3 w-3"/> Final Approved OD</button>}
+                            {od.postODProofsUrl && <button onClick={()=>setPreviewUrl(od.postODProofsUrl!)} className="flex items-center gap-1 px-2.5 py-1.5 rounded bg-purple-50 text-[10px] font-bold text-purple-700 hover:bg-purple-100 transition-colors"><FileText className="h-3 w-3"/> Post-OD Proof</button>}
                           </div>
                         </div>
                       </div>

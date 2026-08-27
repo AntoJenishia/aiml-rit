@@ -42,8 +42,50 @@ export async function POST(req: NextRequest) {
     if (!userDoc.exists) return NextResponse.json({ error: "User not found." }, { status: 404 })
     const userData = userDoc.data()!
 
+    // Resolve class incharge
+    let facultyName = "Class Incharge"
+    if (userData.classId) {
+      const classDoc = await adminDb.collection("classes").doc(userData.classId).get()
+      if (classDoc.exists) {
+        const inchargeUid = classDoc.data()?.classInchargeUid
+        if (inchargeUid) {
+          const facDoc = await adminDb.collection("users").doc(inchargeUid).get()
+          if (facDoc.exists) facultyName = facDoc.data()?.name || facultyName
+        }
+      }
+    }
+
+    // Resolve HOD name from Firestore
+    let hodName = "Head of Department"
+    try {
+      const hodSnap = await adminDb.collection("users").where("role", "==", "hod").limit(1).get()
+      if (!hodSnap.empty) {
+        hodName = hodSnap.docs[0].data()?.name || hodName
+      }
+    } catch {
+      // Non-fatal — fall back to default title
+    }
+
     const refNumber = generateRefNumber()
-    
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || ""
+    const verifyUrl = baseUrl ? `${baseUrl}/verify/${refNumber}` : ""
+
+    // Generate pre-approval PDF
+    const pdfBytes = await generateFormalODPdf({
+      referenceNumber: refNumber,
+      studentName: userData.name || "Student",
+      registerNumber: userData.registerNumber || "—",
+      department: "AI & Machine Learning",
+      classLabel: userData.classId || "—",
+      eventName, eventType, organiser, venue, startDate, endDate, reason,
+      facultyName,
+      hodName,
+      facultyApproved: false,
+      hodApproved: false,
+      verifyUrl,
+    })
+
+
     // Forward to Google Apps Script Webhook
     const scriptUrl = process.env.NEXT_PUBLIC_APPS_SCRIPT_URL
     if (!scriptUrl) {
@@ -74,13 +116,14 @@ export async function POST(req: NextRequest) {
 
     const scriptRes = await fetch(scriptUrl, {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(webhookPayload)
     })
-    
+
     if (!scriptRes.ok) {
       throw new Error("Failed to contact Google Apps Script Webhook.")
     }
-    
+
     const scriptData = await scriptRes.json()
     if (scriptData.error) {
       throw new Error("Apps Script Error: " + scriptData.error)
@@ -124,9 +167,7 @@ export async function GET(req: NextRequest) {
         .where("studentUid", "==", uid)
         .get()
     } else if (role === "staff") {
-      docs = await adminDb.collection("odRequests")
-        .where("status", "in", ["pending_faculty", "post_pending_faculty"])
-        .get()
+      docs = await adminDb.collection("odRequests").get()
 
       const userDoc = await adminDb.collection("users").doc(uid).get()
       const classId = userDoc.data()?.classId
@@ -152,16 +193,14 @@ export async function GET(req: NextRequest) {
       enriched.sort((a, b) => (b.createdAt?._seconds || 0) - (a.createdAt?._seconds || 0))
       return NextResponse.json(enriched)
     } else if (role === "hod") {
-      docs = await adminDb.collection("odRequests")
-        .where("status", "in", ["pending_hod", "post_pending_hod"])
-        .get()
+      docs = await adminDb.collection("odRequests").get()
 
       const data = docs.docs.map(d => ({ id: d.id, ...d.data() }))
       const enriched = await Promise.all(data.map(async (req: any) => {
         const studentDoc = await adminDb.collection("users").doc(req.studentUid).get()
         return { ...req, studentName: studentDoc.data()?.name || "Unknown" }
       }))
-      
+
       enriched.sort((a, b) => (b.createdAt?._seconds || 0) - (a.createdAt?._seconds || 0))
       return NextResponse.json(enriched)
     } else {

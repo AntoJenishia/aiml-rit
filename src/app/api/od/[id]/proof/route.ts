@@ -46,6 +46,7 @@ export async function POST(
 
     const scriptRes = await fetch(scriptUrl, {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(webhookPayload)
     })
 

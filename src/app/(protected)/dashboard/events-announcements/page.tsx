@@ -3,6 +3,7 @@ import { useUser } from "@/lib/hooks/useUser"
 import { useAuth } from "@/lib/hooks/useAuth"
 import { useEffect, useState } from "react"
 import { CalendarDays, Megaphone, Loader2 } from "lucide-react"
+import { formatDate } from "@/lib/dateUtils"
 import { getAnnouncements, type Announcement } from "@/lib/db/announcements"
 import { getAdminEvents, type AdminEvent } from "@/lib/db/events"
 import { getRegistrationsByUser, registerForEvent, unregisterFromEvent } from "@/lib/db/registrations"
@@ -43,6 +44,11 @@ export default function EventsAnnouncementsPage() {
 
   const toggleRegister = async (eventId: string) => {
     if (!uid || regLoading.has(eventId) || user?.role !== "student") return
+    
+    if (registered.has(eventId)) {
+      if (!confirm("Are you sure you want to unregister from this event?")) return
+    }
+    
     setRegLoading(prev => new Set(prev).add(eventId))
     try {
       if (registered.has(eventId)) {
@@ -85,8 +91,10 @@ export default function EventsAnnouncementsPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <p className="text-sm font-bold text-[#111827] truncate">{ev.title}</p>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#F5F6FA] text-[#6B7280]">{ev.type}</span>
                       </div>
-                      <p className="text-xs text-[#6B7280]">{ev.startDate}{ev.startDate !== ev.endDate ? ` - ${ev.endDate}` : ""}</p>
+                      <p className="text-xs text-[#4B5563] mt-1 line-clamp-2">{ev.description}</p>
+                      <p className="text-[10px] font-bold text-[#6B7280] mt-1.5">{ev.venue} · {formatDate(ev.startDate)}{ev.startDate !== ev.endDate ? ` - ${formatDate(ev.endDate)}` : ""}</p>
                     </div>
                     {user?.role === "student" && (
                       <button onClick={() => toggleRegister(ev.id!)} disabled={isLoading}
@@ -120,7 +128,7 @@ export default function EventsAnnouncementsPage() {
                   {a.postedBy && (
                     <p className="text-[10px] font-bold text-[#94A3B8] mt-1">
                       — {a.postedBy}
-                      {a.createdAt && ` on ${new Date(a.createdAt.seconds * 1000).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`}
+                      {a.createdAt && ` on ${formatDate(a.createdAt)}`}
                     </p>
                   )}
                 </div>

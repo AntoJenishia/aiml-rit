@@ -19,6 +19,12 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json()
+    if (body.startDate) {
+      const today = new Date().toISOString().split("T")[0]
+      if (body.startDate < today) {
+        return NextResponse.json({ error: "Cannot create events in the past." }, { status: 400 })
+      }
+    }
     const ref = await addDoc(collection(db, "admin_events"), { ...body, createdAt: serverTimestamp() })
     return NextResponse.json({ id: ref.id })
   } catch (e) {

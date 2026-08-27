@@ -12,6 +12,7 @@ import { ArrowRight, X } from "lucide-react";
 import Image from "next/image";
 import clsx from "clsx";
 import { useMemo, useState, useEffect, useCallback } from "react";
+import { formatDate } from "@/lib/dateUtils";
 
 const TAG_CLASS: Record<EventTag, string> = {
   Workshop:       "tag-workshop",
@@ -42,9 +43,12 @@ export default function EventsPage() {
         const mapped = adminEvs.map(ev => {
           const today = new Date().toISOString().split("T")[0];
           return {
+            id: ev.id,
             title: ev.title,
             type: ev.startDate >= today ? "upcoming" : "past",
             date: ev.startDate,
+            endDate: ev.endDate,
+            venue: ev.venue,
             description: ev.description,
             tag: ev.type as EventTag
           };
@@ -115,7 +119,7 @@ export default function EventsPage() {
               : filtered.map((ev, i) => {
                   const d = fmtDate(ev.date);
                   return (
-                    <CardReveal key={`${ev.title}-${ev.date}`} delay={i * 70}>
+                    <CardReveal key={`${ev.id || ev.title}-${ev.date}`} delay={i * 70}>
                       <div className={clsx(
                         "premium-card group flex items-start gap-5 p-5",
                         ev.type === "upcoming" && "border-l-4 border-l-blue-500"
@@ -130,11 +134,14 @@ export default function EventsPage() {
                             <p className="text-sm font-bold text-slate-800 transition-colors duration-200 group-hover:text-blue-700">
                               {ev.title}
                             </p>
-                            <span className={clsx("rounded-full px-3 py-1 text-[10px] font-semibold", TAG_CLASS[ev.tag as EventTag])}>
+                            <span className={clsx("rounded-full px-3 py-1 text-[10px] font-semibold", TAG_CLASS[ev.tag as EventTag] || "bg-slate-100 text-slate-700")}>
                               {ev.tag}
                             </span>
                           </div>
                           <p className="mt-1.5 text-xs leading-relaxed text-slate-500">{ev.description}</p>
+                          <p className="mt-2 text-[10px] font-bold text-slate-400">
+                            {ev.venue || "No Venue"} · {formatDate(ev.date)}{ev.date !== ev.endDate && ev.endDate ? ` – ${formatDate(ev.endDate)}` : ""}
+                          </p>
                         </div>
                       </div>
                     </CardReveal>

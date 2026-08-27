@@ -7,8 +7,8 @@ import { generateFormalODPdf } from "@/lib/pdf-generator"
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 async function regeneratePdf(od: any, facultyApproved: boolean, hodApproved: boolean): Promise<string> {
-  const verifyUrl = od.qrCodeUrl || `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/verify/${od.referenceNumber}`
-  
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || ""
+  const verifyUrl = od.qrCodeUrl || (baseUrl ? `${baseUrl}/verify/${od.referenceNumber}` : "")
   const pdfBytes = await generateFormalODPdf({
     referenceNumber: od.referenceNumber,
     studentName: od.studentName || "—",
@@ -97,8 +97,18 @@ export async function PATCH(
       
       if (od.status === "post_pending_faculty") {
         if (action === "approve") {
+          const scriptRes = await fetch(scriptUrl, {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "update_status", refNumber: od.referenceNumber, newStatus: "Pending HOD (Proof)" })
+          })
+          if (!scriptRes.ok) throw new Error("Webhook failed")
           updateData = { status: "post_pending_hod" }
         } else {
+          const scriptRes = await fetch(scriptUrl, {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "update_status", refNumber: od.referenceNumber, newStatus: "Approved (Proof Rejected)" })
+          })
+          if (!scriptRes.ok) throw new Error("Webhook failed")
           updateData = { status: "approved", postRejectReason: reason }
         }
       } else {
@@ -107,7 +117,7 @@ export async function PATCH(
           
           // Notify webhook
           const scriptRes = await fetch(scriptUrl, {
-            method: "POST",
+            method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               action: "update_status",
               refNumber: od.referenceNumber,
@@ -123,7 +133,7 @@ export async function PATCH(
           }
         } else {
           await fetch(scriptUrl, {
-            method: "POST",
+            method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ action: "update_status", refNumber: od.referenceNumber, newStatus: "Rejected by Faculty" })
           })
           updateData = {
@@ -140,8 +150,18 @@ export async function PATCH(
       
       if (od.status === "post_pending_hod") {
         if (action === "approve") {
+          const scriptRes = await fetch(scriptUrl, {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "update_status", refNumber: od.referenceNumber, newStatus: "Completed" })
+          })
+          if (!scriptRes.ok) throw new Error("Webhook failed")
           updateData = { status: "completed", completedAt: FieldValue.serverTimestamp() }
         } else {
+          const scriptRes = await fetch(scriptUrl, {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "update_status", refNumber: od.referenceNumber, newStatus: "Approved (Proof Rejected)" })
+          })
+          if (!scriptRes.ok) throw new Error("Webhook failed")
           updateData = { status: "approved", postRejectReason: reason }
         }
       } else {
@@ -150,7 +170,7 @@ export async function PATCH(
           
           // Notify webhook & upload final PDF to Drive
           const scriptRes = await fetch(scriptUrl, {
-            method: "POST",
+            method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               action: "update_status",
               refNumber: od.referenceNumber,
@@ -162,6 +182,7 @@ export async function PATCH(
           if (!scriptRes.ok) throw new Error("Webhook failed")
           
           const scriptData = await scriptRes.json()
+          if (scriptData.error) throw new Error("Apps Script Error: " + scriptData.error)
           
           updateData = {
             status: "approved",
@@ -170,7 +191,7 @@ export async function PATCH(
           }
         } else {
           await fetch(scriptUrl, {
-            method: "POST",
+            method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ action: "update_status", refNumber: od.referenceNumber, newStatus: "Rejected by HOD" })
           })
           updateData = {
