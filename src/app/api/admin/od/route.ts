@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { adminDb } from "@/lib/firebaseAdmin"
+import { FieldValue } from "firebase-admin/firestore"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { ODStatus } from "@/lib/odStatus"
@@ -76,6 +77,7 @@ export async function PATCH(req: Request) {
     await adminDb.collection("odRequests").doc(odId).update({
       status: newStatus,
       hodRemarks: remarks || null,
+      hodRespondedAt: FieldValue.serverTimestamp(),
       updatedAt: new Date().toISOString()
     })
 

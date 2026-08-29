@@ -1,7 +1,8 @@
 "use client"
-import { ODStatus } from "@/lib/odStatus"
+import { ODStatus, OD_STATUS_LABELS, OD_STATUS_STYLES } from "@/lib/odStatus"
 import { useUser } from "@/lib/hooks/useUser"
-import { useEffect, useState, useRef, useCallback } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
+import { DocumentPreviewModal } from "@/components/shared/DocumentPreviewModal"
 import { useSearchParams } from "next/navigation"
 import { formatDate } from "@/lib/dateUtils"
 import Image from "next/image"
@@ -16,6 +17,7 @@ import {
 } from "lucide-react"
 
 import AchievementModal from "./AchievementModal"
+import { ODLedgerTable } from "@/components/shared/ODLedgerTable"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface ODRequest {
@@ -44,22 +46,6 @@ const TAG_COLORS: Record<string,string> = {
   "Official Department Work":"bg-indigo-100 text-indigo-700",
   "Club / Technical Activity":"bg-rose-100 text-rose-700",
   "Other":"bg-slate-100 text-slate-700"
-}
-
-// ── Status display map (canonical enum keys only) ────────────────────────────
-const OD_STATUS: Record<string, {label:string;color:string;bg:string;icon:any}> = {
-  [ODStatus.PENDING_FACULTY]:        {label:"Pending Faculty Approval",      color:"text-[#6B7280]", bg:"bg-[#F5F6FA]",   icon:Clock},
-  [ODStatus.REJECTED_FACULTY]:       {label:"Rejected by Faculty",           color:"text-[#EF4444]", bg:"bg-red-50",       icon:XCircle},
-  [ODStatus.PENDING_HOD]:            {label:"Pending HOD Approval",          color:"text-[#3B5BFF]", bg:"bg-blue-50",      icon:Clock},
-  [ODStatus.REJECTED_HOD]:           {label:"Rejected by HOD",               color:"text-[#EF4444]", bg:"bg-red-50",       icon:XCircle},
-  [ODStatus.APPROVED]:               {label:"Approved",                      color:"text-[#16A34A]", bg:"bg-green-50",     icon:CheckCircle},
-  [ODStatus.PENDING_PROOF]:          {label:"Proof Required",                color:"text-[#D97706]", bg:"bg-amber-50",     icon:AlertCircle},
-  [ODStatus.PROOF_PENDING_FACULTY]:  {label:"Post-Event Proof — Faculty Review",  color:"text-[#7C3AED]", bg:"bg-purple-50",   icon:Clock},
-  [ODStatus.PROOF_REJECTED_FACULTY]: {label:"Post-Event Proof Rejected by Faculty",color:"text-[#EF4444]", bg:"bg-red-50",       icon:XCircle},
-  [ODStatus.PROOF_PENDING_HOD]:      {label:"Post-Event Proof — HOD Review", color:"text-[#3B5BFF]", bg:"bg-blue-50",      icon:Clock},
-  [ODStatus.PROOF_REJECTED_HOD]:     {label:"Post-Event Proof Rejected by HOD",   color:"text-[#EF4444]", bg:"bg-red-50",       icon:XCircle},
-  [ODStatus.COMPLETED]:              {label:"Completed",                     color:"text-[#16A34A]", bg:"bg-green-50",     icon:CheckCircle},
-  [ODStatus.REVOKED]:                {label:"Revoked",                       color:"text-[#94A3B8]", bg:"bg-slate-100",    icon:XCircle},
 }
 
 // ── Empty State ───────────────────────────────────────────────────────────────
@@ -144,6 +130,7 @@ function ODModal({onClose,onSuccess,initialData}:{onClose:()=>void;onSuccess:()=
     venue: initialData?.venue || "",
     startDate: initialData?.startDate || "",
     endDate: initialData?.endDate || "",
+    odDays: initialData?.odDays || 1,
     reason: initialData?.reason || ""
   })
   const [proofFile,setProofFile] = useState<File|null>(null)
@@ -209,7 +196,7 @@ function ODModal({onClose,onSuccess,initialData}:{onClose:()=>void;onSuccess:()=
     const res=await fetch("/api/od",{
       method:"POST",
       headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({...form,proofFileB64,proofFileName,proofMimeType, gpsLocation})
+      body:JSON.stringify({...form, odDays: form.odDays, proofFileB64,proofFileName,proofMimeType, gpsLocation})
     })
     const data=await res.json()
     if(!res.ok){setError(data.error||"Submission failed.");setSubmitting(false);return}
@@ -237,6 +224,14 @@ function ODModal({onClose,onSuccess,initialData}:{onClose:()=>void;onSuccess:()=
             <div className="col-span-2"><label className="block text-xs font-semibold text-slate-700 mb-1.5">Venue *</label><input value={form.venue} onChange={e=>set("venue",e.target.value)} placeholder="e.g. IIT Madras Campus, Chennai" className={inp}/></div>
             <div><label className="block text-xs font-semibold text-slate-700 mb-1.5">Start Date *</label><input type="date" min={today} value={form.startDate} onChange={e=>set("startDate",e.target.value)} className={inp}/></div>
             <div><label className="block text-xs font-semibold text-slate-700 mb-1.5">End Date *</label><input type="date" min={form.startDate || today} value={form.endDate} onChange={e=>set("endDate",e.target.value)} className={inp}/></div>
+            <div><label className="block text-xs font-semibold text-slate-700 mb-1.5">Number of OD Days * <span className="font-normal text-slate-500">(max 3 working days)</span></label>
+              <select value={form.odDays} onChange={e=>set("odDays",Number(e.target.value))} className={inp}>
+                <option value={1}>1 day</option>
+                <option value={2}>2 days</option>
+                <option value={3}>3 days</option>
+              </select>
+              <p className="text-[10px] text-slate-400 mt-1">If your OD spans weekends or holidays, enter only the number of actual working days requested.</p>
+            </div>
           </div>
           <div><label className="block text-xs font-semibold text-slate-700 mb-1.5">Reason / Purpose *</label><textarea value={form.reason} onChange={e=>set("reason",e.target.value)} placeholder="Briefly explain why you need this OD..." rows={3} className={`${inp} resize-none`}/></div>
           <div>
@@ -315,27 +310,6 @@ function PostODProofModal({od,onClose,onSuccess}:{od:ODRequest;onClose:()=>void;
   )
 }
 
-// ── Document Preview Modal ───────────────────────────────────────────────────
-function DocumentPreviewModal({url, title, onClose}: {url: string, title: string, onClose: ()=>void}) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 md:p-8" onClick={onClose}>
-      <div className="w-full max-w-4xl h-full max-h-[90vh] bg-white rounded-lg shadow-xl overflow-hidden flex flex-col" onClick={e=>e.stopPropagation()}>
-        <div className="px-5 py-4 border-b border-[#E2E8F0] flex items-center justify-between bg-slate-50 shrink-0">
-          <div><h2 className="text-lg font-bold text-slate-800">{title}</h2></div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-700 p-1.5 rounded hover:bg-slate-200 transition-colors"><X className="h-5 w-5"/></button>
-        </div>
-        <div className="flex-1 bg-slate-100 p-2 md:p-4 overflow-hidden relative">
-          <iframe 
-            src={url.includes('drive.google.com') ? url.replace('/view', '/preview') : url} 
-            className="w-full h-full rounded shadow-sm border-0 bg-white" 
-            title="Document Preview"
-            allow="autoplay"
-          />
-        </div>
-      </div>
-    </div>
-  )
-}
 
 // ── Recent Activity ───────────────────────────────────────────────────────────
 function RecentActivity({odRequests}:{odRequests:ODRequest[]}) {
@@ -344,11 +318,12 @@ function RecentActivity({odRequests}:{odRequests:ODRequest[]}) {
     .sort((a,b)=>(b.createdAt?.seconds??0)-(a.createdAt?.seconds??0))
     .slice(0,5)
     .map(od=>{
-      const sc=OD_STATUS[od.status]||{label:od.status,color:"text-[#6B7280]",bg:"bg-[#F5F6FA]",icon:Clock}
+      const sc = OD_STATUS_STYLES[od.status as ODStatus] || { color: "text-[#6B7280]", bg: "bg-slate-100" }
+      const label = OD_STATUS_LABELS[od.status as ODStatus] || od.status
       return {
         id:od.id,text:od.eventName, venue:od.venue, reason:od.reason, 
         dateStr:od.startDate !== od.endDate ? `${formatDate(od.startDate)} - ${formatDate(od.endDate)}` : formatDate(od.startDate),
-        sub:sc.label,color:sc.color,
+        sub:label,color:sc.color,
         time:od.createdAt?.seconds?new Date(od.createdAt.seconds*1000).toLocaleDateString("en-IN",{day:"2-digit",month:"short",year:"numeric"}):""
       }
     })
@@ -730,8 +705,8 @@ export default function StudentDash() {
                 ):(
                   <div className="divide-y divide-[#E5E7EB]">
                     {odRequests.slice(0,5).map(od=>{
-                      const sc=OD_STATUS[od.status]||{label:od.status,color:"text-[#6B7280]",bg:"bg-[#F5F6FA]",icon:Clock}
-                      const StatusIcon=sc.icon
+                      const sc = OD_STATUS_STYLES[od.status as ODStatus] || { color: "text-[#6B7280]", bg: "bg-[#F5F6FA]", border: "border-slate-200" }
+                      const label = OD_STATUS_LABELS[od.status as ODStatus] || od.status
                       const dateStr = od.startDate !== od.endDate ? `${formatDate(od.startDate)} - ${formatDate(od.endDate)}` : formatDate(od.startDate)
                       return (
                         <div key={od.id} className="px-5 py-4 flex flex-col sm:flex-row sm:items-start justify-between gap-3 hover:bg-slate-50">
@@ -741,7 +716,7 @@ export default function StudentDash() {
                             <p className="text-xs text-slate-500 mt-1 italic">"{od.reason}"</p>
                           </div>
                           <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold shrink-0 ${sc.bg} ${sc.color}`}>
-                            <StatusIcon className="h-3.5 w-3.5"/>{sc.label}
+                            {label}
                           </div>
                         </div>
                       )
@@ -766,68 +741,17 @@ export default function StudentDash() {
               <PlusCircle className="h-3.5 w-3.5"/> Apply for OD
             </button>
           </div>
-          <div className="bg-white rounded-lg border border-[#E2E8F0] shadow-sm overflow-hidden">
+          <div className="mt-4">
             {loadingOD?(
               <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-[#3B5BFF]"/></div>
-            ):odRequests.length===0?(
-              <EmptyState icon={FileText} title="No OD requests yet" subtitle="Apply for On-Duty when you need to attend an external event, workshop, hackathon, or conference."/>
             ):(
-              <div className="divide-y divide-[#E5E7EB]">
-                {odRequests.map(od=>{
-                  const sc=OD_STATUS[od.status]||{label:od.status,color:"text-[#6B7280]",bg:"bg-[#F5F6FA]",icon:Clock}
-                  const StatusIcon=sc.icon
-                  const isRejected=od.status===ODStatus.REJECTED_FACULTY||od.status===ODStatus.REJECTED_HOD
-                  const isApproved=od.status===ODStatus.APPROVED||od.status===ODStatus.COMPLETED
-                  return (
-                    <div key={od.id} className={`px-5 py-4 hover:bg-slate-50 transition-colors ${isRejected?"border-l-4 border-l-[#EF4444]":isApproved?"border-l-4 border-l-[#16A34A]":""}`}>
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1 flex-wrap">
-                            <p className="text-sm font-bold text-slate-800">{od.eventName}</p>
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${TAG_COLORS[od.eventType]||"bg-slate-100 text-slate-600"}`}>{od.eventType}</span>
-                          </div>
-                          <p className="text-xs text-slate-500">{od.organiser} · {od.startDate}{od.startDate!==od.endDate?` – ${od.endDate}`:""}</p>
-                          <p className="text-[10px] font-mono text-slate-400 mt-1">Ref: {od.referenceNumber}</p>
-                          {isRejected&& (
-                            <div className="mt-2">
-                              <p className="text-xs text-[#EF4444] font-medium">Reason: {od.facultyRejectReason||"—"}</p>
-                              {od.postODProofsUrl ? (
-                                <button onClick={()=>setSelectedODForProof(od)} className="mt-2 text-[10px] font-bold px-3 py-1.5 rounded bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors">
-                                  Upload Proof Again
-                                </button>
-                              ) : (
-                                <button onClick={() => setReapplyData(od)} className="mt-2 text-[10px] font-bold px-3 py-1.5 rounded bg-red-100 text-red-700 hover:bg-red-200 transition-colors">
-                                  Edit & Re-Apply
-                                </button>
-                              )}
-                            </div>
-                          )}
-                          
-                          {od.status===ODStatus.APPROVED&&od.eventType!=="Meeting"&&od.eventType!=="Official Department Work"&&(
-                            <div className="mt-3 p-2.5 bg-rose-50 border border-rose-200 rounded text-xs text-rose-700 font-medium flex flex-col gap-2">
-                              <span className="flex items-center gap-1.5"><AlertCircle className="h-4 w-4 shrink-0"/> You MUST upload post-event proof (certificate/photos) after attending this event.</span>
-                              <button onClick={()=>setSelectedODForProof(od)} className="self-start px-3 py-1.5 bg-rose-600 text-white rounded font-bold hover:bg-rose-700 transition-colors shadow-sm text-[10px]">
-                                Upload Proof Now
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex flex-col items-end gap-2 shrink-0">
-                          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-[10px] font-bold ${sc.bg} ${sc.color}`}>
-                            <StatusIcon className="h-3 w-3"/> {sc.label}
-                          </div>
-                          <div className="flex gap-2 items-center flex-wrap justify-end">
-                            {od.pdfUrl && !od.finalPdfUrl && <button onClick={()=>setPreviewUrl(od.pdfUrl!)} className="flex items-center gap-1 px-2.5 py-1.5 rounded bg-slate-100 text-[10px] font-bold text-[#003087] hover:bg-slate-200 transition-colors"><FileText className="h-3 w-3"/> Draft OD</button>}
-                            {od.signedLetterUrl && <button onClick={()=>setPreviewUrl(od.signedLetterUrl!)} className="flex items-center gap-1 px-2.5 py-1.5 rounded bg-blue-50 text-[10px] font-bold text-blue-700 hover:bg-blue-100 transition-colors"><FileText className="h-3 w-3"/> Uploaded Proof</button>}
-                            {od.finalPdfUrl && <button onClick={()=>setPreviewUrl(od.finalPdfUrl!)} className="flex items-center gap-1 px-2.5 py-1.5 rounded bg-green-50 text-[10px] font-bold text-green-700 hover:bg-green-100 transition-colors"><FileText className="h-3 w-3"/> Final Approved OD</button>}
-                            {od.postODProofsUrl && <button onClick={()=>setPreviewUrl(od.postODProofsUrl!)} className="flex items-center gap-1 px-2.5 py-1.5 rounded bg-purple-50 text-[10px] font-bold text-purple-700 hover:bg-purple-100 transition-colors"><FileText className="h-3 w-3"/> Post-OD Proof</button>}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
+              <ODLedgerTable 
+                ods={odRequests}
+                role="student"
+                onPreviewDocument={setPreviewUrl}
+                onReapply={setReapplyData}
+                onUploadProof={setSelectedODForProof}
+              />
             )}
           </div>
         </div>

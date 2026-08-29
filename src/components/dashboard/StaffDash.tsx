@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/hooks/useAuth"
 import Image from "next/image"
 import { useSearchParams } from "next/navigation"
 import { useState, useEffect, useCallback, Suspense, useMemo, useRef } from "react"
+import { DocumentPreviewModal } from "@/components/shared/DocumentPreviewModal"
 import { formatDate } from "@/lib/dateUtils"
 import {
   Users, CheckCircle, XCircle, FileText, ChevronRight,
@@ -14,6 +15,8 @@ import {
   LayoutDashboard, CalendarDays, BarChart3, Bell, Search, Upload
 } from "lucide-react"
 
+import { ODLedgerTable } from "@/components/shared/ODLedgerTable"
+import { ODReviewModal } from "@/components/shared/ODReviewModal"
 import AchievementModal from "./AchievementModal"
 import FacultyProfileTab from "./faculty/FacultyProfileTab"
 import ReportsTab from "./faculty/ReportsTab"
@@ -171,37 +174,6 @@ function LiveClock() {
   )
 }
 
-// ── Document Preview Modal ───────────────────────────────────────────────────
-function DocumentPreviewModal({ url, title, onClose }: { url: string, title: string, onClose: () => void }) {
-  let finalUrl = url;
-  if (url.includes('drive.google.com/drive/folders/')) {
-    const match = url.match(/\/folders\/([a-zA-Z0-9-_]+)/);
-    if (match && match[1]) {
-      finalUrl = `https://drive.google.com/embeddedfolderview?id=${match[1]}#list`;
-    }
-  } else if (url.includes('drive.google.com')) {
-    finalUrl = url.replace('/view', '/preview');
-  }
-
-  return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 md:p-8" onClick={onClose}>
-      <div className="w-full max-w-4xl h-full max-h-[90vh] bg-white rounded-lg shadow-xl overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
-        <div className="px-5 py-4 border-b border-[#E2E8F0] flex items-center justify-between bg-slate-50 shrink-0">
-          <div><h2 className="text-lg font-bold text-slate-800">{title}</h2></div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-700 p-1.5 rounded hover:bg-slate-200 transition-colors"><X className="h-5 w-5" /></button>
-        </div>
-        <div className="flex-1 bg-slate-100 p-2 md:p-4 overflow-hidden relative">
-          <iframe
-            src={finalUrl}
-            className="w-full h-full rounded shadow-sm border-0 bg-white"
-            title="Document Preview"
-            allow="autoplay"
-          />
-        </div>
-      </div>
-    </div>
-  )
-}
 
 // ── Main Component ────────────────────────────────────────────────────────────
 function StaffDashInner() {
@@ -230,6 +202,7 @@ function StaffDashInner() {
   const [selectedStudentProfile, setSelectedStudentProfile] = useState<any>(null)
 
   const [rejectTarget, setRejectTarget] = useState<ODRequest | null>(null)
+  const [reviewTarget, setReviewTarget] = useState<ODRequest | null>(null)
   const [rejectAchievementTarget, setRejectAchievementTarget] = useState<any | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
@@ -305,24 +278,27 @@ function StaffDashInner() {
       .slice(0, 5);
   }, [odRequests, achievements]);
 
-  const handleApprove = async (od: ODRequest) => {
+  const handleApprove = async (od: ODRequest, reason?: string) => {
     setActionLoading(od.id)
     const res = await fetch(`/api/faculty/ods/${od.id}/status`, {
       method: "PATCH", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "approve" }),
+      body: JSON.stringify({ action: "approve", reason }),
     })
     if (res.ok) await loadData()
     setActionLoading(null)
+    setReviewTarget(null)
   }
 
-  const handleReject = async (od: ODRequest, reason: string) => {
-    setActionLoading(od.id)
-    const res = await fetch(`/api/faculty/ods/${od.id}/status`, {
+  const handleReject = async (odId: string, reason: string) => {
+    setActionLoading(odId)
+    const res = await fetch(`/api/faculty/ods/${odId}/status`, {
       method: "PATCH", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "reject", reason }),
     })
     if (res.ok) await loadData()
     setActionLoading(null)
+    setReviewTarget(null)
+    setRejectTarget(null)
   }
 
   const handleApproveAchievement = async (ach: any) => {
@@ -595,9 +571,7 @@ function StaffDashInner() {
   const renderODRequests = () => {
     const reqList = odRequests.filter(od => od.status === ODStatus.PENDING_FACULTY)
     const proofList = odRequests.filter(od => od.status === ODStatus.PROOF_PENDING_FACULTY)
-    const historyList = odRequests.filter(od =>
-      od.status !== ODStatus.PENDING_FACULTY && od.status !== ODStatus.PROOF_PENDING_FACULTY
-    )
+    const historyList = odRequests
     const list = odSubTab === "requests" ? reqList : odSubTab === "proofs" ? proofList : historyList
 
     return (
@@ -624,88 +598,12 @@ function StaffDashInner() {
 
         {loadingOD ? (
           <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-[#3B5BFF]" /></div>
-        ) : list.length === 0 ? (
-          <div className="flex flex-col items-center py-14 text-center border-2 border-dashed border-[#E5E7EB] rounded-2xl">
-            <div className="h-14 w-14 rounded-full bg-[#16A34A]/10 flex items-center justify-center mb-3">
-              <CheckCircle className="h-7 w-7 text-[#16A34A]" />
-            </div>
-            <p className="text-sm font-bold text-[#111827]">All clear!</p>
-            <p className="text-xs text-[#6B7280] mt-1">
-              {odSubTab === "requests" ? "No pending OD requests from your students." : odSubTab === "proofs" ? "No post-event proofs awaiting your review." : "No OD history found for your class."}
-            </p>
-          </div>
         ) : (
-          <div className="space-y-4">
-            {list.map(od => {
-              const isActioning = actionLoading === od.id
-              const isProof = od.status === ODStatus.PROOF_PENDING_FACULTY
-              return (
-                <div key={od.id} className="p-5 rounded-2xl border border-[#E5E7EB] bg-white shadow-sm hover:shadow-md transition-all">
-                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${TAG_COLORS[od.eventType] || "bg-[#F5F6FA] text-[#6B7280]"}`}>{od.eventType}</span>
-                        <span className="text-[10px] text-[#94A3B8] font-mono">Ref: {od.referenceNumber}</span>
-                      </div>
-                      <h3 className="text-sm font-bold text-[#111827]">{od.studentName}</h3>
-                      <p className="text-sm font-semibold text-[#111827] mt-1">{od.eventName}</p>
-                      <p className="text-xs text-[#6B7280] mt-0.5">{od.organiser} · {od.venue}</p>
-                      <p className="text-xs text-[#6B7280] mt-0.5">{formatDate(od.startDate)}{od.startDate !== od.endDate ? ` – ${formatDate(od.endDate)}` : ""}</p>
-
-                      {isProof && (
-                        <div className="mt-3 bg-blue-50 border border-blue-100 rounded-xl p-3">
-                          <p className="text-[10px] font-bold text-blue-700 uppercase mb-1">Post-Event Proof Submitted</p>
-                          {od.postODDescription && <p className="text-xs text-blue-900 mb-2 italic">"{od.postODDescription}"</p>}
-                          {od.postODProofsUrl && (
-                            <a href={od.postODProofsUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-700 hover:underline bg-white px-2 py-1 rounded border border-blue-200 shadow-sm">
-                              <ExternalLink className="h-3 w-3" /> View Proof Files
-                            </a>
-                          )}
-                        </div>
-                      )}
-
-                      <div className="flex gap-3 mt-3">
-                        {isProof ? (
-                          od.finalPdfUrl && (
-                            <a href={od.finalPdfUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[10px] font-bold text-[#16A34A] hover:underline">
-                              <Download className="h-3 w-3" /> View Approved Letter
-                            </a>
-                          )
-                        ) : (
-                          od.pdfUrl && (
-                            <a href={od.pdfUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[10px] font-bold text-[#3B5BFF] hover:underline">
-                              <Download className="h-3 w-3" /> View Draft
-                            </a>
-                          )
-                        )}
-                        <a href={`/verify/${od.referenceNumber}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[10px] font-bold text-[#6B7280] hover:underline">
-                          <ExternalLink className="h-3 w-3" /> Verify
-                        </a>
-                      </div>
-                    </div>
-                    {odSubTab === "history" ? (
-                      <div className={`shrink-0 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase
-                        ${od.status === ODStatus.APPROVED || od.status === ODStatus.COMPLETED ? "bg-green-100 text-green-700"
-                          : od.status === ODStatus.REJECTED_FACULTY || od.status === ODStatus.REJECTED_HOD ? "bg-red-100 text-red-700"
-                          : od.status === ODStatus.PENDING_HOD ? "bg-blue-100 text-blue-700"
-                          : "bg-slate-100 text-slate-600"}`}>
-                        {od.status.replace(/_/g, " ")}
-                      </div>
-                    ) : (
-                    <div className="flex gap-2 shrink-0">
-                      <button onClick={() => setRejectTarget(od)} disabled={isActioning} className="flex items-center gap-1.5 px-3 py-2 bg-red-50 text-red-600 rounded-xl text-xs font-bold hover:bg-red-500 hover:text-white transition-all">
-                        {isActioning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <XCircle className="h-3.5 w-3.5" />} {isProof ? "Reject Proof" : "Reject"}
-                      </button>
-                      <button onClick={() => handleApprove(od)} disabled={isActioning} className="flex items-center gap-1.5 px-3 py-2 bg-[#16A34A] text-white rounded-xl text-xs font-bold hover:bg-[#15803d] transition-all">
-                        {isActioning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle className="h-3.5 w-3.5" />} {isProof ? "Approve Proof" : "Approve"}
-                      </button>
-                    </div>
-                    )}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
+          <ODLedgerTable 
+            ods={list} 
+            role="faculty"
+            onReview={od => setReviewTarget(od)}
+          />
         )}
       </div>
     )
@@ -1047,7 +945,7 @@ function StaffDashInner() {
   return (
     <div className="space-y-6 pb-20">
       {/* Reject Modals */}
-      {rejectTarget && <RejectModal od={rejectTarget} onClose={() => setRejectTarget(null)} onConfirm={(reason) => handleReject(rejectTarget, reason)} />}
+      {rejectTarget && <RejectModal od={rejectTarget} onClose={() => setRejectTarget(null)} onConfirm={(reason) => handleReject(rejectTarget.id, reason)} />}
       {rejectAchievementTarget && (
         <RejectModal
           od={rejectAchievementTarget}
@@ -1056,10 +954,19 @@ function StaffDashInner() {
         />
       )}
 
-      {/* Faculty OD submission removed — Phase 1 */}
-
       {/* Preview Modal */}
       {previewUrl && <DocumentPreviewModal url={previewUrl} title="Document Preview" onClose={() => setPreviewUrl(null)} />}
+      
+      {/* OD Review Modal */}
+      {reviewTarget && (
+        <ODReviewModal 
+          od={reviewTarget}
+          role="faculty"
+          onClose={() => setReviewTarget(null)}
+          onApprove={(id, reason) => handleApprove(reviewTarget, reason)}
+          onReject={(id, reason) => handleReject(id, reason)}
+        />
+      )}
 
       {/* Student Profile Modal */}
       {renderStudentModal()}

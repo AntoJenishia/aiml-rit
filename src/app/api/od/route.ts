@@ -71,14 +71,19 @@ export async function POST(req: NextRequest) {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || ""
     const verifyUrl = baseUrl ? `${baseUrl}/verify/${refNumber}` : ""
 
-    // Generate pre-approval PDF
+    // Generate pre-approval Draft PDF
     const pdfBytes = await generateFormalODPdf({
       referenceNumber: refNumber,
+      status: ODStatus.PENDING_FACULTY,
       studentName: userData.name || "Student",
       registerNumber: userData.registerNumber || "—",
-      department: "AI & Machine Learning",
+      department: userData.department || "AIML",
       classLabel: userData.classId || "—",
-      eventName, eventType, organiser, venue, startDate, endDate, reason,
+      section: userData.section || "A",
+      year: userData.year || "—",
+      eventName, eventType, organiser, venue, startDate, endDate,
+      odDays: body.odDays || 1,
+      reason,
       facultyName,
       hodName,
       facultyApproved: false,
@@ -136,6 +141,7 @@ export async function POST(req: NextRequest) {
       referenceNumber: refNumber,
       eventName, eventType, organiser, venue,
       startDate, endDate,
+      odDays: body.odDays || 1,
       reason,
       gpsLocation: gpsLocation || null,
       signedLetterUrl: scriptData.proofUrl || "", // Maps to the uploaded signed letter in Drive

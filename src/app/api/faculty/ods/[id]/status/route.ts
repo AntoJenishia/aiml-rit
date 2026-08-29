@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { adminDb } from "@/lib/firebaseAdmin"
+import { FieldValue } from "firebase-admin/firestore"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { ODStatus } from "@/lib/odStatus"
@@ -41,9 +42,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
     if (action === "approve") {
       updates.status = isProof ? ODStatus.PROOF_PENDING_HOD : ODStatus.PENDING_HOD
+      updates.facultyRespondedAt = FieldValue.serverTimestamp()
     } else if (action === "reject") {
       updates.status = isProof ? ODStatus.PROOF_REJECTED_FACULTY : ODStatus.REJECTED_FACULTY
       updates.facultyRejectReason = reason
+      updates.facultyRespondedAt = FieldValue.serverTimestamp()
     } else {
       return NextResponse.json({ error: "Invalid action" }, { status: 400 })
     }

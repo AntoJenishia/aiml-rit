@@ -2,7 +2,7 @@ import { adminDb } from "@/lib/firebaseAdmin"
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { CheckCircle, Clock, XCircle, AlertTriangle, ArrowLeft, ShieldAlert } from "lucide-react"
-import { formatDate } from "@/lib/dateUtils"
+import { formatDate, formatDateTime } from "@/lib/dateUtils"
 import { ODStatus } from "@/lib/odStatus"
 
 interface ODData {
@@ -26,7 +26,7 @@ interface ODData {
 
 function formatTs(ts?: { _seconds: number }) {
   if (!ts) return null
-  return formatDate(ts)
+  return formatDateTime(ts)
 }
 
 // STATUS_CONFIG: canonical enum keys only — no legacy strings
@@ -223,6 +223,86 @@ export default async function VerifyPage({
               )
             })()}
           </div>
+
+          {/* Post-Event Proof Timeline (Only shows if approved and requires proof, or proof is submitted) */}
+          {([ODStatus.PENDING_PROOF, ODStatus.PROOF_PENDING_FACULTY, ODStatus.PROOF_REJECTED_FACULTY, ODStatus.PROOF_PENDING_HOD, ODStatus.PROOF_REJECTED_HOD, ODStatus.COMPLETED].includes(od.status as ODStatus) || od.postODProofsUrl) && (
+            <div className="bg-white rounded-3xl p-6 md:p-8 border border-[#E5E7EB] shadow-sm mt-6">
+              <h2 className="text-sm font-bold text-[#111827] mb-6">Post-Event Proof Timeline</h2>
+              
+              <div className="relative ml-4 border-l-2 border-transparent space-y-0 flex flex-col">
+                
+                {/* Step 1: Proof Submission */}
+                <div className="flex gap-4 relative">
+                  <div className="absolute -left-[17px] top-0 bottom-0 w-0.5 bg-[#E5E7EB]" />
+                  <div className="flex flex-col items-center relative -left-[33px] bg-white py-1">
+                    <div className={`h-8 w-8 rounded-full ${od.postODProofsUrl ? "bg-[#16A34A]" : "bg-[#E5E7EB]"} flex items-center justify-center relative z-10`}>
+                      {od.postODProofsUrl ? <CheckCircle className="h-4 w-4 text-white" /> : <Clock className="h-4 w-4 text-[#94A3B8]" />}
+                    </div>
+                  </div>
+                  <div className="pb-6 relative -left-[16px]">
+                    <p className="text-sm font-bold text-[#111827]">Proof Submitted</p>
+                    {od.postODProofsUrl ? <p className="text-xs text-[#16A34A] font-semibold">Uploaded</p> : <p className="text-xs text-[#94A3B8]">Pending student upload</p>}
+                  </div>
+                </div>
+
+                {/* Step 2: Faculty Proof Review */}
+                {(() => {
+                  const facApproved = [ODStatus.PROOF_PENDING_HOD, ODStatus.PROOF_REJECTED_HOD, ODStatus.COMPLETED].includes(od.status as ODStatus)
+                  const facRejected = od.status === ODStatus.PROOF_REJECTED_FACULTY
+                  const pending = !facApproved && !facRejected && od.postODProofsUrl
+                  const notReached = !od.postODProofsUrl
+                  const Icon = facApproved ? CheckCircle : facRejected ? XCircle : Clock
+                  const dotColor = facApproved ? "bg-[#16A34A]" : facRejected ? "bg-[#EF4444]" : "bg-[#E5E7EB]"
+                  
+                  return (
+                    <div className="flex gap-4 relative">
+                      <div className="absolute -left-[17px] top-0 bottom-0 w-0.5 bg-[#E5E7EB]" />
+                      <div className="flex flex-col items-center relative -left-[33px] bg-white py-1">
+                        <div className={`h-8 w-8 rounded-full ${dotColor} flex items-center justify-center relative z-10`}>
+                          <Icon className={`h-4 w-4 ${pending || notReached ? "text-[#94A3B8]" : "text-white"}`} />
+                        </div>
+                      </div>
+                      <div className="pb-6 relative -left-[16px]">
+                        <p className="text-sm font-bold text-[#111827]">Faculty Review</p>
+                        {facApproved && <p className="text-xs text-[#16A34A] font-semibold">Approved</p>}
+                        {facRejected && <p className="text-xs text-[#EF4444] font-semibold">Rejected</p>}
+                        {pending && <p className="text-xs text-[#94A3B8]">Awaiting faculty action</p>}
+                        {notReached && <p className="text-xs text-[#94A3B8] italic">Waiting for proof upload</p>}
+                      </div>
+                    </div>
+                  )
+                })()}
+
+                {/* Step 3: HOD Proof Final Approval */}
+                {(() => {
+                  const hodApproved = od.status === ODStatus.COMPLETED
+                  const hodRejected = od.status === ODStatus.PROOF_REJECTED_HOD
+                  const pending = [ODStatus.PROOF_PENDING_HOD].includes(od.status as ODStatus)
+                  const notReached = !pending && !hodApproved && !hodRejected
+                  const Icon = hodApproved ? CheckCircle : hodRejected ? XCircle : Clock
+                  const dotColor = hodApproved ? "bg-[#16A34A]" : hodRejected ? "bg-[#EF4444]" : "bg-[#E5E7EB]"
+                  
+                  return (
+                    <div className="flex gap-4 relative">
+                      <div className="flex flex-col items-center relative -left-[33px] bg-white py-1">
+                        <div className={`h-8 w-8 rounded-full ${dotColor} flex items-center justify-center relative z-10`}>
+                          <Icon className={`h-4 w-4 ${pending || notReached ? "text-[#94A3B8]" : "text-white"}`} />
+                        </div>
+                      </div>
+                      <div className="pb-6 relative -left-[16px]">
+                        <p className="text-sm font-bold text-[#111827]">HOD Final Approval</p>
+                        {hodApproved && <p className="text-xs text-[#16A34A] font-semibold">Approved (OD Completed)</p>}
+                        {hodRejected && <p className="text-xs text-[#EF4444] font-semibold">Rejected</p>}
+                        {pending && <p className="text-xs text-[#94A3B8]">Awaiting HOD action</p>}
+                        {notReached && <p className="text-xs text-[#94A3B8] italic">Waiting for faculty review</p>}
+                      </div>
+                    </div>
+                  )
+                })()}
+                
+              </div>
+            </div>
+          )}
 
           {/* Download final PDF if approved */}
           {isFinalApproved && od.finalPdfUrl && (

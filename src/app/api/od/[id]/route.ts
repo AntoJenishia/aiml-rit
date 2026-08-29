@@ -7,21 +7,25 @@ import { generateFormalODPdf } from "@/lib/pdf-generator"
 import { ODStatus } from "@/lib/odStatus"
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-async function regeneratePdf(od: any, facultyApproved: boolean, hodApproved: boolean): Promise<string> {
+async function regeneratePdf(od: any, facultyApproved: boolean, hodApproved: boolean, currentStatus: string): Promise<string> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || ""
   const verifyUrl = od.qrCodeUrl || (baseUrl ? `${baseUrl}/verify/${od.referenceNumber}` : "")
   const pdfBytes = await generateFormalODPdf({
     referenceNumber: od.referenceNumber,
+    status: currentStatus,
     studentName: od.studentName || "—",
     registerNumber: od.registerNumber || "—",
-    department: "AI & Machine Learning",
+    department: od.department || "AIML",
     classLabel: od.classId || "—",
+    section: od.section || "A",
+    year: od.year || "—",
     eventName: od.eventName,
     eventType: od.eventType,
     organiser: od.organiser,
     venue: od.venue,
     startDate: od.startDate,
     endDate: od.endDate,
+    odDays: od.odDays || 1,
     reason: od.reason || "",
     facultyName: od.facultyName || "Class Incharge",
     hodName: od.hodName || "Head of Department",
@@ -114,7 +118,7 @@ export async function PATCH(
         }
       } else {
         if (action === "approve") {
-          const draftPdfBase64 = await regeneratePdf({ ...od }, true, false)
+          const draftPdfBase64 = await regeneratePdf({ ...od }, true, false, ODStatus.PENDING_HOD)
           
           // Notify webhook
           const scriptRes = await fetch(scriptUrl, {
@@ -167,7 +171,7 @@ export async function PATCH(
         }
       } else {
         if (action === "approve") {
-          const finalPdfBase64 = await regeneratePdf({ ...od }, true, true)
+          const finalPdfBase64 = await regeneratePdf({ ...od }, true, true, ODStatus.APPROVED)
           
           // Notify webhook & upload final PDF to Drive
           const scriptRes = await fetch(scriptUrl, {
