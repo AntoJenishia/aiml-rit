@@ -22,6 +22,7 @@ interface ODData {
   hodRejectReason?: string
   finalPdfUrl?: string
   pdfUrl?: string
+  postODProofsUrl?: string
 }
 
 function formatTs(ts?: { _seconds: number }) {
