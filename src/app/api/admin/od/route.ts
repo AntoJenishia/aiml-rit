@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { adminDb } from "@/lib/firebaseAdmin"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
+import { ODStatus } from "@/lib/odStatus"
 
 export async function GET(req: Request) {
   try {
@@ -62,9 +63,9 @@ export async function PATCH(req: Request) {
 
     let newStatus = ""
     if (action === "approve") {
-      newStatus = "VERIFIED"
+      newStatus = ODStatus.APPROVED
     } else if (action === "reject") {
-      newStatus = "REJECTED"
+      newStatus = ODStatus.REJECTED_HOD
     } else {
       return NextResponse.json({ error: "Invalid action" }, { status: 400 })
     }
@@ -88,11 +89,14 @@ export async function PATCH(req: Request) {
           rejectReason: remarks || "",
           verifiedBy: "HOD",
         }
-        fetch("https://script.google.com/macros/s/AKfycby5t4cZc8_R321F5aU9w3GgXmKIDQG872wzJ5N66Rj-5iF9R6qfJ3E5728oV28wX7J9/exec", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(webhookPayload),
-        }).catch(console.error)
+        const scriptUrl = process.env.NEXT_PUBLIC_APPS_SCRIPT_URL
+        if (scriptUrl) {
+          fetch(scriptUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(webhookPayload),
+          }).catch(console.error)
+        }
       } catch (e) {
         console.error("Webhook trigger failed", e)
       }

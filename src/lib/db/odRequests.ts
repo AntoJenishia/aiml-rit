@@ -1,5 +1,6 @@
 import { db } from "../firebase"
 import { collection, doc, addDoc, updateDoc, getDoc, getDocs, query, where, orderBy, serverTimestamp, setDoc } from "firebase/firestore"
+import { ODStatus } from "../odStatus"
 
 export interface ODRequest {
   id?: string
@@ -16,7 +17,8 @@ export interface ODRequest {
   specialNeedJustification: string
   reason: string
   upfrontProofUrl: string
-  status: 'pending_faculty' | 'rejected_faculty' | 'pending_hod' | 'rejected_hod' | 'approved' | 'completed'
+  status: ODStatus
+  department: string
   createdAt: any
   facultyRespondedAt?: any
   facultyRejectReason?: string
@@ -40,6 +42,7 @@ const collectionName = "odRequests"
 export async function createODRequest(data: Omit<ODRequest, "id" | "createdAt">) {
   const docRef = await addDoc(collection(db, collectionName), {
     ...data,
+    department: data.department || "AIML",
     createdAt: serverTimestamp(),
   })
   return docRef.id
@@ -55,7 +58,7 @@ export async function getStudentODs(studentUid: string): Promise<ODRequest[]> {
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ODRequest))
 }
 
-export async function getFacultyODs(studentUidsInClass: string[]): Promise<ODRequest[]> {
+export async function getFacultyODs(studentUidsInClass: string[], department: string = "AIML"): Promise<ODRequest[]> {
   if (studentUidsInClass.length === 0) return []
   
   // Note: Firestore 'in' query supports up to 30 items. If a class has more than 30 students,
@@ -64,7 +67,8 @@ export async function getFacultyODs(studentUidsInClass: string[]): Promise<ODReq
   
   const q = query(
     collection(db, collectionName),
-    where("status", "==", "pending_faculty"),
+    where("department", "==", department),
+    where("status", "==", ODStatus.PENDING_FACULTY),
     orderBy("createdAt", "desc")
   )
   const snapshot = await getDocs(q)
@@ -73,10 +77,11 @@ export async function getFacultyODs(studentUidsInClass: string[]): Promise<ODReq
     .filter(req => studentUidsInClass.includes(req.studentUid))
 }
 
-export async function getPendingHODODs(): Promise<ODRequest[]> {
+export async function getPendingHODODs(department: string = "AIML"): Promise<ODRequest[]> {
   const q = query(
     collection(db, collectionName),
-    where("status", "==", "pending_hod"),
+    where("department", "==", department),
+    where("status", "==", ODStatus.PENDING_HOD),
     orderBy("createdAt", "desc")
   )
   const snapshot = await getDocs(q)

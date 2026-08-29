@@ -5,6 +5,7 @@ import { adminDb } from "@/lib/firebaseAdmin"
 import { FieldValue } from "firebase-admin/firestore"
 import { generateFormalODPdf } from "@/lib/pdf-generator"
 import { initializeApp, getApps } from "firebase-admin/app"
+import { ODStatus } from "@/lib/odStatus"
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function generateRefNumber(): string {
@@ -138,7 +139,8 @@ export async function POST(req: NextRequest) {
       reason,
       gpsLocation: gpsLocation || null,
       signedLetterUrl: scriptData.proofUrl || "", // Maps to the uploaded signed letter in Drive
-      status: "FACULTY_VERIFICATION", // Directly goes to faculty verification
+      status: ODStatus.PENDING_FACULTY,
+      department: "AIML",
       driveFolderId: scriptData.folderId || "",
       driveFolderUrl: scriptData.folderUrl || "",
       createdAt: FieldValue.serverTimestamp(),
@@ -165,9 +167,12 @@ export async function GET(req: NextRequest) {
     if (role === "student") {
       docs = await adminDb.collection("odRequests")
         .where("studentUid", "==", uid)
+        .where("department", "==", "AIML")
         .get()
     } else if (role === "staff") {
-      docs = await adminDb.collection("odRequests").get()
+      docs = await adminDb.collection("odRequests")
+        .where("department", "==", "AIML")
+        .get()
 
       const userDoc = await adminDb.collection("users").doc(uid).get()
       const classId = userDoc.data()?.classId
@@ -193,7 +198,9 @@ export async function GET(req: NextRequest) {
       enriched.sort((a, b) => (b.createdAt?._seconds || 0) - (a.createdAt?._seconds || 0))
       return NextResponse.json(enriched)
     } else if (role === "hod") {
-      docs = await adminDb.collection("odRequests").get()
+      docs = await adminDb.collection("odRequests")
+        .where("department", "==", "AIML")
+        .get()
 
       const data = docs.docs.map(d => ({ id: d.id, ...d.data() }))
       const enriched = await Promise.all(data.map(async (req: any) => {

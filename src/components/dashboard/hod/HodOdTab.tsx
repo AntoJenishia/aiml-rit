@@ -1,4 +1,5 @@
 "use client"
+import { ODStatus } from "@/lib/odStatus"
 import { useState, useEffect } from "react"
 import { FileText, CheckCircle, XCircle, Search, Loader2, Calendar, MapPin, Building2, User, Eye, Edit } from "lucide-react"
 
@@ -18,7 +19,7 @@ interface ODRequest {
   startDate: string
   endDate: string
   reason: string
-  status: string
+  status: string  // Always one of ODStatus enum values
   signedLetterUrl?: string
   driveFolderUrl?: string
   hodRemarks?: string
@@ -73,13 +74,21 @@ export default function HodOdTab({ departmentFilter }: { departmentFilter: "ALL"
   }
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "FACULTY_VERIFICATION": return <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase">Pending Faculty</span>
-      case "HOD_APPROVAL": return <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase">Pending HOD</span>
-      case "HOD_APPROVED": return <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase">Approved</span>
-      case "HOD_REJECTED": return <span className="bg-rose-100 text-rose-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase">Rejected</span>
-      default: return <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase">{status.replace("_", " ")}</span>
+    const badges: Record<string, JSX.Element> = {
+      [ODStatus.PENDING_FACULTY]:        <span className="bg-[#F5F6FA] text-[#6B7280] px-2 py-0.5 rounded text-[10px] font-bold uppercase">Pending Faculty</span>,
+      [ODStatus.REJECTED_FACULTY]:       <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase">Rejected by Faculty</span>,
+      [ODStatus.PENDING_HOD]:            <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase">Pending HOD</span>,
+      [ODStatus.REJECTED_HOD]:           <span className="bg-rose-100 text-rose-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase">Rejected by HOD</span>,
+      [ODStatus.APPROVED]:               <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase">Approved</span>,
+      [ODStatus.PENDING_PROOF]:          <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase">Proof Required</span>,
+      [ODStatus.PROOF_PENDING_FACULTY]:  <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase">Proof — Faculty Review</span>,
+      [ODStatus.PROOF_REJECTED_FACULTY]: <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase">Proof Rejected (Faculty)</span>,
+      [ODStatus.PROOF_PENDING_HOD]:      <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase">Proof — HOD Review</span>,
+      [ODStatus.PROOF_REJECTED_HOD]:     <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase">Proof Rejected (HOD)</span>,
+      [ODStatus.COMPLETED]:              <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase">Completed</span>,
+      [ODStatus.REVOKED]:                <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-[10px] font-bold uppercase">Revoked</span>,
     }
+    return badges[status] ?? <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase">{status.replace(/_/g, ' ')}</span>
   }
 
   const getEmbedUrl = (url: string) => {

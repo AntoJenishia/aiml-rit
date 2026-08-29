@@ -1,8 +1,9 @@
 import { adminDb } from "@/lib/firebaseAdmin"
 import { notFound } from "next/navigation"
 import Link from "next/link"
-import { CheckCircle, Clock, XCircle, AlertTriangle, ArrowLeft } from "lucide-react"
+import { CheckCircle, Clock, XCircle, AlertTriangle, ArrowLeft, ShieldAlert } from "lucide-react"
 import { formatDate } from "@/lib/dateUtils"
+import { ODStatus } from "@/lib/odStatus"
 
 interface ODData {
   referenceNumber: string
@@ -28,13 +29,20 @@ function formatTs(ts?: { _seconds: number }) {
   return formatDate(ts)
 }
 
+// STATUS_CONFIG: canonical enum keys only — no legacy strings
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string; icon: any }> = {
-  pending_faculty:  { label: "Pending Faculty Approval", color: "text-[#6B7280]", bg: "bg-[#F5F6FA]",         border: "border-[#E5E7EB]",  icon: Clock },
-  rejected_faculty: { label: "Rejected by Faculty",      color: "text-[#EF4444]", bg: "bg-red-50",            border: "border-[#EF4444]",  icon: XCircle },
-  pending_hod:      { label: "Pending HOD Approval",     color: "text-[#3B5BFF]", bg: "bg-blue-50",           border: "border-[#3B5BFF]",  icon: Clock },
-  rejected_hod:     { label: "Rejected by HOD",          color: "text-[#EF4444]", bg: "bg-red-50",            border: "border-[#EF4444]",  icon: XCircle },
-  approved:         { label: "Fully Approved",            color: "text-[#16A34A]", bg: "bg-green-50",          border: "border-[#16A34A]",  icon: CheckCircle },
-  completed:        { label: "Completed",                 color: "text-[#16A34A]", bg: "bg-green-50",          border: "border-[#16A34A]",  icon: CheckCircle },
+  [ODStatus.PENDING_FACULTY]:        { label: "Pending Faculty Approval",              color: "text-[#6B7280]", bg: "bg-[#F5F6FA]",  border: "border-[#E5E7EB]",  icon: Clock },
+  [ODStatus.REJECTED_FACULTY]:       { label: "Rejected by Faculty",                   color: "text-[#EF4444]", bg: "bg-red-50",      border: "border-[#EF4444]",  icon: XCircle },
+  [ODStatus.PENDING_HOD]:            { label: "Pending HOD Approval",                  color: "text-[#3B5BFF]", bg: "bg-blue-50",     border: "border-[#3B5BFF]",  icon: Clock },
+  [ODStatus.REJECTED_HOD]:           { label: "Rejected by HOD",                       color: "text-[#EF4444]", bg: "bg-red-50",      border: "border-[#EF4444]",  icon: XCircle },
+  [ODStatus.APPROVED]:               { label: "Fully Approved",                        color: "text-[#16A34A]", bg: "bg-green-50",    border: "border-[#16A34A]",  icon: CheckCircle },
+  [ODStatus.PENDING_PROOF]:          { label: "Proof Required",                        color: "text-[#D97706]", bg: "bg-amber-50",    border: "border-[#D97706]",  icon: Clock },
+  [ODStatus.PROOF_PENDING_FACULTY]:  { label: "Post-Event Proof — Faculty Review",    color: "text-[#7C3AED]", bg: "bg-purple-50",   border: "border-[#7C3AED]",  icon: Clock },
+  [ODStatus.PROOF_REJECTED_FACULTY]: { label: "Post-Event Proof Rejected by Faculty",  color: "text-[#EF4444]", bg: "bg-red-50",      border: "border-[#EF4444]",  icon: XCircle },
+  [ODStatus.PROOF_PENDING_HOD]:      { label: "Post-Event Proof — HOD Review",        color: "text-[#3B5BFF]", bg: "bg-blue-50",     border: "border-[#3B5BFF]",  icon: Clock },
+  [ODStatus.PROOF_REJECTED_HOD]:     { label: "Post-Event Proof Rejected by HOD",      color: "text-[#EF4444]", bg: "bg-red-50",      border: "border-[#EF4444]",  icon: XCircle },
+  [ODStatus.COMPLETED]:              { label: "Completed",                             color: "text-[#16A34A]", bg: "bg-green-50",    border: "border-[#16A34A]",  icon: CheckCircle },
+  [ODStatus.REVOKED]:                { label: "Revoked",                               color: "text-[#94A3B8]", bg: "bg-slate-100",   border: "border-[#94A3B8]",  icon: ShieldAlert },
 }
 
 export default async function VerifyPage({
@@ -64,10 +72,10 @@ export default async function VerifyPage({
 
   const od: ODData = { ...raw, referenceNumber, studentName }
 
-  const sc = STATUS_CONFIG[od.status] || STATUS_CONFIG.pending_faculty
+  const sc = STATUS_CONFIG[od.status] ?? STATUS_CONFIG[ODStatus.PENDING_FACULTY]
   const StatusIcon = sc.icon
 
-  const isFinalApproved = od.status === "approved" || od.status === "completed"
+  const isFinalApproved = od.status === ODStatus.APPROVED || od.status === ODStatus.COMPLETED || od.status === ODStatus.PROOF_PENDING_FACULTY || od.status === ODStatus.PROOF_PENDING_HOD || od.status === ODStatus.PROOF_REJECTED_FACULTY || od.status === ODStatus.PROOF_REJECTED_HOD
 
   return (
     <div className="min-h-screen bg-[#F5F6FA] flex flex-col">
@@ -148,8 +156,13 @@ export default async function VerifyPage({
 
             {/* Step 2: Faculty */}
             {(() => {
-              const facApproved = ["pending_hod", "approved", "completed"].includes(od.status)
-              const facRejected = od.status === "rejected_faculty"
+              const facApproved = [
+                ODStatus.PENDING_HOD, ODStatus.APPROVED,
+                ODStatus.PENDING_PROOF, ODStatus.PROOF_PENDING_FACULTY,
+                ODStatus.PROOF_REJECTED_FACULTY, ODStatus.PROOF_PENDING_HOD,
+                ODStatus.PROOF_REJECTED_HOD, ODStatus.COMPLETED, ODStatus.REVOKED
+              ].includes(od.status as ODStatus)
+              const facRejected = od.status === ODStatus.REJECTED_FACULTY
               const pending     = !facApproved && !facRejected
               const Icon = facApproved ? CheckCircle : facRejected ? XCircle : Clock
               const dotColor = facApproved ? "bg-[#16A34A]" : facRejected ? "bg-[#EF4444]" : "bg-[#E5E7EB]"
@@ -178,8 +191,13 @@ export default async function VerifyPage({
 
             {/* Step 3: HOD */}
             {(() => {
-              const hodApproved = ["approved", "completed"].includes(od.status)
-              const hodRejected = od.status === "rejected_hod"
+              const hodApproved = [
+                ODStatus.APPROVED, ODStatus.PENDING_PROOF,
+                ODStatus.PROOF_PENDING_FACULTY, ODStatus.PROOF_REJECTED_FACULTY,
+                ODStatus.PROOF_PENDING_HOD, ODStatus.PROOF_REJECTED_HOD,
+                ODStatus.COMPLETED, ODStatus.REVOKED
+              ].includes(od.status as ODStatus)
+              const hodRejected = od.status === ODStatus.REJECTED_HOD
               const pending     = !hodApproved && !hodRejected
               const Icon = hodApproved ? CheckCircle : hodRejected ? XCircle : Clock
               const dotColor = hodApproved ? "bg-[#16A34A]" : hodRejected ? "bg-[#EF4444]" : "bg-[#E5E7EB]"

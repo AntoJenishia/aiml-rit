@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth"
 import { adminDb } from "@/lib/firebaseAdmin"
 import { FieldValue } from "firebase-admin/firestore"
 import { generateFormalODPdf } from "@/lib/pdf-generator"
+import { ODStatus } from "@/lib/odStatus"
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 async function regeneratePdf(od: any, facultyApproved: boolean, hodApproved: boolean): Promise<string> {
@@ -91,25 +92,25 @@ export async function PATCH(
     if (!scriptUrl) throw new Error("Missing NEXT_PUBLIC_APPS_SCRIPT_URL")
 
     if (role === "staff") {
-      if (od.status !== "pending_faculty" && od.status !== "post_pending_faculty") {
+      if (od.status !== ODStatus.PENDING_FACULTY && od.status !== ODStatus.PROOF_PENDING_FACULTY) {
         return NextResponse.json({ error: "This OD is not awaiting faculty approval." }, { status: 400 })
       }
       
-      if (od.status === "post_pending_faculty") {
+      if (od.status === ODStatus.PROOF_PENDING_FACULTY) {
         if (action === "approve") {
           const scriptRes = await fetch(scriptUrl, {
             method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ action: "update_status", refNumber: od.referenceNumber, newStatus: "Pending HOD (Proof)" })
+            body: JSON.stringify({ action: "update_status", refNumber: od.referenceNumber, status: ODStatus.PROOF_PENDING_HOD })
           })
           if (!scriptRes.ok) throw new Error("Webhook failed")
-          updateData = { status: "post_pending_hod" }
+          updateData = { status: ODStatus.PROOF_PENDING_HOD }
         } else {
           const scriptRes = await fetch(scriptUrl, {
             method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ action: "update_status", refNumber: od.referenceNumber, newStatus: "Approved (Proof Rejected)" })
+            body: JSON.stringify({ action: "update_status", refNumber: od.referenceNumber, status: ODStatus.PROOF_REJECTED_FACULTY })
           })
           if (!scriptRes.ok) throw new Error("Webhook failed")
-          updateData = { status: "approved", postRejectReason: reason }
+          updateData = { status: ODStatus.PROOF_REJECTED_FACULTY, postRejectReason: reason }
         }
       } else {
         if (action === "approve") {
@@ -121,48 +122,48 @@ export async function PATCH(
             body: JSON.stringify({
               action: "update_status",
               refNumber: od.referenceNumber,
-              newStatus: "Pending HOD",
+              status: ODStatus.PENDING_HOD,
               folderId: od.driveFolderId
             })
           })
           if (!scriptRes.ok) throw new Error("Webhook failed")
 
           updateData = {
-            status: "pending_hod",
+            status: ODStatus.PENDING_HOD,
             facultyRespondedAt: FieldValue.serverTimestamp(),
           }
         } else {
           await fetch(scriptUrl, {
             method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ action: "update_status", refNumber: od.referenceNumber, newStatus: "Rejected by Faculty" })
+            body: JSON.stringify({ action: "update_status", refNumber: od.referenceNumber, status: ODStatus.REJECTED_FACULTY })
           })
           updateData = {
-            status: "rejected_faculty",
+            status: ODStatus.REJECTED_FACULTY,
             facultyRespondedAt: FieldValue.serverTimestamp(),
             facultyRejectReason: reason,
           }
         }
       }
     } else if (role === "hod") {
-      if (od.status !== "pending_hod" && od.status !== "post_pending_hod") {
+      if (od.status !== ODStatus.PENDING_HOD && od.status !== ODStatus.PROOF_PENDING_HOD) {
         return NextResponse.json({ error: "This OD is not awaiting HOD approval." }, { status: 400 })
       }
       
-      if (od.status === "post_pending_hod") {
+      if (od.status === ODStatus.PROOF_PENDING_HOD) {
         if (action === "approve") {
           const scriptRes = await fetch(scriptUrl, {
             method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ action: "update_status", refNumber: od.referenceNumber, newStatus: "Completed" })
+            body: JSON.stringify({ action: "update_status", refNumber: od.referenceNumber, status: ODStatus.COMPLETED })
           })
           if (!scriptRes.ok) throw new Error("Webhook failed")
-          updateData = { status: "completed", completedAt: FieldValue.serverTimestamp() }
+          updateData = { status: ODStatus.COMPLETED, completedAt: FieldValue.serverTimestamp() }
         } else {
           const scriptRes = await fetch(scriptUrl, {
             method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ action: "update_status", refNumber: od.referenceNumber, newStatus: "Approved (Proof Rejected)" })
+            body: JSON.stringify({ action: "update_status", refNumber: od.referenceNumber, status: ODStatus.PROOF_REJECTED_HOD })
           })
           if (!scriptRes.ok) throw new Error("Webhook failed")
-          updateData = { status: "approved", postRejectReason: reason }
+          updateData = { status: ODStatus.PROOF_REJECTED_HOD, postRejectReason: reason }
         }
       } else {
         if (action === "approve") {
@@ -174,7 +175,7 @@ export async function PATCH(
             body: JSON.stringify({
               action: "update_status",
               refNumber: od.referenceNumber,
-              newStatus: "Approved",
+              status: ODStatus.APPROVED,
               folderId: od.driveFolderId,
               finalPdfFile: finalPdfBase64
             })
@@ -185,17 +186,17 @@ export async function PATCH(
           if (scriptData.error) throw new Error("Apps Script Error: " + scriptData.error)
           
           updateData = {
-            status: "approved",
+            status: ODStatus.APPROVED,
             hodRespondedAt: FieldValue.serverTimestamp(),
             finalPdfUrl: scriptData.finalPdfUrl || "",
           }
         } else {
           await fetch(scriptUrl, {
             method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ action: "update_status", refNumber: od.referenceNumber, newStatus: "Rejected by HOD" })
+            body: JSON.stringify({ action: "update_status", refNumber: od.referenceNumber, status: ODStatus.REJECTED_HOD })
           })
           updateData = {
-            status: "rejected_hod",
+            status: ODStatus.REJECTED_HOD,
             hodRespondedAt: FieldValue.serverTimestamp(),
             hodRejectReason: reason,
           }

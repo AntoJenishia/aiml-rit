@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { ODStatus } from "@/lib/odStatus"
 import { createPortal } from "react-dom"
 import { Users, FileText, Award, BarChart3, Download, Printer, Calendar, Shield, MonitorPlay, X, ChevronLeft, ChevronRight } from "lucide-react"
 
@@ -45,7 +46,7 @@ export default function ReportsTab({ students, odRequests, achievements, classId
   const totalStudents = students.length
   const totalODs = filteredODs.length
   const verifiedAch = filteredAch.filter((a: any) => a.status === "VERIFIED").length
-  const approvedODs = filteredODs.filter((o: any) => ["VERIFIED", "COMPLETED", "ACTIVITY_COMPLETED"].includes(o.status)).length
+  const approvedODs = filteredODs.filter((o: any) => [ODStatus.APPROVED, ODStatus.COMPLETED].includes(o.status)).length
   const approvalRate = totalODs > 0 ? Math.round((approvedODs / totalODs) * 100) : 0
 
   // OD Breakdowns
@@ -213,7 +214,7 @@ export default function ReportsTab({ students, odRequests, achievements, classId
                       <td className="px-5 py-3 text-slate-700">{od.eventName} <br/><span className="text-xs text-slate-500">{od.organiser} · {od.eventType}</span></td>
                     <td className="px-5 py-3 text-slate-600 text-xs">{od.startDate}{od.startDate !== od.endDate ? ` to ${od.endDate}` : ""}</td>
                     <td className="px-5 py-3">
-                      <span className={`text-[10px] font-bold px-2 py-1 rounded uppercase ${["VERIFIED", "COMPLETED", "ACTIVITY_COMPLETED"].includes(od.status) ? "bg-green-100 text-green-700 print:border print:border-green-600 print:bg-transparent" : od.status === "REJECTED" ? "bg-red-100 text-red-700 print:border print:border-red-600 print:bg-transparent" : "bg-slate-100 text-slate-600 print:border print:border-slate-400 print:bg-transparent"}`}>
+                      <span className={`text-[10px] font-bold px-2 py-1 rounded uppercase ${[ODStatus.APPROVED, ODStatus.COMPLETED].includes(od.status) ? "bg-green-100 text-green-700 print:border print:border-green-600 print:bg-transparent" : od.status === ODStatus.REJECTED_FACULTY || od.status === ODStatus.REJECTED_HOD ? "bg-red-100 text-red-700 print:border print:border-red-600 print:bg-transparent" : "bg-slate-100 text-slate-600 print:border print:border-slate-400 print:bg-transparent"}`}>
                         {od.status.replace(/_/g, " ")}
                       </span>
                     </td>

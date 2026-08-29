@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { adminDb } from "@/lib/firebaseAdmin"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
+import { ODStatus } from "@/lib/odStatus"
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -25,7 +26,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if (!odDoc.exists) return NextResponse.json({ error: "OD not found" }, { status: 404 })
     
     const odData = odDoc.data()!
-    const isProof = odData.status === "post_pending_faculty"
+    const isProof = odData.status === ODStatus.PROOF_PENDING_FACULTY
 
     const auditLog = {
       action: isProof ? `Proof ${action}` : `OD ${action}`,
@@ -39,9 +40,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     }
 
     if (action === "approve") {
-      updates.status = isProof ? "ACTIVITY_COMPLETED" : "VERIFIED"
+      updates.status = isProof ? ODStatus.PROOF_PENDING_HOD : ODStatus.PENDING_HOD
     } else if (action === "reject") {
-      updates.status = "REJECTED"
+      updates.status = isProof ? ODStatus.PROOF_REJECTED_FACULTY : ODStatus.REJECTED_FACULTY
       updates.facultyRejectReason = reason
     } else {
       return NextResponse.json({ error: "Invalid action" }, { status: 400 })
@@ -49,21 +50,24 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
     await odRef.update(updates)
     
-    // 2. Call Google Apps Script webhook to notify backend spreadsheets if needed
+    // 2. Call Google Apps Script webhook to sync status to spreadsheet
     try {
-      const webhookPayload = {
-        action: "update_status",
-        referenceNumber: odData.referenceNumber,
-        status: updates.status,
-        rejectReason: updates.facultyRejectReason || "",
-        verifiedBy: facultyData.name,
+      const scriptUrl = process.env.NEXT_PUBLIC_APPS_SCRIPT_URL
+      if (scriptUrl) {
+        const webhookPayload = {
+          action: "update_status",
+          refNumber: odData.referenceNumber,
+          status: updates.status,
+          rejectReason: updates.facultyRejectReason || "",
+          verifiedBy: facultyData.name,
+        }
+        // Fire and forget
+        fetch(scriptUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(webhookPayload),
+        }).catch(console.error)
       }
-      // Fire and forget
-      fetch("https://script.google.com/macros/s/AKfycby5t4cZc8_R321F5aU9w3GgXmKIDQG872wzJ5N66Rj-5iF9R6qfJ3E5728oV28wX7J9/exec", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(webhookPayload),
-      }).catch(console.error)
     } catch (e) {
       console.error("Webhook trigger failed", e)
     }

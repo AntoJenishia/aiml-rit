@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { adminDb } from "@/lib/firebaseAdmin"
 import { FieldValue } from "firebase-admin/firestore"
+import { ODStatus } from "@/lib/odStatus"
 
 export async function POST(
   req: NextRequest,
@@ -29,8 +30,11 @@ export async function POST(
     if (odData.studentUid !== session.user.uid) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
-    if (odData.status !== "VERIFIED" && !(odData.status === "REJECTED" && odData.postODProofsUrl)) {
-      return NextResponse.json({ error: "OD is not in verified state." }, { status: 400 })
+
+    // Allow proof submission only when APPROVED or when proof was previously rejected (PROOF_REJECTED_FACULTY / PROOF_REJECTED_HOD)
+    const allowedStatuses: string[] = [ODStatus.APPROVED, ODStatus.PROOF_REJECTED_FACULTY, ODStatus.PROOF_REJECTED_HOD]
+    if (!allowedStatuses.includes(odData.status)) {
+      return NextResponse.json({ error: "OD must be APPROVED before post-event proof can be submitted." }, { status: 400 })
     }
 
     const scriptUrl = process.env.NEXT_PUBLIC_APPS_SCRIPT_URL
@@ -55,7 +59,7 @@ export async function POST(
     if (scriptData.error) throw new Error("Apps Script Error: " + scriptData.error)
 
     await odRef.update({
-      status: "post_pending_faculty",
+      status: ODStatus.PROOF_PENDING_FACULTY,
       postODProofsUrl: scriptData.proofFolderUrl || "",
       postODDescription: description || "",
       proofSubmittedAt: FieldValue.serverTimestamp()
@@ -67,3 +71,4 @@ export async function POST(
     return NextResponse.json({ error: err.message || "Server error" }, { status: 500 })
   }
 }
+

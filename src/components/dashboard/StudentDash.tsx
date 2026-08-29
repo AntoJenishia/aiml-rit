@@ -1,4 +1,5 @@
 "use client"
+import { ODStatus } from "@/lib/odStatus"
 import { useUser } from "@/lib/hooks/useUser"
 import { useEffect, useState, useRef, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
@@ -20,7 +21,8 @@ import AchievementModal from "./AchievementModal"
 interface ODRequest {
   id: string; referenceNumber: string; eventName: string; eventType: string
   organiser: string; venue: string; startDate: string; endDate: string; reason: string
-  status: "DRAFT"|"SUBMITTED"|"AWAITING_SIGNED_LETTER"|"FACULTY_VERIFICATION"|"VERIFIED"|"CORRECTION_REQUIRED"|"REJECTED"|"ACTIVITY_COMPLETED"|"COMPLETED"
+  status: string  // Always one of ODStatus enum values
+  department?: string
   signedLetterUrl?: string;
   postProofUrls?: string[];
   postODProofsUrl?: string;
@@ -44,16 +46,20 @@ const TAG_COLORS: Record<string,string> = {
   "Other":"bg-slate-100 text-slate-700"
 }
 
-const OD_STATUS: Record<string,{label:string;color:string;bg:string;icon:any}> = {
-  DRAFT:{label:"Draft",color:"text-slate-600",bg:"bg-slate-100",icon:FileText},
-  SUBMITTED:{label:"Submitted",color:"text-blue-600",bg:"bg-blue-50",icon:Upload},
-  AWAITING_SIGNED_LETTER:{label:"Awaiting Signed Letter",color:"text-amber-600",bg:"bg-amber-50",icon:AlertCircle},
-  FACULTY_VERIFICATION:{label:"Pending Verification",color:"text-[#3B5BFF]",bg:"bg-blue-50",icon:Clock},
-  VERIFIED:{label:"Verified",color:"text-[#16A34A]",bg:"bg-green-50",icon:CheckCircle},
-  CORRECTION_REQUIRED:{label:"Correction Required",color:"text-amber-600",bg:"bg-amber-50",icon:AlertCircle},
-  REJECTED:{label:"Rejected",color:"text-[#EF4444]",bg:"bg-red-50",icon:XCircle},
-  ACTIVITY_COMPLETED:{label:"Activity Completed",color:"text-indigo-600",bg:"bg-indigo-50",icon:CheckCircle},
-  COMPLETED:{label:"Completed",color:"text-[#16A34A]",bg:"bg-green-50",icon:CheckCircle},
+// ── Status display map (canonical enum keys only) ────────────────────────────
+const OD_STATUS: Record<string, {label:string;color:string;bg:string;icon:any}> = {
+  [ODStatus.PENDING_FACULTY]:        {label:"Pending Faculty Approval",      color:"text-[#6B7280]", bg:"bg-[#F5F6FA]",   icon:Clock},
+  [ODStatus.REJECTED_FACULTY]:       {label:"Rejected by Faculty",           color:"text-[#EF4444]", bg:"bg-red-50",       icon:XCircle},
+  [ODStatus.PENDING_HOD]:            {label:"Pending HOD Approval",          color:"text-[#3B5BFF]", bg:"bg-blue-50",      icon:Clock},
+  [ODStatus.REJECTED_HOD]:           {label:"Rejected by HOD",               color:"text-[#EF4444]", bg:"bg-red-50",       icon:XCircle},
+  [ODStatus.APPROVED]:               {label:"Approved",                      color:"text-[#16A34A]", bg:"bg-green-50",     icon:CheckCircle},
+  [ODStatus.PENDING_PROOF]:          {label:"Proof Required",                color:"text-[#D97706]", bg:"bg-amber-50",     icon:AlertCircle},
+  [ODStatus.PROOF_PENDING_FACULTY]:  {label:"Post-Event Proof — Faculty Review",  color:"text-[#7C3AED]", bg:"bg-purple-50",   icon:Clock},
+  [ODStatus.PROOF_REJECTED_FACULTY]: {label:"Post-Event Proof Rejected by Faculty",color:"text-[#EF4444]", bg:"bg-red-50",       icon:XCircle},
+  [ODStatus.PROOF_PENDING_HOD]:      {label:"Post-Event Proof — HOD Review", color:"text-[#3B5BFF]", bg:"bg-blue-50",      icon:Clock},
+  [ODStatus.PROOF_REJECTED_HOD]:     {label:"Post-Event Proof Rejected by HOD",   color:"text-[#EF4444]", bg:"bg-red-50",       icon:XCircle},
+  [ODStatus.COMPLETED]:              {label:"Completed",                     color:"text-[#16A34A]", bg:"bg-green-50",     icon:CheckCircle},
+  [ODStatus.REVOKED]:                {label:"Revoked",                       color:"text-[#94A3B8]", bg:"bg-slate-100",    icon:XCircle},
 }
 
 // ── Empty State ───────────────────────────────────────────────────────────────
@@ -338,7 +344,7 @@ function RecentActivity({odRequests}:{odRequests:ODRequest[]}) {
     .sort((a,b)=>(b.createdAt?.seconds??0)-(a.createdAt?.seconds??0))
     .slice(0,5)
     .map(od=>{
-      const sc=OD_STATUS[od.status]||OD_STATUS.FACULTY_VERIFICATION
+      const sc=OD_STATUS[od.status]||{label:od.status,color:"text-[#6B7280]",bg:"bg-[#F5F6FA]",icon:Clock}
       return {
         id:od.id,text:od.eventName, venue:od.venue, reason:od.reason, 
         dateStr:od.startDate !== od.endDate ? `${formatDate(od.startDate)} - ${formatDate(od.endDate)}` : formatDate(od.startDate),
@@ -462,8 +468,14 @@ export default function StudentDash() {
   const realSection       = profile?.section ?? ""
   const realBatch         = profile?.batch ?? ""
 
-  const pendingODs=odRequests.filter(o=>["SUBMITTED","AWAITING_SIGNED_LETTER","FACULTY_VERIFICATION","CORRECTION_REQUIRED"].includes(o.status)).length
-  const approvedODs=odRequests.filter(o=>["VERIFIED","ACTIVITY_COMPLETED","COMPLETED"].includes(o.status)).length
+  const pendingODs=odRequests.filter(o=>[
+    ODStatus.PENDING_FACULTY, ODStatus.PENDING_HOD,
+    ODStatus.PROOF_PENDING_FACULTY, ODStatus.PROOF_PENDING_HOD,
+    ODStatus.PENDING_PROOF
+  ].includes(o.status as ODStatus)).length
+  const approvedODs=odRequests.filter(o=>[
+    ODStatus.APPROVED, ODStatus.COMPLETED
+  ].includes(o.status as ODStatus)).length
 
   const displayName=profile?.name||name||"Student"
   const department=profile?.department||(profile?.deptCode?.toUpperCase())||"AIML"
@@ -718,7 +730,7 @@ export default function StudentDash() {
                 ):(
                   <div className="divide-y divide-[#E5E7EB]">
                     {odRequests.slice(0,5).map(od=>{
-                      const sc=OD_STATUS[od.status]||OD_STATUS.FACULTY_VERIFICATION
+                      const sc=OD_STATUS[od.status]||{label:od.status,color:"text-[#6B7280]",bg:"bg-[#F5F6FA]",icon:Clock}
                       const StatusIcon=sc.icon
                       const dateStr = od.startDate !== od.endDate ? `${formatDate(od.startDate)} - ${formatDate(od.endDate)}` : formatDate(od.startDate)
                       return (
@@ -762,10 +774,10 @@ export default function StudentDash() {
             ):(
               <div className="divide-y divide-[#E5E7EB]">
                 {odRequests.map(od=>{
-                  const sc=OD_STATUS[od.status]||OD_STATUS.FACULTY_VERIFICATION
+                  const sc=OD_STATUS[od.status]||{label:od.status,color:"text-[#6B7280]",bg:"bg-[#F5F6FA]",icon:Clock}
                   const StatusIcon=sc.icon
-                  const isRejected=od.status==="REJECTED"
-                  const isApproved=od.status==="VERIFIED"||od.status==="ACTIVITY_COMPLETED"||od.status==="COMPLETED"
+                  const isRejected=od.status===ODStatus.REJECTED_FACULTY||od.status===ODStatus.REJECTED_HOD
+                  const isApproved=od.status===ODStatus.APPROVED||od.status===ODStatus.COMPLETED
                   return (
                     <div key={od.id} className={`px-5 py-4 hover:bg-slate-50 transition-colors ${isRejected?"border-l-4 border-l-[#EF4444]":isApproved?"border-l-4 border-l-[#16A34A]":""}`}>
                       <div className="flex items-start justify-between gap-3">
@@ -791,7 +803,7 @@ export default function StudentDash() {
                             </div>
                           )}
                           
-                          {od.status==="VERIFIED"&&od.eventType!=="Meeting"&&od.eventType!=="Official Department Work"&&(
+                          {od.status===ODStatus.APPROVED&&od.eventType!=="Meeting"&&od.eventType!=="Official Department Work"&&(
                             <div className="mt-3 p-2.5 bg-rose-50 border border-rose-200 rounded text-xs text-rose-700 font-medium flex flex-col gap-2">
                               <span className="flex items-center gap-1.5"><AlertCircle className="h-4 w-4 shrink-0"/> You MUST upload post-event proof (certificate/photos) after attending this event.</span>
                               <button onClick={()=>setSelectedODForProof(od)} className="self-start px-3 py-1.5 bg-rose-600 text-white rounded font-bold hover:bg-rose-700 transition-colors shadow-sm text-[10px]">
