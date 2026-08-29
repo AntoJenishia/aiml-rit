@@ -55,6 +55,8 @@ interface ODRequest {
   postODProofsUrl?: string
   postODDescription?: string
   createdAt?: any
+  isFacultyRequest?: boolean
+  signedLetterUrl?: string
 }
 
 interface Student {
@@ -1189,7 +1191,7 @@ function StaffDashInner() {
         <RejectModal
           od={rejectAchievementTarget}
           onClose={() => setRejectAchievementTarget(null)}
-          onConfirm={handleRejectAchievement}
+          onConfirm={(reason) => handleRejectAchievement(rejectAchievementTarget, reason)}
         />
       )}
 

@@ -24,6 +24,8 @@ interface ODRequest {
   signedLetterUrl?: string;
   postProofUrls?: string[];
   postODProofsUrl?: string;
+  pdfUrl?: string;
+  finalPdfUrl?: string;
   gpsLocation?: { lat: number; lng: number; accuracy: number; timestamp: number }
   facultyRejectReason?: string;
   createdAt?: any;
