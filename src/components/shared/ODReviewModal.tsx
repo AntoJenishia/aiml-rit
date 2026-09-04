@@ -3,6 +3,7 @@ import { useState, useEffect } from "react"
 import { X, CheckCircle, XCircle, Eye, Loader2, FileText, Download } from "lucide-react"
 import { ODStatus } from "@/lib/odStatus"
 import { formatDate } from "@/lib/dateUtils"
+import { formatStudentClass, formatStudentRoll } from "@/lib/studentIdentity"
 
 interface ODReviewModalProps {
   od: any
@@ -12,11 +13,8 @@ interface ODReviewModalProps {
   onReject: (id: string, reason: string) => Promise<void>
 }
 
-// Base terminal statuses that are terminal for EVERYONE
-const BASE_TERMINAL_STATUSES = [
-  ODStatus.APPROVED, ODStatus.REJECTED_HOD, ODStatus.COMPLETED,
-  ODStatus.REVOKED, ODStatus.PENDING_PROOF, ODStatus.PROOF_REJECTED_FACULTY, ODStatus.PROOF_REJECTED_HOD
-]
+const FACULTY_ACTIONABLE: ODStatus[] = [ODStatus.PENDING_FACULTY, ODStatus.PROOF_PENDING_FACULTY]
+const HOD_ACTIONABLE: ODStatus[] = [ODStatus.PENDING_HOD, ODStatus.PROOF_PENDING_HOD]
 
 export function ODReviewModal({ od, role, onClose, onApprove, onReject }: ODReviewModalProps) {
   const [remarks, setRemarks] = useState("")
@@ -35,18 +33,21 @@ export function ODReviewModal({ od, role, onClose, onApprove, onReject }: ODRevi
     else if (hasPostOD) setActiveDoc("postOD")
   }, [od.id])
 
-  const isTerminal = BASE_TERMINAL_STATUSES.includes(od.status as ODStatus) || 
-    (role === "faculty" && [ODStatus.PENDING_HOD, ODStatus.PROOF_PENDING_HOD].includes(od.status as ODStatus)) ||
-    (role === "hod" && [ODStatus.PENDING_FACULTY, ODStatus.PROOF_PENDING_FACULTY].includes(od.status as ODStatus))
+  const status = od.status as ODStatus
+  const isActionable =
+    (role === "faculty" && FACULTY_ACTIONABLE.includes(status)) ||
+    (role === "hod" && HOD_ACTIONABLE.includes(status))
+  const awaitingOtherReviewer =
+    (role === "hod" && FACULTY_ACTIONABLE.includes(status)) ||
+    (role === "faculty" && HOD_ACTIONABLE.includes(status))
     
   const isPostOD   = od.status === ODStatus.PROOF_PENDING_FACULTY || od.status === ODStatus.PROOF_PENDING_HOD
   const dateStr    = od.startDate !== od.endDate
     ? `${formatDate(od.startDate)} to ${formatDate(od.endDate)}`
     : formatDate(od.startDate)
 
-  // Resolve roll number — API may return rollNumber or studentRollNo
-  const rollNo = od.rollNumber || od.studentRollNo || "—"
-  const classId = od.classId || (od.year ? `${od.year}-${od.section || ''}` : "—")
+  const rollNo = formatStudentRoll(od)
+  const classLabel = formatStudentClass(od)
 
   // Resolve iframe src
   const draftSrc = od.finalPdfUrl || od.pdfUrl
@@ -106,8 +107,8 @@ export function ODReviewModal({ od, role, onClose, onApprove, onReject }: ODRevi
                 <div>
                   <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Student</h3>
                   <p className="text-sm font-bold text-slate-800">{od.studentName}</p>
-                  <p className="text-xs font-mono text-slate-500 mt-1">Roll: {rollNo}</p>
-                  <p className="text-xs font-mono text-slate-500 mt-0.5">Class: {classId}</p>
+                  <p className="text-xs font-mono text-slate-500 mt-1">Register Number: {rollNo}</p>
+                  <p className="text-xs font-mono text-slate-500 mt-0.5">Class: {classLabel}</p>
                   <p className="text-xs text-slate-500 mt-0.5">{od.department || ""}</p>
                 </div>
                 <div>
@@ -133,16 +134,18 @@ export function ODReviewModal({ od, role, onClose, onApprove, onReject }: ODRevi
                 </div>
               )}
 
-              {/* Already-terminal notice */}
-              {isTerminal && (
+              {!isActionable && (
                 <div className="p-3 bg-amber-50 border border-amber-200 rounded text-xs font-bold text-amber-700 flex items-center gap-2">
                   <Eye className="w-4 h-4 shrink-0" />
-                  This OD is already in a terminal state ({od.status.replace(/_/g, " ")}). View-only mode.
+                  {awaitingOtherReviewer
+                    ? role === "hod"
+                      ? "Awaiting faculty review — view-only until the class incharge responds."
+                      : "Forwarded to HOD — view-only at the faculty stage."
+                    : `This OD is not awaiting your action (${String(od.status).replace(/_/g, " ")}). View-only mode.`}
                 </div>
               )}
 
-              {/* Remarks + Actions — only for actionable states */}
-              {!isTerminal && (
+              {!isActionable ? null : (
                 <div>
                   <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Review Remarks (Optional)</h3>
                   <textarea
@@ -158,7 +161,7 @@ export function ODReviewModal({ od, role, onClose, onApprove, onReject }: ODRevi
             </div>
 
             {/* Action Buttons */}
-            {!isTerminal && (
+            {isActionable && (
               <div className="p-5 bg-slate-50 border-t border-slate-200 shrink-0 flex gap-3">
                 <button
                   onClick={() => handleAction("reject")}

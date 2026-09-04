@@ -2,6 +2,7 @@
 import { Calendar, FileText, ExternalLink, Download, Eye, Upload } from "lucide-react"
 import { ODStatus } from "@/lib/odStatus"
 import { OD_STATUS_LABELS, OD_STATUS_STYLES } from "@/lib/odStatus"
+import { formatStudentClass, formatStudentRoll } from "@/lib/studentIdentity"
 
 export interface ODLedgerTableProps {
   ods: any[]
@@ -70,6 +71,8 @@ export function ODLedgerTable({ ods, role, onPreviewDocument, onUploadProof, onR
             {ods.map(od => {
               const sc = OD_STATUS_STYLES[od.status as ODStatus] || { color: "text-[#6B7280]", bg: "bg-slate-100", border: "border-slate-200" }
               const shortLabel = STATUS_SHORT[od.status as ODStatus] || od.status.replace(/_/g, " ")
+              const roll = formatStudentRoll(od)
+              const klass = formatStudentClass(od)
 
               return (
                 <tr key={od.id} className="hover:bg-slate-50 transition-colors">
@@ -80,8 +83,7 @@ export function ODLedgerTable({ ods, role, onPreviewDocument, onUploadProof, onR
                       <>
                         <div className="font-semibold text-slate-800 text-sm mt-0.5">{od.studentName}</div>
                         <div className="text-[10px] text-slate-500 font-mono mt-0.5">
-                          {od.rollNumber || od.studentRollNo || "—"}
-                          {od.classId ? ` · ${od.classId}` : ""}
+                          {klass !== "Not set" ? `${roll} · ${klass}` : roll}
                         </div>
                       </>
                     )}

@@ -18,7 +18,7 @@ async function regeneratePdf(od: any, facultyApproved: boolean, hodApproved: boo
     department: od.department || "AIML",
     classLabel: od.classId || "—",
     section: od.section || "A",
-    year: od.year || "—",
+    year: od.currentYear || od.year || "—",
     eventName: od.eventName,
     eventType: od.eventType,
     organiser: od.organiser,
@@ -68,9 +68,12 @@ export async function PATCH(
     // Fetch student info for enriched PDF
     const studentDoc = await adminDb.collection("users").doc(od.studentUid).get()
     const studentData = studentDoc.data() || {}
-    od.studentName   = studentData.name   || "—"
+    od.studentName    = studentData.name || "—"
     od.registerNumber = studentData.registerNumber || "—"
-    od.classId       = studentData.classId || "—"
+    od.classId        = studentData.classId || "—"
+    od.section        = studentData.section || od.section
+    od.year           = studentData.currentYear || studentData.year || od.year
+    od.currentYear    = studentData.currentYear || od.currentYear
 
     // Fetch faculty name
     let facultyName = "Class Incharge"

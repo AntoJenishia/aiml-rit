@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { adminDb } from "@/lib/firebaseAdmin"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
+import { studentFieldsForOd } from "@/lib/studentIdentity"
 
 export async function GET(req: Request) {
   try {
@@ -56,7 +57,7 @@ export async function GET(req: Request) {
           try {
             const stuDoc = await adminDb.collection("users").doc(od.studentUid).get()
             if (stuDoc.exists) {
-              return { ...od, studentName: stuDoc.data()?.name || "Unknown" }
+              return { ...od, ...studentFieldsForOd(stuDoc.data() as Record<string, unknown>) }
             }
           } catch {}
         }

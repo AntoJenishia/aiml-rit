@@ -77,13 +77,18 @@ export default function HodOdTab({ departmentFilter }: { departmentFilter: "ALL"
   }
 
   const filteredODs = ods.filter(od => {
-    const matchesDept = departmentFilter === "ALL" || od.department === departmentFilter
+    const dept = (od.department || "").toLowerCase()
+    const matchesDept = departmentFilter === "ALL"
+      || od.department === departmentFilter
+      || (departmentFilter === "AIML" && (dept === "aiml" || dept.includes("machine learning")))
+      || (departmentFilter === "AIDS" && (dept === "aids" || dept.includes("data science")))
     const q = searchQuery.toLowerCase()
+    const roll = String((od as any).registerNumber || od.rollNumber || "")
     const matchesSearch = !q || (
-      od.studentName.toLowerCase().includes(q) ||
-      od.rollNumber.toLowerCase().includes(q) ||
-      od.referenceNumber.toLowerCase().includes(q) ||
-      od.eventName.toLowerCase().includes(q)
+      (od.studentName || "").toLowerCase().includes(q) ||
+      roll.toLowerCase().includes(q) ||
+      (od.referenceNumber || "").toLowerCase().includes(q) ||
+      (od.eventName || "").toLowerCase().includes(q)
     )
     return matchesDept && matchesSearch
   })

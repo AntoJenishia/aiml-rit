@@ -4,6 +4,7 @@ import { FieldValue } from "firebase-admin/firestore"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { ODStatus } from "@/lib/odStatus"
+import { studentFieldsForOd } from "@/lib/studentIdentity"
 
 export async function GET(req: Request) {
   try {
@@ -30,12 +31,8 @@ export async function GET(req: Request) {
       return {
         id: doc.id,
         ...data,
+        ...studentFieldsForOd(student),
         studentName: student.name || "Unknown Student",
-        studentEmail: student.email || "N/A",
-        rollNumber: student.rollNumber || "N/A",
-        department: student.department || "Unknown",
-        batch: student.batch || "Unknown",
-        classId: student.classId || "Unknown",
       }
     })
 

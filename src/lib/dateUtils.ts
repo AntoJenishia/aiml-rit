@@ -2,6 +2,19 @@
  * Shared utility for date formatting.
  */
 
+/** Epoch ms from a Firestore timestamp that may use `seconds` or `_seconds`. */
+export function timestampMs(value: unknown): number {
+  if (!value || typeof value !== "object") return 0
+  const t = value as { seconds?: number; _seconds?: number; toDate?: () => Date }
+  if (typeof t.seconds === "number") return t.seconds * 1000
+  if (typeof t._seconds === "number") return t._seconds * 1000
+  if (typeof t.toDate === "function") {
+    const d = t.toDate()
+    return isNaN(d.getTime()) ? 0 : d.getTime()
+  }
+  return 0
+}
+
 /**
  * Formats a date value into "D MMM YYYY" format (e.g., "8 Aug 2026").
  * Accepts standard date strings or Firestore timestamp objects.

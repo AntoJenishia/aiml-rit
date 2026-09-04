@@ -6,6 +6,7 @@ import { FieldValue } from "firebase-admin/firestore"
 import { generateFormalODPdf } from "@/lib/pdf-generator"
 import { initializeApp, getApps } from "firebase-admin/app"
 import { ODStatus } from "@/lib/odStatus"
+import { odDepartmentCode, studentFieldsForOd } from "@/lib/studentIdentity"
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function generateRefNumber(): string {
@@ -80,7 +81,7 @@ export async function POST(req: NextRequest) {
       department: userData.department || "AIML",
       classLabel: userData.classId || "—",
       section: userData.section || "A",
-      year: userData.year || "—",
+      year: userData.currentYear || userData.year || "—",
       eventName, eventType, organiser, venue, startDate, endDate,
       odDays: body.odDays || 1,
       reason,
@@ -136,8 +137,16 @@ export async function POST(req: NextRequest) {
     }
 
     // Save to Firestore with Drive URLs
+    const identity = studentFieldsForOd(userData as Record<string, unknown>)
+
     const docRef = await adminDb.collection("odRequests").add({
       studentUid: uid,
+      studentName: identity.studentName,
+      registerNumber: identity.registerNumber || "",
+      rollNumber: identity.rollNumber || "",
+      classId: identity.classId || "",
+      currentYear: identity.currentYear || "",
+      section: identity.section || "",
       referenceNumber: refNumber,
       eventName, eventType, organiser, venue,
       startDate, endDate,
@@ -146,7 +155,7 @@ export async function POST(req: NextRequest) {
       gpsLocation: gpsLocation || null,
       signedLetterUrl: scriptData.proofUrl || "", // Maps to the uploaded signed letter in Drive
       status: ODStatus.PENDING_FACULTY,
-      department: "AIML",
+      department: odDepartmentCode(userData as Record<string, unknown>),
       driveFolderId: scriptData.folderId || "",
       driveFolderUrl: scriptData.folderUrl || "",
       createdAt: FieldValue.serverTimestamp(),
@@ -171,9 +180,11 @@ export async function GET(req: NextRequest) {
     let docs: FirebaseFirestore.QuerySnapshot
 
     if (role === "student") {
+      // Own requests only — do not also filter by department code.
+      // New ODs briefly stored the long department name, which made
+      // `department == "AIML"` miss them on the student dashboard.
       docs = await adminDb.collection("odRequests")
         .where("studentUid", "==", uid)
-        .where("department", "==", "AIML")
         .get()
     } else if (role === "staff") {
       docs = await adminDb.collection("odRequests")
@@ -198,7 +209,7 @@ export async function GET(req: NextRequest) {
       // Enrich with student names
       const enriched = await Promise.all(filtered.map(async (req: any) => {
         const studentDoc = await adminDb.collection("users").doc(req.studentUid).get()
-        return { ...req, studentName: studentDoc.data()?.name || "Unknown" }
+        return { ...req, ...studentFieldsForOd(studentDoc.data() as Record<string, unknown> | undefined) }
       }))
 
       enriched.sort((a, b) => (b.createdAt?._seconds || 0) - (a.createdAt?._seconds || 0))
@@ -211,7 +222,7 @@ export async function GET(req: NextRequest) {
       const data = docs.docs.map(d => ({ id: d.id, ...d.data() }))
       const enriched = await Promise.all(data.map(async (req: any) => {
         const studentDoc = await adminDb.collection("users").doc(req.studentUid).get()
-        return { ...req, studentName: studentDoc.data()?.name || "Unknown" }
+        return { ...req, ...studentFieldsForOd(studentDoc.data() as Record<string, unknown> | undefined) }
       }))
 
       enriched.sort((a, b) => (b.createdAt?._seconds || 0) - (a.createdAt?._seconds || 0))

@@ -4,6 +4,7 @@ import {
   collection, getDocs, getDoc, doc, setDoc,
   query, orderBy, where,
 } from "firebase/firestore"
+import { omitLiteralUndefinedStrings } from "@/lib/studentIdentity"
 
 export async function GET(req: Request) {
   try {
@@ -71,7 +72,8 @@ export async function PATCH(req: Request) {
     if (!uid) {
       return NextResponse.json({ error: "uid required" }, { status: 400 })
     }
-    await setDoc(doc(db, "users", uid), fields, { merge: true })
+    const sanitized = omitLiteralUndefinedStrings(fields as Record<string, unknown>)
+    await setDoc(doc(db, "users", uid), sanitized, { merge: true })
     return NextResponse.json({ ok: true })
   } catch (e) {
     console.error("[API /users PATCH]", e)

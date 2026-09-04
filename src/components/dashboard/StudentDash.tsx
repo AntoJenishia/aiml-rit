@@ -4,7 +4,7 @@ import { useUser } from "@/lib/hooks/useUser"
 import { useState, useEffect, useRef, useCallback } from "react"
 import { DocumentPreviewModal } from "@/components/shared/DocumentPreviewModal"
 import { useSearchParams } from "next/navigation"
-import { formatDate } from "@/lib/dateUtils"
+import { formatDate, timestampMs } from "@/lib/dateUtils"
 import Image from "next/image"
 import Link from "next/link"
 import {
@@ -314,17 +314,18 @@ function PostODProofModal({od,onClose,onSuccess}:{od:ODRequest;onClose:()=>void;
 // ── Recent Activity ───────────────────────────────────────────────────────────
 function RecentActivity({odRequests}:{odRequests:ODRequest[]}) {
   const activities = odRequests
-    .filter(od=>od.createdAt)
-    .sort((a,b)=>(b.createdAt?.seconds??0)-(a.createdAt?.seconds??0))
-    .slice(0,5)
-    .map(od=>{
+    .filter(od => timestampMs(od.createdAt) > 0 || od.referenceNumber)
+    .sort((a, b) => timestampMs(b.createdAt) - timestampMs(a.createdAt))
+    .slice(0, 5)
+    .map(od => {
       const sc = OD_STATUS_STYLES[od.status as ODStatus] || { color: "text-[#6B7280]", bg: "bg-slate-100" }
       const label = OD_STATUS_LABELS[od.status as ODStatus] || od.status
+      const created = timestampMs(od.createdAt)
       return {
-        id:od.id,text:od.eventName, venue:od.venue, reason:od.reason, 
-        dateStr:od.startDate !== od.endDate ? `${formatDate(od.startDate)} - ${formatDate(od.endDate)}` : formatDate(od.startDate),
-        sub:label,color:sc.color,
-        time:od.createdAt?.seconds?new Date(od.createdAt.seconds*1000).toLocaleDateString("en-IN",{day:"2-digit",month:"short",year:"numeric"}):""
+        id: od.id, text: od.eventName, venue: od.venue, reason: od.reason,
+        dateStr: od.startDate !== od.endDate ? `${formatDate(od.startDate)} - ${formatDate(od.endDate)}` : formatDate(od.startDate),
+        sub: label, color: sc.color,
+        time: created ? new Date(created).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : ""
       }
     })
   return (

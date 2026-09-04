@@ -132,7 +132,7 @@ export default function HodStudentsTab({ departmentFilter }: { departmentFilter:
                     </td>
                     <td className="px-4 py-2.5">
                       <div className="space-y-0.5">
-                        <div className="text-xs font-mono text-slate-700"><span className="text-slate-400 font-sans text-[10px] uppercase tracking-widest">Roll:</span> {s.rollNumber || "—"}</div>
+                        <div className="text-xs font-mono text-slate-700"><span className="text-slate-400 font-sans text-[10px] uppercase tracking-widest">Register Number:</span> {s.registerNumber || s.rollNumber || "—"}</div>
                         <div className="text-xs font-mono text-slate-700"><span className="text-slate-400 font-sans text-[10px] uppercase tracking-widest">Reg:</span> {s.registerNumber || "—"}</div>
                       </div>
                     </td>
