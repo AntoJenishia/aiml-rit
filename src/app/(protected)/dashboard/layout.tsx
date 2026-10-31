@@ -25,17 +25,19 @@ const getNavItems = (role?: string, isClassIncharge?: boolean) => {
   if (role === "hod") {
     return [
       { href: "/admin",                                label: "Dashboard",           icon: LayoutDashboard, exact: true, tab: "dashboard" },
-      { href: "/admin?tab=department-overview",        label: "Dept. Overview",      icon: BarChart3,       exact: false, tab: "department-overview" },
+      { href: "/admin?tab=activity",                   label: "Activity Monitor",    icon: BarChart3,       exact: false, tab: "activity" },
+      { href: "/admin?tab=attendance",                 label: "Daily Attendance",    icon: CalendarDays,    exact: false, tab: "attendance" },
+      { href: "/admin?tab=leave",                      label: "Leave Approvals",     icon: FileText,        exact: false, tab: "leave" },
       { href: "/admin?tab=students",                   label: "Students",            icon: GraduationCap,   exact: false, tab: "students" },
       { href: "/admin?tab=staff",                      label: "Staff",               icon: Users,           exact: false, tab: "staff" },
-      { href: "/admin?tab=batches",                    label: "Batches",             icon: FolderOpen,      exact: false, tab: "batches" },
-      { href: "/admin?tab=semesters",                  label: "Semesters",           icon: CalendarDays,    exact: false, tab: "semesters" },
-      { href: "/admin?tab=sections",                   label: "Sections",            icon: User,            exact: false, tab: "sections" },
-      { href: "/admin?tab=class-allocation",           label: "Class Allocation",    icon: Briefcase,       exact: false, tab: "class-allocation" },
+      { href: "/admin?tab=batches",                    label: "Batches & Classes",   icon: FolderOpen,      exact: false, tab: "batches" },
+
+
+
       { href: "/admin?tab=od",                         label: "OD Management",       icon: Clock,           exact: false, tab: "od" },
       { href: "/admin?tab=achievements",               label: "Achievements",        icon: Award,           exact: false, tab: "achievements" },
       { href: "/admin?tab=events",                     label: "Events & Activities", icon: CalendarPlus,    exact: false, tab: "events" },
-      { href: "/admin?tab=faculty-portfolios",         label: "Faculty Portfolios",  icon: FileText,        exact: false, tab: "faculty-portfolios" },
+
       { href: "/admin?tab=reports",                    label: "Reports",             icon: TrendingUp,      exact: false, tab: "reports" },
       { href: "/admin?tab=audit-logs",                 label: "Audit Logs",          icon: Shield,          exact: false, tab: "audit-logs" },
       { href: "/admin?tab=notifications",              label: "Notifications",       icon: Bell,            exact: false, tab: "notifications" },
@@ -46,6 +48,8 @@ const getNavItems = (role?: string, isClassIncharge?: boolean) => {
     return [
       { href: "/dashboard/faculty",                    label: "Dashboard",       icon: LayoutDashboard, exact: true },
       { href: "/dashboard/faculty?tab=profile",        label: "My Profile",      icon: User,            exact: false, tab: "profile" },
+      { href: "/dashboard/faculty?tab=attendance",     label: "Attendance",      icon: CalendarDays,    exact: false, tab: "attendance" },
+      { href: "/dashboard/faculty?tab=leave",          label: "Leave Requests",  icon: FileText,        exact: false, tab: "leave" },
       { href: "/dashboard/faculty?tab=students",       label: "My Students",     icon: Users,           exact: false, tab: "students" },
       { href: "/dashboard/faculty?tab=od",             label: "OD Requests",     icon: Clock,           exact: false, tab: "od" },
       { href: "/dashboard/faculty?tab=achievements",   label: "Achievements",    icon: Award,           exact: false, tab: "achievements" },
@@ -58,6 +62,7 @@ const getNavItems = (role?: string, isClassIncharge?: boolean) => {
   return [
     { href: "/dashboard/student",                    label: "Dashboard",      icon: LayoutDashboard, exact: true },
     { href: "/dashboard/student?tab=profile",        label: "My Profile",     icon: User,            exact: false, tab: "profile" },
+    { href: "/dashboard/student?tab=attendance",     label: "My Attendance",  icon: CalendarDays,    exact: false, tab: "attendance" },
     { href: "/dashboard/student?tab=od",             label: "My OD",          icon: FileText,        exact: false, tab: "od" },
     { href: "/dashboard/student?tab=achievements",   label: "My Achievements", icon: Award,          exact: false, tab: "achievements" },
     { href: "/dashboard/student?tab=events",         label: "My Events",      icon: CalendarDays,    exact: false, tab: "events" },
@@ -75,7 +80,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   const searchParams = useSearchParams()
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
-  useEffect(() => setSidebarOpen(false), [pathname])
+  useEffect(() => setSidebarOpen(false), [pathname, searchParams])
 
   const navItems = getNavItems(user?.role, isClassIncharge)
   const roleConfig = ROLE_ACCENT[user?.role ?? "student"] ?? ROLE_ACCENT.student
@@ -142,7 +147,11 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
                   </div>
                 )}
                 <div className="min-w-0">
-                  <p className="text-white text-xs font-semibold truncate leading-tight">{user.name}</p>
+                  <p className="text-white text-xs font-semibold truncate leading-tight">
+                    {user.role === "hod" && (!user.name || user.name.toLowerCase().includes("test"))
+                      ? "SELVAKUMARAN S."
+                      : user.name}
+                  </p>
                   <p className="text-white/60 text-[10px] uppercase tracking-wider mt-0.5">{roleConfig.badgeText}</p>
                 </div>
               </div>
@@ -158,7 +167,8 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
               const itemAny = item as any
               if (itemAny.tab) {
                 const currentTab = searchParams.get("tab") || "dashboard"
-                active = pathname === "/admin" && currentTab === itemAny.tab
+                const isBatchesMatch = itemAny.tab === "batches" && ["batches", "semesters", "sections", "class-allocation"].includes(currentTab)
+                active = pathname === "/admin" && (currentTab === itemAny.tab || isBatchesMatch)
               } else {
                 active = item.exact ? pathname === item.href : pathname.startsWith(item.href) && item.href !== "/"
               }

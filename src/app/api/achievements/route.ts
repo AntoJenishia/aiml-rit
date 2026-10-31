@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { adminDb } from "@/lib/firebaseAdmin"
+import { supabaseAdmin } from "@/lib/supabase"
 import { FieldValue } from "firebase-admin/firestore"
 
 export async function POST(req: NextRequest) {
@@ -27,44 +28,69 @@ export async function POST(req: NextRequest) {
     if (!userDoc.exists) return NextResponse.json({ error: "User not found." }, { status: 404 })
     const userData = userDoc.data()!
 
-    // Forward to Google Apps Script Webhook
+    // 1. Direct upload proof file to Supabase Storage
+    let proofFileUrl = ""
+    if (proofFileB64) {
+      try {
+        const buffer = Buffer.from(proofFileB64, "base64")
+        const safeName = (proofFileName || "achievement_proof.pdf").replace(/[^a-zA-Z0-9.-]/g, "_")
+        const filePath = `achievements/${uid}_${Date.now()}_${safeName}`
+
+        const { error: uploadError } = await supabaseAdmin.storage
+          .from("proofs")
+          .upload(filePath, buffer, {
+            contentType: proofMimeType || "application/pdf",
+            upsert: true,
+          })
+
+        if (!uploadError) {
+          const { data: pubData } = supabaseAdmin.storage
+            .from("proofs")
+            .getPublicUrl(filePath)
+          proofFileUrl = pubData.publicUrl
+        } else {
+          console.error("[ACHIEVEMENTS POST] Supabase upload error:", uploadError)
+        }
+      } catch (bufErr) {
+        console.error("[ACHIEVEMENTS POST] Buffer error:", bufErr)
+      }
+    }
+
+    // 2. Forward to Google Apps Script Webhook (optional redundancy for Sheets)
     const scriptUrl = process.env.NEXT_PUBLIC_APPS_SCRIPT_URL
-    if (!scriptUrl) {
-      throw new Error("Missing NEXT_PUBLIC_APPS_SCRIPT_URL in env")
-    }
+    if (scriptUrl) {
+      try {
+        const webhookPayload = {
+          action: "create_achievement",
+          studentName: userData.name || "Student",
+          registerNumber: userData.registerNumber || "—",
+          classId: userData.classId || "—",
+          title,
+          category,
+          eventName,
+          date,
+          position,
+          description: description || "",
+          proofFile: proofFileB64,
+          proofFileName,
+          proofMimeType
+        }
 
-    const webhookPayload = {
-      action: "create_achievement",
-      studentName: userData.name || "Student",
-      registerNumber: userData.registerNumber || "—",
-      classId: userData.classId || "—",
-      title,
-      category,
-      eventName,
-      date,
-      position,
-      description: description || "",
-      proofFile: proofFileB64,
-      proofFileName,
-      proofMimeType
-    }
+        const scriptRes = await fetch(scriptUrl, {
+          method: "POST",
+          body: JSON.stringify(webhookPayload)
+        })
 
-    const scriptRes = await fetch(scriptUrl, {
-      method: "POST",
-      body: JSON.stringify(webhookPayload)
-    })
-    
-    if (!scriptRes.ok) {
-      throw new Error("Failed to contact Google Apps Script Webhook.")
+        if (scriptRes.ok) {
+          const scriptData = await scriptRes.json()
+          if (!proofFileUrl && scriptData.proofUrl) {
+            proofFileUrl = scriptData.proofUrl
+          }
+        }
+      } catch (scriptErr) {
+        console.warn("[ACHIEVEMENTS POST] Apps Script sync non-blocking error:", scriptErr)
+      }
     }
-    
-    const scriptData = await scriptRes.json()
-    if (scriptData.error) {
-      throw new Error("Apps Script Error: " + scriptData.error)
-    }
-
-    // Get public URL from Apps Script response
-    const proofFileUrl = scriptData.proofUrl || ""
 
     const docRef = await adminDb.collection("achievements").add({
       studentUid: uid,

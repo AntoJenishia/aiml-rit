@@ -23,6 +23,12 @@ const nextConfig = {
         protocol: "https",
         hostname: "lh3.googleusercontent.com",
         pathname: "/**"
+      },
+      {
+        // RIT IMS portal profile pictures
+        protocol: "https",
+        hostname: "ims.ritchennai.edu.in",
+        pathname: "/**"
       }
     ]
   }

@@ -16,25 +16,11 @@ export default function FacultySpotlight() {
   useEffect(() => {
     const fetchFaculty = async () => {
       try {
-        const res = await fetch('/api/users');
+        const res = await fetch('/api/faculty');
         if (res.ok) {
-          const users = await res.json();
-          const staffUsers = users.filter((u: any) => u.role === 'staff' || u.role === 'hod');
-          
-          if (staffUsers.length > 0) {
-            // Remove duplicates based on email
-            const uniqueStaff = Array.from(new Map(staffUsers.map((u: any) => [u.email, u])).values());
-            
-            const mappedFaculty: Faculty[] = (uniqueStaff as any[]).map((u: any) => ({
-              uid: u.uid || u.id || `staff-${Math.random()}`,
-              name: u.name || "Faculty Member",
-              qualification: u.qualification || "",
-              specialization: u.specialization || "",
-              experience: parseInt(u.experience) || 0,
-              photo: u.image || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || 'Faculty')}&background=1e3a8a&color=fff&size=256`
-            }));
-            
-            setLiveFaculty(mappedFaculty);
+          const facultyList = await res.json();
+          if (Array.isArray(facultyList) && facultyList.length > 0) {
+            setLiveFaculty(facultyList);
           }
         }
       } catch (e) {

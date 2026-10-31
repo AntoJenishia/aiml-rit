@@ -13,6 +13,7 @@ import {
 } from "lucide-react"
 
 import AchievementModal from "./AchievementModal"
+import StudentAttendanceTab from "./student/StudentAttendanceTab"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface ODRequest {
@@ -141,6 +142,7 @@ function ODModal({onClose,onSuccess,initialData}:{onClose:()=>void;onSuccess:()=
     setError("")
     if(!form.eventName||!form.organiser||!form.venue||!form.startDate||!form.endDate||!form.reason){setError("Please fill all required fields.");return}
     if(!proofFile){setError("Please upload the signed OD letter.");return}
+    if(proofFile.size > 5 * 1024 * 1024){setError(`Signed letter exceeds 5MB limit (${(proofFile.size / (1024 * 1024)).toFixed(1)}MB). Please choose a compressed file.`);return}
     
     setUploading(true)
     let gpsLocation;
@@ -196,11 +198,23 @@ function ODModal({onClose,onSuccess,initialData}:{onClose:()=>void;onSuccess:()=
           </div>
           <div><label className="block text-xs font-semibold text-slate-700 mb-1.5">Reason / Purpose *</label><textarea value={form.reason} onChange={e=>set("reason",e.target.value)} placeholder="Briefly explain why you need this OD..." rows={3} className={`${inp} resize-none`}/></div>
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Upload Signed OD Letter <span className="text-red-500">*</span></label>
-            <input ref={fileRef} type="file" accept="application/pdf,image/*" className="hidden" onChange={e=>setProofFile(e.target.files?.[0]??null)}/>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-semibold text-slate-700">Upload Signed OD Letter <span className="text-red-500">*</span></label>
+              <span className="text-[10px] text-slate-400 font-medium">Max 5MB</span>
+            </div>
+            <input ref={fileRef} type="file" accept="application/pdf,image/*" className="hidden" onChange={e=>{
+              const f = e.target.files?.[0]
+              if (f && f.size > 5 * 1024 * 1024) {
+                setError(`File exceeds 5MB limit (${(f.size / (1024 * 1024)).toFixed(1)}MB). Please choose a compressed file.`)
+                setProofFile(null)
+                if (fileRef.current) fileRef.current.value = ""
+                return
+              }
+              setProofFile(f ?? null)
+            }}/>
             <button onClick={()=>fileRef.current?.click()} className={`w-full flex flex-col items-center justify-center gap-2 rounded border-2 border-dashed py-5 text-sm font-semibold transition-all ${proofFile?"border-[#16A34A] bg-green-50 text-[#16A34A]":"border-[#E2E8F0] bg-slate-50 text-slate-500 hover:border-[#003087] hover:text-[#003087]"}`}>
               {proofFile?<CheckCircle className="h-5 w-5"/>:<Upload className="h-5 w-5"/>}
-              {proofFile?proofFile.name:"Click to upload signed letter"}
+              {proofFile?proofFile.name:"Click to upload signed letter (PDF or Image, max 5MB)"}
             </button>
             <p className="text-[10px] text-slate-500 mt-2 text-center flex items-center justify-center gap-1"><Shield className="h-3 w-3"/> GPS location will be captured securely on submit</p>
           </div>
@@ -220,12 +234,20 @@ function ODModal({onClose,onSuccess,initialData}:{onClose:()=>void;onSuccess:()=
 // ── Post OD Proof Modal ───────────────────────────────────────────────────────
 function PostODProofModal({od,onClose,onSuccess}:{od:ODRequest;onClose:()=>void;onSuccess:()=>void}) {
   const [files,setFiles] = useState<File[]>([])
+  const [category, setCategory] = useState<string>(od.eventType || "Competition / Hackathon")
+  const [position, setPosition] = useState<string>("Completed / Participated")
+  const [description, setDescription] = useState<string>("")
   const [uploading,setUploading] = useState(false)
   const [error,setError] = useState("")
   const fileRef = useRef<HTMLInputElement>(null)
 
   const handleSubmit = async () => {
-    if(!files.length){setError("Please select at least one file.");return}
+    if(!files.length){setError("Please select at least one certificate or event photo.");return}
+    const oversized = files.find(f => f.size > 5 * 1024 * 1024)
+    if(oversized){
+      setError(`File "${oversized.name}" exceeds 5MB limit (${(oversized.size / (1024 * 1024)).toFixed(1)}MB). Please choose a compressed file.`)
+      return
+    }
     setUploading(true);setError("")
     try {
       const toBase64=(f:File):Promise<string>=>new Promise((res,rej)=>{
@@ -233,7 +255,16 @@ function PostODProofModal({od,onClose,onSuccess}:{od:ODRequest;onClose:()=>void;
         r.onload=()=>res((r.result as string).split(",")[1]);r.onerror=rej
       })
       const b64files=await Promise.all(files.map(async f=>({base64:await toBase64(f),name:f.name,mimeType:f.type})))
-      const res=await fetch(`/api/od/${od.id}/proof`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({files:b64files})})
+      const res=await fetch(`/api/od/${od.id}/proof`,{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+          files:b64files,
+          category,
+          position,
+          description: description.trim() || `OD completion proof for ${od.eventName}`,
+        })
+      })
       if(!res.ok){const d=await res.json();setError(d.error||"Submission failed.");setUploading(false);return}
       setUploading(false);onSuccess();onClose()
     } catch{setError("Something went wrong.");setUploading(false)}
@@ -243,17 +274,75 @@ function PostODProofModal({od,onClose,onSuccess}:{od:ODRequest;onClose:()=>void;
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4" onClick={onClose}>
       <div className="w-full max-w-md bg-white rounded-lg shadow-xl overflow-hidden max-h-[90vh] flex flex-col" onClick={e=>e.stopPropagation()}>
         <div className="px-5 pt-5 pb-4 border-b border-[#E2E8F0] flex items-center justify-between bg-slate-50">
-          <div><h2 className="text-lg font-bold text-slate-800">Submit Post-Event Proof</h2><p className="text-xs text-slate-500 mt-0.5 truncate max-w-[240px]">{od.eventName}</p></div>
+          <div>
+            <h2 className="text-lg font-bold text-slate-800">Submit Post-Event Proof & Achievement</h2>
+            <p className="text-xs text-slate-500 mt-0.5 truncate max-w-[280px]">{od.eventName}</p>
+          </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-700 p-1 rounded hover:bg-slate-200"><X className="h-5 w-5"/></button>
         </div>
         <div className="flex-1 overflow-y-auto px-5 py-5 space-y-4">
           {error&&<div className="flex items-center gap-2 bg-red-50 border border-[#EF4444]/30 rounded px-4 py-3 text-sm text-[#EF4444]"><AlertCircle className="h-4 w-4 shrink-0"/>{error}</div>}
+          
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Category</label>
+              <select
+                value={category}
+                onChange={e=>setCategory(e.target.value)}
+                className="w-full text-xs font-medium bg-slate-50 border border-slate-300 rounded px-2.5 py-2 text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#003087]"
+              >
+                <option value="Competition / Hackathon">Competition / Hackathon</option>
+                <option value="Workshop / Seminar">Workshop / Seminar</option>
+                <option value="Paper / Project Presentation">Paper / Project Presentation</option>
+                <option value="Industrial Visit">Industrial Visit</option>
+                <option value="Club / Technical Activity">Club / Technical Activity</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Position / Result</label>
+              <select
+                value={position}
+                onChange={e=>setPosition(e.target.value)}
+                className="w-full text-xs font-medium bg-slate-50 border border-slate-300 rounded px-2.5 py-2 text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#003087]"
+              >
+                <option value="1st Prize / Winner">1st Prize / Winner</option>
+                <option value="2nd Prize / Runner Up">2nd Prize / Runner Up</option>
+                <option value="3rd Prize">3rd Prize</option>
+                <option value="Special Mention / Finalist">Special Mention / Finalist</option>
+                <option value="Completed / Participated">Completed / Participated</option>
+              </select>
+            </div>
+          </div>
+
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Upload Files <span className="text-red-500">*</span></label>
-            <input ref={fileRef} type="file" multiple accept="image/*,application/pdf" className="hidden" onChange={e=>setFiles(Array.from(e.target.files||[]))}/>
-            <button onClick={()=>fileRef.current?.click()} className={`w-full flex flex-col items-center justify-center gap-2 rounded border-2 border-dashed py-6 text-sm font-semibold transition-all ${files.length>0?"border-[#16A34A] bg-green-50 text-[#16A34A]":"border-[#E2E8F0] bg-slate-50 text-slate-500 hover:border-[#003087] hover:text-[#003087]"}`}>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Event Highlights / Description</label>
+            <textarea
+              rows={2}
+              value={description}
+              onChange={e=>setDescription(e.target.value)}
+              placeholder="e.g. Won 1st place among 40 college teams with AI healthcare project..."
+              className="w-full text-xs bg-slate-50 border border-slate-300 rounded p-2.5 text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#003087]"
+            />
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-semibold text-slate-700">Upload Certificate / Proof Photos <span className="text-red-500">*</span></label>
+              <span className="text-[10px] text-slate-400 font-medium">Max 5MB each</span>
+            </div>
+            <input ref={fileRef} type="file" multiple accept="image/*,application/pdf" className="hidden" onChange={e=>{
+              const selected = Array.from(e.target.files||[])
+              const oversized = selected.find(f => f.size > 5 * 1024 * 1024)
+              if (oversized) {
+                setError(`File "${oversized.name}" exceeds 5MB limit. Please choose compressed files.`)
+                return
+              }
+              setFiles(selected)
+            }}/>
+            <button onClick={()=>fileRef.current?.click()} className={`w-full flex flex-col items-center justify-center gap-2 rounded border-2 border-dashed py-5 text-sm font-semibold transition-all ${files.length>0?"border-[#16A34A] bg-green-50 text-[#16A34A]":"border-[#E2E8F0] bg-slate-50 text-slate-500 hover:border-[#003087] hover:text-[#003087]"}`}>
               {files.length>0?<CheckCircle className="h-5 w-5"/>:<Upload className="h-5 w-5"/>}
-              {files.length>0?`${files.length} file(s) selected`:"Click to upload photos or certificates"}
+              {files.length>0?`${files.length} file(s) selected`:"Click to upload certificates / photos (Max 5MB each)"}
             </button>
             {files.length>0&&<ul className="mt-2 text-xs text-slate-500 space-y-1">{files.map(f=><li key={f.name} className="truncate">• {f.name}</li>)}</ul>}
           </div>
@@ -262,7 +351,7 @@ function PostODProofModal({od,onClose,onSuccess}:{od:ODRequest;onClose:()=>void;
           <button onClick={onClose} className="flex-1 py-2 rounded border border-[#E2E8F0] bg-white text-sm font-semibold text-slate-600 hover:bg-slate-100">Cancel</button>
           <button onClick={handleSubmit} disabled={uploading} className="flex-1 py-2 rounded bg-[#003087] text-white text-sm font-semibold hover:bg-[#002070] disabled:opacity-60 flex items-center justify-center gap-2 shadow-sm">
             {uploading?<Loader2 className="h-4 w-4 animate-spin"/>:<CheckCircle className="h-4 w-4"/>}
-            {uploading?"Uploading...":"Submit Proof"}
+            {uploading?"Uploading...":"Submit & Sync"}
           </button>
         </div>
       </div>
@@ -355,11 +444,15 @@ export default function StudentDash() {
   useEffect(()=>{
     async function load() {
       try {
-        if(uid) {
-          const pRes=await fetch(`/api/users?uid=${uid}`)
+        const identifier = uid || email
+        if(identifier) {
+          const pRes=await fetch(`/api/users?uid=${encodeURIComponent(identifier)}`)
           if(pRes.ok){
-            const p=await pRes.json();setProfile(p)
-            if(p?.classId){
+            const p=await pRes.json()
+            setProfile(p)
+            if(p?.classIncharge && p.classIncharge !== "—") {
+              setClassInchargeName(p.classIncharge)
+            } else if(p?.classId){
               const ir=await fetch(`/api/users?classId=${encodeURIComponent(p.classId)}`)
               if(ir.ok){const i=await ir.json();if(i?.name)setClassInchargeName(i.name)}
             }
@@ -369,7 +462,7 @@ export default function StudentDash() {
       setLoadingProfile(false)
     }
     load()
-  },[uid])
+  },[uid, email])
 
   const loadODs=useCallback(async()=>{
     if(!uid)return;setLoadingOD(true)
@@ -393,9 +486,7 @@ export default function StudentDash() {
 
   const displayName=profile?.name||name||"Student"
   const department=profile?.department||(profile?.deptCode?.toUpperCase())||"AIML"
-  const deptShort=profile?.deptCode
-    ? (profile.deptCode.toLowerCase()==="aids" ? "AI&DS" : "AIML")
-    : (department.toLowerCase().includes("data") ? "AI&DS" : "AIML")
+  const deptShort = "AIML"
   const semesterNum=profile?.semester
   const semesterLabel=semesterNum?`Semester ${semesterNum}`:"—"
   const section=profile?.section||"—"
@@ -422,8 +513,8 @@ export default function StudentDash() {
             {/* Navy top bar */}
             <div className="bg-[#003087] px-6 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-center gap-4">
-                {image ? (
-                  <Image src={image} alt={displayName} width={56} height={56}
+                {profile?.profile || profile?.photoURL || image ? (
+                  <img src={profile?.profile || profile?.photoURL || image} alt={displayName}
                     className="rounded-full ring-2 ring-white/30 w-12 h-12 object-cover shrink-0"/>
                 ) : (
                   <div className="h-12 w-12 rounded-full bg-white/20 text-white flex items-center justify-center text-xl font-bold ring-2 ring-white/30 shrink-0">
@@ -454,10 +545,14 @@ export default function StudentDash() {
             </div>
             {/* Register number strip */}
             <div className="px-6 py-3 bg-slate-50 border-t border-[#E2E8F0] flex items-center justify-between gap-2 flex-wrap">
-              <div className="flex items-center gap-4 text-xs text-slate-500">
+              <div className="flex items-center gap-4 text-xs text-slate-500 flex-wrap">
                 <span><span className="font-semibold text-slate-700">Reg. No:</span> {registerNumber}</span>
                 <span><span className="font-semibold text-slate-700">Roll:</span> {rollNumber}</span>
                 <span><span className="font-semibold text-slate-700">Batch:</span> {batch}</span>
+                <span><span className="font-semibold text-slate-700">Gender:</span> {profile?.gender || "—"}</span>
+                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${String(profile?.hosteler) === "1" ? "bg-amber-100 text-amber-800 border border-amber-200" : "bg-emerald-100 text-emerald-800 border border-emerald-200"}`}>
+                  {String(profile?.hosteler) === "1" ? "Hosteler" : "Day Scholar"}
+                </span>
               </div>
               <span className="text-[10px] font-semibold uppercase tracking-widest px-2 py-1 bg-[#003087]/10 text-[#003087] rounded">{deptShort}</span>
             </div>
@@ -468,7 +563,7 @@ export default function StudentDash() {
             <SummaryCard icon={Building2}     label="Department"   value={deptShort}             borderColor="border-[#003087]" iconColor="text-[#003087]"/>
             <SummaryCard icon={GraduationCap} label="Semester"     value={semesterLabel}         borderColor="border-[#7C3AED]" iconColor="text-[#7C3AED]"/>
             <SummaryCard icon={Users}         label="Section"      value={`Sec. ${section}`}     borderColor="border-[#0891B2]" iconColor="text-[#0891B2]"/>
-            <SummaryCard icon={Hash}          label="Register No." value={registerNumber}        borderColor="border-[#16A34A]" iconColor="text-[#16A34A]"/>
+            <SummaryCard icon={Building2}     label="Residence"    value={String(profile?.hosteler) === "1" ? "Hosteler" : "Day Scholar"} borderColor="border-[#F59E0B]" iconColor="text-[#F59E0B]"/>
           </div>
 
           {/* Quick Actions */}
@@ -499,18 +594,26 @@ export default function StudentDash() {
           {/* Profile Header */}
           <div className="bg-[#003087] rounded-lg shadow-sm overflow-hidden">
             <div className="px-6 py-6 flex flex-col sm:flex-row items-center sm:items-start gap-5">
-              {image ? (
-                <Image src={image} alt={displayName} width={80} height={80} className="rounded-full ring-4 ring-white/30 w-18 h-18 object-cover shadow-md shrink-0"/>
+              {profile?.profile || profile?.photoURL || image ? (
+                <img src={profile?.profile || profile?.photoURL || image} alt={displayName} className="rounded-full ring-4 ring-white/30 w-20 h-20 object-cover shadow-md shrink-0"/>
               ) : (
-                <div className="h-18 w-18 rounded-full bg-white/20 text-white flex items-center justify-center text-3xl font-bold ring-4 ring-white/30 shadow-md shrink-0" style={{width:72,height:72}}>
-                  {displayName[0]}
+                <div className="h-20 w-20 rounded-full bg-white/20 text-white flex items-center justify-center text-3xl font-bold ring-4 ring-white/30 shadow-md shrink-0">
+                  {displayName[0] ?? "S"}
                 </div>
               )}
               <div>
-                <p className="text-white/60 text-[10px] font-semibold uppercase tracking-widest mb-1">Student Profile</p>
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                  <span className="text-white/60 text-[10px] font-semibold uppercase tracking-widest">Student Profile</span>
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${String(profile?.hosteler) === "1" ? "bg-amber-400 text-slate-900" : "bg-emerald-400 text-slate-900"}`}>
+                    {String(profile?.hosteler) === "1" ? "Hosteler" : "Day Scholar"}
+                  </span>
+                  <span className="bg-white/20 text-white text-[10px] font-bold px-2 py-0.5 rounded">
+                    {profile?.gender || "Student"}
+                  </span>
+                </div>
                 <h2 className="text-xl font-bold text-white leading-tight">{displayName}</h2>
-                <p className="text-white/70 text-sm mt-1">{department} &nbsp;•&nbsp; {semesterLabel} &nbsp;•&nbsp; Section {section}</p>
-                <p className="text-white/50 text-xs mt-1 font-mono">Reg. No: {registerNumber}</p>
+                <p className="text-white/80 text-sm mt-1">{department} &nbsp;•&nbsp; {semesterLabel} &nbsp;•&nbsp; Section {section}</p>
+                <p className="text-white/60 text-xs mt-1 font-mono">Reg. No: {registerNumber} &nbsp;•&nbsp; Batch: {batch}</p>
               </div>
             </div>
           </div>
@@ -519,21 +622,25 @@ export default function StudentDash() {
           ):(
             <div className="bg-white rounded-lg border border-[#E2E8F0] shadow-sm p-5 lg:p-6">
               <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-5 flex items-center gap-2">
-                <User className="h-3.5 w-3.5"/> Academic Information
+                <User className="h-3.5 w-3.5"/> Complete Academic &amp; Personal Information
               </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <ProfileField label="Full Name"       value={displayName}                  locked={true}/>
                 <ProfileField label="Register Number" value={registerNumber}               locked={true}/>
                 <ProfileField label="Roll Number"     value={rollNumber}                   locked={true}/>
                 <ProfileField label="College Email"   value={profileEmail}                 locked={true}/>
                 <ProfileField label="Phone Number"    value={phone}                        locked={false}/>
+                <ProfileField label="Gender"          value={profile?.gender || "—"}       locked={true}/>
+                <ProfileField label="Residence"       value={String(profile?.hosteler) === "1" ? "Hosteler (Campus Hostel)" : "Day Scholar"} locked={true}/>
+                <ProfileField label="Degree Type"     value={profile?.degreeType || "UG"}  locked={true}/>
+                <ProfileField label="Course"          value={profile?.course || "B.E. Computer Science & Engineering (AI & ML)"} locked={true}/>
                 <ProfileField label="Department"      value={department}                   locked={true}/>
                 <ProfileField label="Class"           value={profile?.class||"AIML"}       locked={true}/>
                 <ProfileField label="Batch"           value={batch}                        locked={true}/>
-                <ProfileField label="Current Year"    value={currentYear}                  locked={true}/>
                 <ProfileField label="Semester"        value={String(semesterNum||"—")}     locked={true}/>
                 <ProfileField label="Section"         value={section}                      locked={true}/>
                 <ProfileField label="Class Incharge"  value={classInchargeName}            locked={true}/>
+                <ProfileField label="Incharge Code"   value={profile?.staffCode || "—"}    locked={true}/>
               </div>
               <div className="mt-5 p-3.5 rounded-lg border border-amber-200 bg-amber-50">
                 <p className="text-xs text-amber-700 font-medium flex items-start gap-2">
@@ -544,6 +651,11 @@ export default function StudentDash() {
             </div>
           )}
         </div>
+      )}
+
+      {/* MY ATTENDANCE */}
+      {currentTab==="attendance"&&(
+        <StudentAttendanceTab />
       )}
 
       {/* MY OD */}

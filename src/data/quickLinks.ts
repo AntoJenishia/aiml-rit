@@ -33,7 +33,7 @@ export const motionTokens: MotionTokens = {
 export const navLinks: NavLink[] = [
   { label: "Home", href: "/", icon: Home },
   { label: "About", href: "/about", icon: Info },
-  { label: "Departments", href: "/departments", icon: BookOpenText },
+
   { label: "Faculty", href: "/faculty", icon: Users },
   { label: "Achievements", href: "/achievements", icon: Trophy },
   { label: "Events", href: "/events", icon: CalendarDays },
@@ -43,7 +43,7 @@ export const navLinks: NavLink[] = [
 ];
 
 export const homeData: HomeData = {
-  heroTitle: "Artificial Intelligence & Machine Learning and Data Science",
+  heroTitle: "Artificial Intelligence & Machine Learning",
   heroSubtitle:
     "A vibrant academic ecosystem focused on Deep Learning, NLP, Computer Vision, and Responsible AI—powered by strong fundamentals and real-world problem solving.",
   primaryCtaText: "Explore the Department",
@@ -52,7 +52,7 @@ export const homeData: HomeData = {
   secondaryCtaHref: "/hod",
   introTitle: "Shaping Future AI Engineers",
   introText:
-    "The AI&ML and AI&DS departments nurture future-ready engineers with a strong foundation in mathematics, computing, and intelligent decision-making. Students learn by building through modern labs, projects, and research exposure, preparing them for high-impact careers and higher studies.",
+    "The Department of Artificial Intelligence & Machine Learning nurtures future-ready engineers with a strong foundation in mathematics, computing, and intelligent decision-making. Students learn by building through modern labs, projects, and research exposure, preparing them for high-impact careers and higher studies.",
   quickLinksTitle: "Quick Links",
   quickLinksSubtitle: "Explore academics, people, and activities in one place."
 };
@@ -60,7 +60,7 @@ export const homeData: HomeData = {
 export const quickLinks: QuickLinkItem[] = [
   {
     icon: Info,
-    label: "About Departments",
+    label: "About Department",
     href: "/about",
     description: "Vision, mission, programme outcomes, and department overview."
   },
@@ -97,7 +97,7 @@ export const quickLinks: QuickLinkItem[] = [
 ];
 
 export const footerData: FooterData = {
-  departmentName: "Departments of AI&ML and AI&DS",
+  departmentName: "Department of Artificial Intelligence & Machine Learning (AIML)",
   tagline: "Building intelligent systems, shaping responsible innovators.",
   quickLinksTitle: "Quick Links",
   contactTitle: "Contact Us",

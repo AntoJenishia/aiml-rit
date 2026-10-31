@@ -9,15 +9,16 @@ import HodStudentsTab from "./hod/HodStudentsTab"
 import HodOdTab from "./hod/HodOdTab"
 import HodAchievementsTab from "./hod/HodAchievementsTab"
 import HodFacultyPortfoliosTab from "./hod/HodFacultyPortfoliosTab"
-
-// ── Department Filter ──
+import HodBatchesTab from "./hod/HodBatchesTab"
+import HodAttendanceTab from "./hod/HodAttendanceTab"
+import HodActivityTab from "./hod/HodActivityTab"
+import HodLeaveTab from "./hod/HodLeaveTab"
 
 function HodDashInner() {
   const { name } = useUser()
   const searchParams = useSearchParams()
   const activeTab = searchParams.get("tab") || "dashboard"
 
-  const [departmentFilter, setDepartmentFilter] = useState<"ALL" | "AIML" | "AIDS">("ALL")
   const [metrics, setMetrics] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -45,15 +46,6 @@ function HodDashInner() {
     return () => { isMounted = false }
   }, [])
 
-  // Derive display metrics based on filter
-  const displayMetrics = metrics ? {
-    ...metrics,
-    totalStudents: departmentFilter === "ALL" ? metrics.totalStudents : (departmentFilter === "AIML" ? metrics.aiml.students : metrics.aids.students),
-    totalFaculty: departmentFilter === "ALL" ? metrics.totalFaculty : (departmentFilter === "AIML" ? metrics.aiml.faculty : metrics.aids.faculty),
-    pendingOD: departmentFilter === "ALL" ? metrics.pendingOD : (departmentFilter === "AIML" ? metrics.aiml.pendingOD : metrics.aids.pendingOD),
-    pendingAchievements: departmentFilter === "ALL" ? metrics.pendingAchievements : (departmentFilter === "AIML" ? metrics.aiml.achievements : metrics.aids.achievements),
-  } : null
-
   return (
     <div className="space-y-6 pb-20">
       {/* ── Academic Portal Banner ── */}
@@ -65,30 +57,18 @@ function HodDashInner() {
         
         <div className="relative z-10">
           <p className="text-blue-200 text-xs font-bold tracking-widest uppercase mb-1">Academic Dashboard</p>
-          <h1 className="text-2xl font-black text-white">Welcome, Dr. {name || "HOD"}</h1>
-          <p className="text-blue-100 text-sm mt-1">Head of Department • AIML & AI&DS</p>
+          <h1 className="text-2xl font-black text-white">
+            Welcome, {!name || name.toLowerCase().includes("test")
+              ? "Dr. Selvakumaran S."
+              : (name.toLowerCase().includes("dr.") ? name : `Dr. ${name}`)}
+          </h1>
+          <p className="text-blue-100 text-sm mt-1">Head of Department • Artificial Intelligence &amp; Machine Learning (AIML)</p>
         </div>
 
-        {/* ── Sleek Institutional Filter Bar (Moved inside Banner for compactness) ── */}
-        <div className="relative z-10 flex items-center gap-1 bg-white/10 p-1 rounded border border-white/20 self-start md:self-auto">
-          <button 
-            onClick={() => setDepartmentFilter("ALL")}
-            className={`px-5 py-1.5 text-[11px] font-bold uppercase tracking-widest rounded transition-all ${departmentFilter === "ALL" ? "bg-white text-[#003087] shadow-sm" : "text-white/80 hover:bg-white/20 hover:text-white"}`}
-          >
-            Global View
-          </button>
-          <button 
-            onClick={() => setDepartmentFilter("AIML")}
-            className={`px-5 py-1.5 text-[11px] font-bold uppercase tracking-widest rounded transition-all ${departmentFilter === "AIML" ? "bg-white text-[#003087] shadow-sm" : "text-white/80 hover:bg-white/20 hover:text-white"}`}
-          >
-            AIML
-          </button>
-          <button 
-            onClick={() => setDepartmentFilter("AIDS")}
-            className={`px-5 py-1.5 text-[11px] font-bold uppercase tracking-widest rounded transition-all ${departmentFilter === "AIDS" ? "bg-white text-[#003087] shadow-sm" : "text-white/80 hover:bg-white/20 hover:text-white"}`}
-          >
-            AI&DS
-          </button>
+        {/* Department Badge */}
+        <div className="relative z-10 flex items-center gap-2 bg-white/10 px-4 py-2 rounded border border-white/20 self-start md:self-auto">
+          <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="text-xs font-bold text-white uppercase tracking-wider">AIML Department</span>
         </div>
       </div>
 
@@ -98,23 +78,31 @@ function HodDashInner() {
           <div className="flex items-center justify-center py-20">
             <Loader2 className="w-8 h-8 animate-spin text-indigo-400" />
           </div>
-        ) : error || !displayMetrics ? (
+        ) : error || !metrics ? (
           <div className="bg-red-50 text-red-600 p-6 rounded-lg text-center font-bold shadow-sm border border-red-100">
             Error loading dashboard data: {error || "Unknown error"}
           </div>
         ) : (
-          <HodOverviewTab departmentFilter={departmentFilter} metrics={displayMetrics} />
+          <HodOverviewTab metrics={metrics} />
         )
+      ) : activeTab === "activity" || activeTab === "department-overview" ? (
+        <HodActivityTab />
+      ) : activeTab === "attendance" ? (
+        <HodAttendanceTab />
+      ) : activeTab === "leave" ? (
+        <HodLeaveTab />
       ) : activeTab === "staff" ? (
-        <HodStaffTab departmentFilter={departmentFilter} />
+        <HodStaffTab />
       ) : activeTab === "students" ? (
-        <HodStudentsTab departmentFilter={departmentFilter} />
+        <HodStudentsTab />
       ) : activeTab === "od" ? (
-        <HodOdTab departmentFilter={departmentFilter} />
+        <HodOdTab />
       ) : activeTab === "achievements" ? (
         <HodAchievementsTab previewDoc={(url) => window.open(url, '_blank')} />
       ) : activeTab === "faculty-portfolios" ? (
-        <HodFacultyPortfoliosTab departmentFilter={departmentFilter} />
+        <HodStaffTab />
+      ) : activeTab === "batches" || activeTab === "semesters" || activeTab === "sections" || activeTab === "class-allocation" ? (
+        <HodBatchesTab />
       ) : (
         <div className="bg-white rounded-xl border border-[#E5E7EB] shadow-sm p-12 text-center flex flex-col items-center">
           <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mb-4">

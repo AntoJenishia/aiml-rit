@@ -1,195 +1,173 @@
-import { NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
-import { adminDb } from "@/lib/firebaseAdmin"
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
+import { supabaseAdmin, formatProfileUrl } from "@/lib/supabase";
+import * as XLSX from "xlsx";
 
-// ── CSV Parser helper ─────────────────────────────────────────────────────────
-function parseCSVLine(line: string): string[] {
-  const fields: string[] = []
-  let current = ""
-  let inQuotes = false
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i]
-    if (char === '"') {
-      inQuotes = !inQuotes
-    } else if (char === "," && !inQuotes) {
-      fields.push(current.trim())
-      current = ""
-    } else {
-      current += char
-    }
-  }
-  fields.push(current.trim())
-  return fields
-}
-
-function getAdmissionYear(email: string): number {
-  const emailMatch = email.match(/\.(\d{2})\d+@/)
-  if (emailMatch) {
-    const yr = parseInt(emailMatch[1], 10)
-    return yr >= 50 ? 1900 + yr : 2000 + yr
-  }
-  return 2024
-}
-
-function getSemesterYear(sem: number): string {
-  if (sem <= 2) return "I"
-  if (sem <= 4) return "II"
-  if (sem <= 6) return "III"
-  return "IV"
-}
-
-// ── POST /api/admin/import-students ──────────────────────────────────────────
-// Accepts: { csvContent: string } — raw CSV text
-// Returns: { total, imported, duplicates, invalid, errors }
 export async function POST(req: NextRequest) {
   try {
-    // Auth guard — HOD only
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.role || session.user.role !== "hod") {
-      return NextResponse.json({ error: "Forbidden: HOD access only" }, { status: 403 })
+    // Auth check — HOD or Admin
+    const session = await getServerSession(authOptions);
+    const role = (session?.user as any)?.role;
+    if (!role || (role !== "hod" && role !== "admin")) {
+      return NextResponse.json({ error: "Forbidden: HOD access only" }, { status: 403 });
     }
 
-    const body = await req.json()
-    const csvContent: string = body.csvContent || ""
-    if (!csvContent) {
-      return NextResponse.json({ error: "No CSV content provided" }, { status: 400 })
+    const contentType = req.headers.get("content-type") || "";
+    let rawRows: any[] = [];
+
+    if (contentType.includes("multipart/form-data")) {
+      const formData = await req.formData();
+      const file = formData.get("file") as File | null;
+      if (!file) {
+        return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
+      }
+
+      const buffer = Buffer.from(await file.arrayBuffer());
+      const workbook = XLSX.read(buffer, { type: "buffer" });
+      const firstSheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[firstSheetName];
+      rawRows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+    } else {
+      const body = await req.json();
+      rawRows = body.rows || [];
     }
 
-    const lines = csvContent.split("\n").map((l: string) => l.trim()).filter(Boolean)
-    if (lines.length < 2) {
-      return NextResponse.json({ error: "CSV is empty or has only a header row" }, { status: 400 })
+    if (!rawRows || rawRows.length === 0) {
+      return NextResponse.json({ error: "No student records found in file" }, { status: 400 });
     }
 
-    // Skip header row
-    const dataLines = lines.slice(1)
+    // Fetch existing staff to map staff_code and class incharge
+    const { data: existingStaff } = await supabaseAdmin
+      .from("staff")
+      .select("staff_code, name");
 
-    let imported = 0
-    let duplicates = 0
-    let invalid = 0
-    const errors: string[] = []
-    const seenEmails = new Set<string>()
-    const seenRegNos = new Set<string>()
+    const validStaffCodes = new Set<string>();
+    const staffNameMap = new Map<string, string>();
 
-    const BATCH_SIZE = 400
-    let batch = adminDb.batch()
-    let batchCount = 0
-
-    for (let idx = 0; idx < dataLines.length; idx++) {
-      const line = dataLines[idx]
-      const lineNum = idx + 2 // 1-indexed, accounting for header
-
-      const fields = parseCSVLine(line)
-      if (fields.length < 7) {
-        errors.push(`Row ${lineNum}: Insufficient columns (got ${fields.length}, need 7)`)
-        invalid++
-        continue
+    (existingStaff || []).forEach((s) => {
+      if (s.staff_code) {
+        const codeUpper = String(s.staff_code).trim().toUpperCase();
+        validStaffCodes.add(codeUpper);
+        if (s.name) {
+          staffNameMap.set(s.name.trim().toLowerCase(), s.staff_code);
+        }
       }
+    });
 
-      const [name, register_no, email, phone, fullClass, semesterStr, section] = fields
+    const records: any[] = [];
+    const errors: string[] = [];
+    let mappedInchargeCount = 0;
 
-      // Validate required fields
-      if (!name) { errors.push(`Row ${lineNum}: Missing name`); invalid++; continue }
-      if (!email) { errors.push(`Row ${lineNum}: Missing email (name: ${name})`); invalid++; continue }
-      if (!register_no) { errors.push(`Row ${lineNum}: Missing register number (name: ${name})`); invalid++; continue }
+    for (let i = 0; i < rawRows.length; i++) {
+      const row = rawRows[i];
+      const rowNum = i + 2;
 
-      // Validate semester
-      const sem = parseInt(semesterStr, 10)
-      if (isNaN(sem) || sem < 1 || sem > 8) {
-        errors.push(`Row ${lineNum}: Invalid semester "${semesterStr}" for ${name}`)
-        invalid++
-        continue
-      }
-
-      // Check for duplicates within this import batch
-      if (seenEmails.has(email)) {
-        errors.push(`Row ${lineNum}: Duplicate email in CSV — ${email}`)
-        duplicates++
-        continue
-      }
-      if (seenRegNos.has(register_no)) {
-        errors.push(`Row ${lineNum}: Duplicate register number in CSV — ${register_no}`)
-        duplicates++
-        continue
-      }
-
-      // Check if already exists in Firestore
-      try {
-        const existingSnap = await adminDb.collection("users").doc(email).get()
-        if (existingSnap.exists) {
-          const existing = existingSnap.data()
-          // If already merged (has uid), skip
-          if (existing?.uid) {
-            errors.push(`Row ${lineNum}: Student already exists and is active — ${email}`)
-            duplicates++
-            continue
+      // Extract field helpers with flexible casing
+      const getVal = (keys: string[]) => {
+        for (const k of keys) {
+          for (const rowKey of Object.keys(row)) {
+            if (rowKey.trim().toLowerCase() === k.toLowerCase()) {
+              return String(row[rowKey] || "").trim();
+            }
           }
         }
-      } catch (dbErr) {
-        errors.push(`Row ${lineNum}: DB check failed for ${email}`)
-        invalid++
-        continue
+        return "";
+      };
+
+      const name = getVal(["Name", "Student Name", "name"]);
+      const regNo = getVal(["Register No", "Register Number", "Reg No", "register_no"]);
+      const email = getVal(["Email", "Email ID", "Mail", "email"]).toLowerCase();
+      const phone = getVal(["Phone", "Phone Number", "Mobile", "phone"]);
+      const className = getVal(["Class", "class"]);
+      const semester = getVal(["Semester", "Sem", "semester"]);
+      const section = getVal(["Section", "Sec", "section"]).toUpperCase();
+      const course = getVal(["Course", "course"]) || "B.Tech";
+      const department = getVal(["Department", "dept", "department"]) || "Artificial Intelligence & Machine Learning";
+      const degreeType = getVal(["Degree Type", "degree_type", "Degree"]) || "UG";
+      const batch = getVal(["Batch", "batch"]);
+      const classIncharge = getVal(["Class Incharge", "Incharge", "class_incharge"]);
+      let rawStaffCode = getVal(["Staff Code", "StaffCode", "staff_code"]);
+      const hosteler = getVal(["Hosteler", "hosteler", "Day Scholar"]);
+      const rawProfile = getVal(["Profile", "profile", "Photo", "image", "Profile Pic"]);
+      const gender = getVal(["Gender", "gender"]);
+
+      if (!name || !regNo) {
+        errors.push(`Row ${rowNum}: Missing Name or Register Number`);
+        continue;
       }
 
-      seenEmails.add(email)
-      seenRegNos.add(register_no)
-
-      const admissionYear = getAdmissionYear(email)
-      const currentYear = getSemesterYear(sem)
-      const secLower = section.toLowerCase()
-      const classId = `${currentYear.toLowerCase()}-aiml-${secLower}-${admissionYear}`
-      const rollNumber = register_no.slice(-3)
-      const dept = (fullClass || "AIML").toUpperCase()
-
-      const studentRef = adminDb.collection("users").doc(email)
-      batch.set(studentRef, {
-        name: name.toUpperCase(),
-        email,
-        registerNumber: register_no,
-        rollNumber,
-        phone: phone || "",
-        role: "student",
-        photoURL: "",
-        department: dept === "AIDS" ? "Artificial Intelligence & Data Science" : "Artificial Intelligence & Machine Learning",
-        deptCode: dept === "AIDS" ? "aids" : "aiml",
-        class: dept,
-        batch: `${admissionYear} – ${admissionYear + 4}`,
-        currentYear,
-        semester: sem,
-        section: section.toUpperCase(),
-        classId,
-        profileComplete: true,
-        createdAt: new Date(),
-        lastLogin: new Date(),
-      }, { merge: true })
-
-      imported++
-      batchCount++
-
-      // Firestore batch limit is 500 — commit every 400 to be safe
-      if (batchCount >= BATCH_SIZE) {
-        await batch.commit()
-        batch = adminDb.batch()
-        batchCount = 0
+      // Map staff_code
+      let matchedStaffCode: string | null = null;
+      if (rawStaffCode && validStaffCodes.has(rawStaffCode.toUpperCase())) {
+        matchedStaffCode = rawStaffCode;
+        mappedInchargeCount++;
+      } else if (classIncharge) {
+        // Try matching by class incharge name
+        const inchargeLower = classIncharge.toLowerCase();
+        for (const [sName, sCode] of staffNameMap.entries()) {
+          if (inchargeLower.includes(sName) || sName.includes(inchargeLower)) {
+            matchedStaffCode = sCode;
+            mappedInchargeCount++;
+            break;
+          }
+        }
       }
+
+      records.push({
+        name,
+        register_no: regNo,
+        email: email || `${regNo.toLowerCase()}@aiml.ritchennai.edu.in`,
+        phone: phone || null,
+        class: className || null,
+        semester: semester || null,
+        section: section || null,
+        course,
+        department,
+        degree_type: degreeType,
+        batch: batch || null,
+        class_incharge_name: classIncharge || null,
+        staff_code: matchedStaffCode,
+        hosteler: hosteler || null,
+        profile_url: formatProfileUrl(rawProfile),
+        gender: gender || null,
+        role: "student"
+      });
     }
 
-    // Commit remaining
-    if (batchCount > 0) {
-      await batch.commit()
+    if (records.length === 0) {
+      return NextResponse.json({ 
+        error: "No valid student records found", 
+        errors 
+      }, { status: 400 });
+    }
+
+    // Upsert into Supabase students table on conflict 'register_no'
+    // Split into chunks of 100 for reliable upserting
+    const CHUNK_SIZE = 100;
+    for (let i = 0; i < records.length; i += CHUNK_SIZE) {
+      const chunk = records.slice(i, i + CHUNK_SIZE);
+      const { error } = await supabaseAdmin
+        .from("students")
+        .upsert(chunk, { onConflict: "register_no" });
+
+      if (error) {
+        console.error("[import-students] Supabase Chunk Error:", error);
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
     }
 
     return NextResponse.json({
       success: true,
-      total: dataLines.length,
-      imported,
-      duplicates,
-      invalid,
-      errors: errors.slice(0, 50), // cap error list
-    })
+      totalRows: rawRows.length,
+      importedCount: records.length,
+      mappedInchargeCount,
+      errors,
+      sample: records.slice(0, 3)
+    });
 
   } catch (err: any) {
-    console.error("[import-students] Error:", err)
-    return NextResponse.json({ error: "Internal server error", detail: String(err) }, { status: 500 })
+    console.error("[import-students] Exception:", err);
+    return NextResponse.json({ error: err.message || "Failed to process students file" }, { status: 500 });
   }
 }

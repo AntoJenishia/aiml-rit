@@ -8,25 +8,31 @@ export interface FirestoreUser {
   name: string
   role: UserRole
   photoURL: string
-  createdAt: { seconds: number }
-  lastLogin: { seconds: number }
-  // Student-specific profile fields (auto-populated from email)
+  createdAt?: { seconds: number }
+  lastLogin?: { seconds: number }
+  // Student-specific profile fields
   department?: string
   deptCode?: string
   batch?: string
   currentYear?: string
   rollNumber?: string
-  // Manually entered by student
   registerNumber?: string
-  // QR-linked ID card data
+  class?: string
+  classId?: string | null
+  semester?: string | number
+  section?: string
+  phone?: string
+  profile?: string
+  classIncharge?: string
+  staffCode?: string
+  // Faculty-specific fields
+  isClassIncharge?: boolean
+  designation?: string
+  username?: string
   idCardData?: string
   idCardLinkedAt?: { seconds: number }
   // Profile completion flag
   profileComplete?: boolean
-  // Faculty-specific fields
-  isClassIncharge?: boolean
-  classId?: string | null
-  username?: string
 }
 
 export async function getAllUsers(): Promise<FirestoreUser[]> {
@@ -45,10 +51,20 @@ export async function updateUserRole(uid: string, role: UserRole) {
 }
 
 /**
- * Client-side Firestore: Get a single student profile directly.
- * Uses the Firebase JS SDK (WebChannel) which works reliably from the browser.
+ * Get a single student / user profile.
+ * First calls /api/users (which queries Supabase), falls back to Firestore.
  */
 export async function getStudentProfile(uid: string): Promise<FirestoreUser | null> {
+  try {
+    if (typeof window !== "undefined") {
+      const res = await fetch(`/api/users?uid=${encodeURIComponent(uid)}`)
+      if (res.ok) {
+        const data = await res.json()
+        if (data) return data as FirestoreUser
+      }
+    }
+  } catch {}
+
   try {
     const snap = await getDoc(doc(db, "users", uid))
     if (!snap.exists()) return null
@@ -59,12 +75,21 @@ export async function getStudentProfile(uid: string): Promise<FirestoreUser | nu
 }
 
 /**
- * Client-side Firestore: Update student profile fields directly.
- * Uses setDoc with merge to create-or-update.
+ * Update student profile fields directly.
  */
 export async function updateStudentProfile(
   uid: string,
   data: Partial<FirestoreUser>
 ): Promise<void> {
-  await setDoc(doc(db, "users", uid), data, { merge: true })
+  try {
+    await fetch("/api/users", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ uid, ...data }),
+    })
+  } catch {}
+
+  try {
+    await setDoc(doc(db, "users", uid), data, { merge: true })
+  } catch {}
 }

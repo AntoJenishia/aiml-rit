@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { adminDb } from "@/lib/firebaseAdmin"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
+import { FieldValue } from "firebase-admin/firestore"
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -12,7 +13,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const uid = (session.user as any).uid || (session.user as any).id
     const facultyDoc = await adminDb.collection("users").doc(uid).get()
     const facultyData = facultyDoc.data()
-    if (!facultyDoc.exists || facultyData?.role !== "staff") {
+    if (!facultyDoc.exists || (facultyData?.role !== "staff" && facultyData?.role !== "hod" && facultyData?.role !== "admin")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 })
     }
 
@@ -40,6 +41,32 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
     if (action === "approve") {
       updates.status = isProof ? "ACTIVITY_COMPLETED" : "VERIFIED"
+      if (isProof) {
+        // Auto-create or sync to department achievements!
+        try {
+          await adminDb.collection("achievements").add({
+            studentUid: odData.studentUid,
+            studentName: odData.studentName || "Student",
+            registerNumber: odData.registerNumber || "—",
+            classId: odData.classId || "—",
+            title: odData.eventName,
+            category: odData.postODCategory || odData.eventType || "Competition / Hackathon",
+            eventName: odData.eventName,
+            date: odData.endDate || odData.startDate || new Date().toISOString().split("T")[0],
+            position: odData.postODPosition || "Participation / Completion",
+            description: odData.postODDescription || odData.reason || "",
+            proofFileUrl: odData.postODProofsUrl || "",
+            proofFileName: "OD Completion Certificate / Proof",
+            status: "APPROVED",
+            verifiedBy: facultyData.name,
+            verifiedAt: new Date().toISOString(),
+            odRefNumber: odData.referenceNumber || odData.refNumber || id,
+            createdAt: FieldValue.serverTimestamp(),
+          })
+        } catch (achieveErr) {
+          console.error("Auto-sync achievement error:", achieveErr)
+        }
+      }
     } else if (action === "reject") {
       updates.status = "REJECTED"
       updates.facultyRejectReason = reason

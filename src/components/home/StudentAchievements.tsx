@@ -19,9 +19,9 @@ const achievements = [
   {
     id: 2,
     prize: "Gold Medal",
-    event: "State Level Data Science Symposium",
+    event: "State Level Machine Learning Symposium",
     student: "Jane Smith",
-    department: "AI&DS",
+    department: "AIML",
     year: "4th Year",
     date: "Jul 2026"
   },
@@ -37,9 +37,9 @@ const achievements = [
   {
     id: 4,
     prize: "Runner Up",
-    event: "Global Codeathon",
+    event: "Global AI Codeathon",
     student: "Sarah Lee",
-    department: "AI&DS",
+    department: "AIML",
     year: "2nd Year",
     date: "Apr 2026"
   }

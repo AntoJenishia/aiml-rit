@@ -7,7 +7,8 @@ import { useUser } from "@/lib/hooks/useUser"
 import { useState, useEffect } from "react"
 import {
   GraduationCap, Users, FileText, Award, LogOut, ChevronRight, Globe, Menu, X, LayoutDashboard,
-  FolderOpen, CalendarDays, User, Briefcase, CalendarPlus, TrendingUp, Shield, Bell, Settings
+  FolderOpen, CalendarDays, User, Briefcase, CalendarPlus, TrendingUp, Shield, Bell, Settings,
+  BarChart3, Clock
 } from "lucide-react"
 import clsx from "clsx"
 
@@ -23,24 +24,23 @@ const navGroups = [
     items: [
       { href: "/admin?tab=students",                   label: "Students",            icon: GraduationCap },
       { href: "/admin?tab=staff",                      label: "Faculty",             icon: Users },
-      { href: "/admin?tab=batches",                    label: "Batches",             icon: FolderOpen },
-      { href: "/admin?tab=semesters",                  label: "Semesters",           icon: CalendarDays },
-      { href: "/admin?tab=sections",                   label: "Sections",            icon: User },
-      { href: "/admin?tab=class-allocation",           label: "Class Allocation",    icon: Briefcase },
+      { href: "/admin?tab=batches",                    label: "Batches & Classes",   icon: FolderOpen },
+      { href: "/admin?tab=attendance",                 label: "Attendance Tracker",  icon: CalendarDays },
     ]
   },
   {
     title: "APPROVALS & RECORDS",
     items: [
-      { href: "/admin?tab=od",                         label: "OD Management",       icon: FileText },
+      { href: "/admin?tab=od",                         label: "OD Management",       icon: Clock },
+      { href: "/admin?tab=leave",                      label: "Leave Approvals",     icon: CalendarDays },
       { href: "/admin?tab=achievements",               label: "Achievements",        icon: Award },
       { href: "/admin?tab=events",                     label: "Events & Activities", icon: CalendarPlus },
-      { href: "/admin?tab=faculty-portfolios",         label: "Faculty Portfolios",  icon: FileText },
     ]
   },
   {
     title: "SYSTEM",
     items: [
+      { href: "/admin?tab=activity",                   label: "Activity Monitor",    icon: BarChart3 },
       { href: "/admin?tab=reports",                    label: "Reports",             icon: TrendingUp },
       { href: "/admin?tab=audit-logs",                 label: "Audit Logs",          icon: Shield },
       { href: "/admin?tab=settings",                   label: "Settings",            icon: Settings },
@@ -53,6 +53,11 @@ export default function AdminNav() {
   const searchParams = useSearchParams()
   const { name, image } = useUser()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // Close sidebar on route change
   useEffect(() => setSidebarOpen(false), [pathname, searchParams])
@@ -102,11 +107,18 @@ export default function AdminNav() {
         {/* Profile (Compact) */}
         <div className="px-5 py-4 border-b border-[#1E2D4A] bg-[#071324]">
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded bg-[#003087] border border-[#1E2D4A] flex items-center justify-center text-white font-black shrink-0">
-              {name?.[0] ?? "H"}
+            <div className="h-9 w-9 rounded-full bg-[#003087] border border-[#1E2D4A] flex items-center justify-center text-white font-black shrink-0 overflow-hidden shadow-sm" suppressHydrationWarning>
+              {mounted && image ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={image} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                name?.[0] ?? "S"
+              )}
             </div>
-            <div className="min-w-0">
-              <p className="text-white text-xs font-bold truncate tracking-wide">{name || "Administrator"}</p>
+            <div className="min-w-0" suppressHydrationWarning>
+              <p className="text-white text-xs font-bold truncate tracking-wide" suppressHydrationWarning>
+                {!name || name.toLowerCase().includes("test") ? "Dr. Selvakumaran S." : name}
+              </p>
               <p className="text-amber-400 text-[10px] uppercase font-bold tracking-widest mt-0.5">Control Panel</p>
             </div>
           </div>
@@ -123,7 +135,8 @@ export default function AdminNav() {
                 {group.items.map((item) => {
                   const itemUrl = new URL(item.href, "http://localhost")
                   const itemTab = itemUrl.searchParams.get("tab") || "dashboard"
-                  const active = pathname === "/admin" && itemTab === currentTab
+                  const isBatchesMatch = itemTab === "batches" && ["batches", "semesters", "sections", "class-allocation"].includes(currentTab)
+                  const active = pathname === "/admin" && (itemTab === currentTab || isBatchesMatch)
 
                   return (
                     <Link key={item.href} href={item.href}

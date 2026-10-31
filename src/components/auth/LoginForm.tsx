@@ -194,7 +194,7 @@ function LoginFormInner() {
                       type="text" 
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
-                      placeholder="e.g. jsmith"
+                      placeholder="Staff Code (e.g. CS91) or College Email"
                       className="w-full rounded-xl border border-slate-200 bg-slate-50/50 py-3 pl-11 pr-4 text-sm font-medium text-slate-800 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors"
                       required
                     />

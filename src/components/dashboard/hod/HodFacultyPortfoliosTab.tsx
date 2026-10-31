@@ -16,7 +16,7 @@ interface FacultyPortfolioUser {
   image?: string
 }
 
-export default function HodFacultyPortfoliosTab({ departmentFilter }: { departmentFilter: string }) {
+export default function HodFacultyPortfoliosTab({ departmentFilter }: { departmentFilter?: string } = {}) {
   const [faculty, setFaculty] = useState<FacultyPortfolioUser[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
@@ -40,16 +40,17 @@ export default function HodFacultyPortfoliosTab({ departmentFilter }: { departme
     fetchStaff()
   }, [])
 
-  // Filter based on Department Switcher AND text search
+  // Filter based on AIML and text search (exclude AI&DS)
   const filteredFaculty = faculty.filter(f => {
-    const matchesDept = departmentFilter === "ALL" 
-      ? true 
-      : (f.department || "").toLowerCase().includes(departmentFilter.toLowerCase() === "aids" ? "data science" : departmentFilter.toLowerCase())
+    const dept = (f.department || "").toLowerCase()
+    if (dept.includes("aids") || dept.includes("data science")) {
+      return false
+    }
     
     const searchLower = search.toLowerCase()
     const matchesSearch = (f.name || "").toLowerCase().includes(searchLower) || (f.specialization || "").toLowerCase().includes(searchLower)
     
-    return matchesDept && matchesSearch
+    return matchesSearch
   })
 
   return (

@@ -1,6 +1,12 @@
+"use client"
 import { useState, useEffect } from "react"
 import { useUser } from "@/lib/hooks/useUser"
-import { Briefcase, FileText, Plus, Trash2, Award, Calendar, ExternalLink, Loader2, Edit3, User, BookOpen, CheckCircle, GraduationCap, Code2, Link as LinkIcon } from "lucide-react"
+import {
+  Briefcase, FileText, Plus, Trash2, Award, Calendar,
+  ExternalLink, Loader2, Edit3, User, BookOpen, CheckCircle,
+  GraduationCap, Code2, Phone, Mail, MapPin, Building2,
+  Users, Shield, AlertCircle, X
+} from "lucide-react"
 
 interface PortfolioItem {
   id?: string
@@ -12,21 +18,78 @@ interface PortfolioItem {
   status?: string
 }
 
+interface FacultyProfileData {
+  name: string
+  staffCode: string
+  department: string
+  designation: string
+  email: string
+  phone: string
+  gender: string
+  roomLocation: string
+  profile: string
+  photoURL: string
+  role: string
+  isClassIncharge: boolean
+  classId: string | null
+  bio: string
+  qualification: string
+  experience: string
+  specialization: string
+}
+
+function ProfileField({ label, value, locked = true }: { label: string; value: string; locked?: boolean }) {
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between">
+        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{label}</p>
+        {locked && <span className="text-[9px] font-medium text-slate-400 border border-slate-200 px-1.5 py-0.2 rounded">Institutional</span>}
+      </div>
+      <p className="text-sm font-semibold text-slate-800 bg-slate-50/80 border border-[#E2E8F0] px-3 py-2 rounded-lg break-all">
+        {value || "—"}
+      </p>
+    </div>
+  )
+}
+
 export default function FacultyProfileTab() {
-  const { name, email, uid } = useUser()
+  const { name: sessionName, email: sessionEmail, image: sessionImage } = useUser()
   const [items, setItems] = useState<PortfolioItem[]>([])
-  const [bioData, setBioData] = useState({
-    bio: "", qualification: "", designation: "", experience: "", specialization: ""
+  const [profileData, setProfileData] = useState<FacultyProfileData>({
+    name: "",
+    staffCode: "",
+    department: "",
+    designation: "",
+    email: "",
+    phone: "",
+    gender: "",
+    roomLocation: "",
+    profile: "",
+    photoURL: "",
+    role: "staff",
+    isClassIncharge: false,
+    classId: null,
+    bio: "",
+    qualification: "",
+    experience: "",
+    specialization: ""
   })
-  
+
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [isAdding, setIsAdding] = useState(false)
   const [isEditingBio, setIsEditingBio] = useState(false)
-  const [bioForm, setBioForm] = useState({
-    bio: "", qualification: "", designation: "", experience: "", specialization: ""
+
+  const [editForm, setEditForm] = useState({
+    bio: "",
+    qualification: "",
+    designation: "",
+    experience: "",
+    specialization: "",
+    phone: "",
+    roomLocation: "",
   })
-  
+
   const [form, setForm] = useState({
     title: "",
     type: "Experience",
@@ -36,10 +99,10 @@ export default function FacultyProfileTab() {
   })
 
   useEffect(() => {
-    fetchPortfolio()
+    fetchProfile()
   }, [])
 
-  const fetchPortfolio = async () => {
+  const fetchProfile = async () => {
     setLoading(true)
     try {
       const [portRes, bioRes] = await Promise.all([
@@ -49,8 +112,16 @@ export default function FacultyProfileTab() {
       if (portRes.ok) setItems(await portRes.json())
       if (bioRes.ok) {
         const d = await bioRes.json()
-        setBioData(d)
-        setBioForm(d)
+        setProfileData(d)
+        setEditForm({
+          bio: d.bio || "",
+          qualification: d.qualification || "",
+          designation: d.designation || "",
+          experience: d.experience || "5",
+          specialization: d.specialization || "",
+          phone: d.phone || "",
+          roomLocation: d.roomLocation || "",
+        })
       }
     } catch (err) {
       console.error(err)
@@ -66,14 +137,17 @@ export default function FacultyProfileTab() {
       const res = await fetch("/api/faculty/bio", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(bioForm)
+        body: JSON.stringify(editForm)
       })
       if (res.ok) {
-        setBioData(bioForm)
+        setProfileData(prev => ({
+          ...prev,
+          ...editForm
+        }))
         setIsEditingBio(false)
       } else {
         const d = await res.json()
-        alert(d.error || "Failed to update bio.")
+        alert(d.error || "Failed to update profile.")
       }
     } catch (err: any) {
       alert(err.message)
@@ -92,7 +166,7 @@ export default function FacultyProfileTab() {
         body: JSON.stringify(form)
       })
       if (res.ok) {
-        await fetchPortfolio()
+        await fetchProfile()
         setIsAdding(false)
         setForm({ title: "", type: "Experience", date: "", description: "", link: "" })
       } else {
@@ -126,253 +200,371 @@ export default function FacultyProfileTab() {
   const certifications = items.filter(i => i.type === "Certification" || i.type === "Award")
   const others = items.filter(i => !["Experience", "Education", "Skill", "Publication", "Journal", "Project", "Research", "Certification", "Award"].includes(i.type))
 
-  // Render Helpers
-  const renderTimeline = (title: string, icon: any, data: PortfolioItem[], isEducation = false) => {
-    const Icon = icon
-    return (
-      <div className="bg-white rounded-lg border border-[#E2E8F0] shadow-sm overflow-hidden mb-6">
-        <div className="bg-slate-50 px-6 py-4 border-b border-slate-200 flex items-center gap-2">
-          <Icon className="h-5 w-5 text-[#003087]" />
-          <h3 className="text-base font-bold text-slate-800">{title}</h3>
-        </div>
-        <div className="p-6">
-          {data.length === 0 ? (
-            <div className="text-center text-sm text-slate-500 py-4">No {title.toLowerCase()} added yet.</div>
-          ) : (
-            <div className="relative border-l-2 border-slate-200 ml-3 md:ml-4 space-y-8">
-              {data.map((item, idx) => (
-                <div key={item.id} className="relative pl-6 md:pl-8 group">
-                  {/* Timeline Dot */}
-                  <div className="absolute -left-[9px] top-1.5 h-4 w-4 rounded-full bg-slate-200 border-2 border-white group-hover:bg-[#003087] transition-colors" />
-                  
-                  <div className="flex justify-between items-start gap-4">
-                    <div>
-                      <h4 className="text-base font-bold text-slate-800">{item.title}</h4>
-                      {item.description && <p className="text-sm font-semibold text-slate-600 mt-0.5">{item.description}</p>}
-                      {item.date && <p className="text-xs text-slate-500 mt-1">{item.date}</p>}
-                      {item.link && (
-                        <a href={item.link} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-bold text-[#003087] mt-2 hover:underline">
-                          <ExternalLink className="h-3 w-3" /> View Document / Link
-                        </a>
-                      )}
-                    </div>
-                    <button onClick={() => handleDelete(item.id!)} className="text-slate-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded transition-colors shrink-0">
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    )
-  }
-
-  const renderGridSection = (title: string, icon: any, data: PortfolioItem[], emptyMsg: string) => {
-    const Icon = icon
-    return (
-      <div className="bg-white rounded-lg border border-[#E2E8F0] shadow-sm overflow-hidden mb-6">
-        <div className="bg-slate-50 px-6 py-4 border-b border-slate-200 flex items-center gap-2">
-          <Icon className="h-5 w-5 text-[#003087]" />
-          <h3 className="text-base font-bold text-slate-800">{title}</h3>
-          <span className="ml-auto bg-slate-200 text-slate-700 text-xs font-bold px-2 py-0.5 rounded-full">{data.length}</span>
-        </div>
-        <div className="divide-y divide-[#E2E8F0]">
-          {data.length === 0 ? (
-            <div className="p-8 text-center text-sm text-slate-500">{emptyMsg}</div>
-          ) : (
-            data.map(item => (
-              <div key={item.id} className="p-5 hover:bg-slate-50 transition-colors flex justify-between items-start gap-4">
-                <div>
-                  <h4 className="text-sm font-bold text-slate-800 mb-1">{item.title}</h4>
-                  <p className="text-xs text-slate-500 mb-2 flex items-center gap-2">
-                    <Calendar className="h-3 w-3" /> {item.date || "No Date"}
-                  </p>
-                  {item.description && <p className="text-sm text-slate-600 mb-2">{item.description}</p>}
-                  {item.link && (
-                    <a href={item.link} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-bold text-[#003087] hover:underline">
-                      <ExternalLink className="h-3 w-3" /> View Details
-                    </a>
-                  )}
-                </div>
-                <button onClick={() => handleDelete(item.id!)} className="text-slate-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded transition-colors shrink-0">
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-    )
-  }
-
-  const renderSkills = () => {
-    return (
-      <div className="bg-white rounded-lg border border-[#E2E8F0] shadow-sm overflow-hidden mb-6">
-        <div className="bg-slate-50 px-6 py-4 border-b border-slate-200 flex items-center gap-2">
-          <Code2 className="h-5 w-5 text-[#003087]" />
-          <h3 className="text-base font-bold text-slate-800">Skills</h3>
-        </div>
-        <div className="p-6">
-          {skills.length === 0 ? (
-            <div className="text-center text-sm text-slate-500 py-2">No skills added yet.</div>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {skills.map(skill => (
-                <div key={skill.id} className="group flex items-center gap-2 px-3 py-1.5 bg-slate-100 border border-slate-200 rounded-full text-sm font-semibold text-slate-700 hover:bg-slate-200 transition-colors">
-                  {skill.title}
-                  <button onClick={() => handleDelete(skill.id!)} className="text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Trash2 className="h-3 w-3" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    )
-  }
-
-  // Helper for dynamic labels in Modal
-  const getDynamicLabels = () => {
-    switch (form.type) {
-      case "Education":
-        return { title: "Degree (e.g. Ph.D. in Computer Science)", desc: "Institution Name", date: "Duration / Year of Passing", showDesc: true, showDate: true }
-      case "Experience":
-        return { title: "Designation / Role", desc: "Organization / Company", date: "Duration (e.g. 2018 - Present)", showDesc: true, showDate: true }
-      case "Skill":
-        return { title: "Skill Name (e.g. Python, Machine Learning)", desc: "", date: "", showDesc: false, showDate: false }
-      default:
-        return { title: "Title", desc: "Description", date: "Date", showDesc: true, showDate: true }
-    }
-  }
-  const dynamicLabels = getDynamicLabels()
+  const displayName = profileData.name || sessionName || "Faculty Member"
+  const displayEmail = profileData.email || sessionEmail || "—"
+  const displayPhoto = profileData.profile || profileData.photoURL || sessionImage || ""
+  const isHod = profileData.staffCode?.toUpperCase() === "CS91" || profileData.role === "hod"
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-12">
-      
-      {/* Header Profile Summary (LinkedIn Style Intro Card) */}
-      <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
-        <div className="h-32 bg-gradient-to-r from-[#003087] to-blue-500 relative">
-          <button onClick={() => setIsAdding(true)} className="absolute top-4 right-4 flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 backdrop-blur text-white text-sm font-bold rounded-lg transition-colors border border-white/20">
+    <div className="max-w-5xl mx-auto space-y-6 pb-12">
+      {/* ── 1. Top Cover & Identity Card ── */}
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        {/* Navy Header Banner */}
+        <div className="h-32 sm:h-36 bg-[#003087] relative flex items-start justify-between p-4 sm:p-6 overflow-hidden">
+          <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
+            <Building2 className="w-56 h-56 text-white -translate-y-16 translate-x-12" />
+          </div>
+          <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur px-3 py-1 rounded-full text-white text-[11px] font-bold tracking-wider uppercase border border-white/20 relative z-10">
+            <Shield className="w-3.5 h-3.5 text-blue-300" />
+            {isHod ? "Head of Department (HOD)" : "Faculty Portal"}
+          </div>
+          <button
+            onClick={() => setIsAdding(true)}
+            className="flex items-center gap-2 px-3.5 py-1.5 bg-white/20 hover:bg-white/30 backdrop-blur text-white text-xs font-bold rounded-lg transition-colors border border-white/20 shadow-sm active:scale-95 relative z-10"
+          >
             <Plus className="h-4 w-4" /> Add Item
           </button>
         </div>
-        <div className="px-6 pb-6 pt-4 relative">
-          <div className="absolute -top-16 left-6 h-28 w-28 rounded-full bg-white flex items-center justify-center border-4 border-white shadow-md">
-            <div className="h-full w-full rounded-full bg-[#003087]/10 flex items-center justify-center text-[#003087] text-5xl font-black">
-              {name?.[0] ?? "F"}
+
+        {/* Profile Info Area */}
+        <div className="px-5 sm:px-6 pb-6 pt-3 relative">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 -mt-16 sm:-mt-14 mb-4">
+            {/* Avatar Photo */}
+            <div className="h-24 w-24 sm:h-28 sm:w-28 rounded-full bg-white p-1 border-4 border-white shadow-lg shrink-0 overflow-hidden relative z-10">
+              {displayPhoto ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={displayPhoto}
+                  alt={displayName}
+                  className="w-full h-full object-cover rounded-full"
+                  onError={(e) => {
+                    (e.target as HTMLElement).style.display = 'none';
+                  }}
+                />
+              ) : (
+                <div className="h-full w-full rounded-full bg-[#003087]/10 flex items-center justify-center text-[#003087] text-4xl sm:text-5xl font-black">
+                  {displayName[0] ?? "F"}
+                </div>
+              )}
+            </div>
+
+            {/* Edit Profile Button */}
+            <div className="self-end sm:self-auto">
+              <button
+                onClick={() => setIsEditingBio(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs sm:text-sm font-bold rounded-lg transition-colors border border-slate-200 shadow-sm active:scale-95"
+              >
+                <Edit3 className="h-4 w-4 text-[#003087]" /> Edit Profile
+              </button>
             </div>
           </div>
-          
-          <div className="flex justify-end mb-2">
-            <button onClick={() => setIsEditingBio(true)} className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 hover:bg-slate-200 text-sm font-bold rounded-lg transition-colors">
-              <Edit3 className="h-4 w-4" /> Edit Profile
-            </button>
-          </div>
-          
-          <div className="mt-2 space-y-1">
-            <h2 className="text-2xl font-black text-slate-800">{name || "Faculty Name"}</h2>
-            <p className="text-base font-bold text-slate-700">{bioData.designation || "Faculty Member"}</p>
-            <div className="flex items-center gap-2 text-sm font-medium text-slate-500 mt-1">
-              <Briefcase className="h-4 w-4" /> {bioData.experience ? `${bioData.experience} Years Experience` : "Experience not added"}
-              <span className="text-slate-300">•</span>
-              <Award className="h-4 w-4" /> {bioData.qualification || "Qualification not added"}
+
+          {/* Name & Title */}
+          <div className="space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 leading-tight">{displayName}</h1>
+              {profileData.staffCode && (
+                <span className="font-mono text-xs font-bold text-[#003087] bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded">
+                  {profileData.staffCode}
+                </span>
+              )}
+              {isHod && (
+                <span className="text-xs font-bold text-amber-800 bg-amber-100 border border-amber-200 px-2.5 py-0.5 rounded">
+                  HOD
+                </span>
+              )}
             </div>
-          </div>
-          
-          <div className="mt-6 border-t border-slate-100 pt-4">
-            <h3 className="text-sm font-bold text-slate-800 mb-2">About</h3>
-            <p className="text-sm text-slate-600 leading-relaxed max-w-4xl">
-              {bioData.bio || "No bio added yet. Click edit profile to add your bio and background."}
+            <p className="text-sm sm:text-base font-bold text-slate-700">
+              {profileData.designation || (isHod ? "Head of Department" : "Assistant Professor")}
             </p>
+            <p className="text-xs sm:text-sm font-medium text-slate-500">
+              {profileData.department || "Department of Artificial Intelligence & Machine Learning"}
+            </p>
+
+            {/* Quick meta tags */}
+            <div className="flex flex-wrap items-center gap-3 pt-2 text-xs text-slate-600">
+              {profileData.isClassIncharge && profileData.classId && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-50 border border-indigo-200 text-indigo-700 font-bold rounded-full">
+                  <Users className="w-3.5 h-3.5" /> Class Incharge: {profileData.classId}
+                </span>
+              )}
+              {profileData.qualification && (
+                <span className="inline-flex items-center gap-1 text-slate-500">
+                  <Award className="w-3.5 h-3.5 text-slate-400" /> {profileData.qualification}
+                </span>
+              )}
+              {profileData.experience && (
+                <span className="inline-flex items-center gap-1 text-slate-500">
+                  <Briefcase className="w-3.5 h-3.5 text-slate-400" /> {profileData.experience} Years Experience
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
+      {/* ── 2. Institutional Details Card (All Excel Imported Data) ── */}
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 sm:p-6">
+        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2 border-b border-slate-100 pb-3">
+          <Building2 className="h-4 w-4 text-[#003087]" /> Institutional &amp; Department Information
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <ProfileField label="Full Name" value={displayName} locked={true} />
+          <ProfileField label="Staff Code" value={profileData.staffCode} locked={true} />
+          <ProfileField label="Official College Email" value={displayEmail} locked={true} />
+          <ProfileField label="Department" value={profileData.department || "AI & Machine Learning"} locked={true} />
+          <ProfileField label="Designation" value={profileData.designation || (isHod ? "Head of Department" : "Assistant Professor")} locked={true} />
+          <ProfileField label="Contact Phone" value={profileData.phone || "—"} locked={false} />
+          <ProfileField label="Gender" value={profileData.gender || "—"} locked={true} />
+          <ProfileField label="Room / Cabin Location" value={profileData.roomLocation || "AIML Faculty Cabin"} locked={false} />
+          <ProfileField label="Class Incharge Role" value={profileData.isClassIncharge ? `Incharge: ${profileData.classId}` : "Not Assigned"} locked={true} />
+          <ProfileField label="Highest Qualification" value={profileData.qualification || "Assistant Professor"} locked={false} />
+          <ProfileField label="Specialization" value={profileData.specialization || "Artificial Intelligence & Machine Learning"} locked={false} />
+          <ProfileField label="Teaching Experience" value={profileData.experience ? `${profileData.experience} Years` : "5 Years"} locked={false} />
+        </div>
+      </div>
+
+      {/* ── 3. Bio / About Section ── */}
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 sm:p-6">
+        <div className="flex items-center justify-between mb-3 border-b border-slate-100 pb-3">
+          <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+            <User className="h-4 w-4 text-[#003087]" /> Biography &amp; Professional Statement
+          </h3>
+          <button onClick={() => setIsEditingBio(true)} className="text-[#003087] text-xs font-bold hover:underline flex items-center gap-1">
+            <Edit3 className="w-3 h-3" /> Edit
+          </button>
+        </div>
+        <p className="text-sm text-slate-700 leading-relaxed">
+          {profileData.bio || "No biography added yet. Click 'Edit Profile' to add your academic profile summary, research interests, and background."}
+        </p>
+      </div>
+
+      {/* ── 4. Portfolio & Accomplishments ── */}
       {loading ? (
-        <div className="bg-white rounded-lg border border-[#E2E8F0] p-12 flex flex-col items-center justify-center">
+        <div className="bg-white rounded-xl border border-[#E2E8F0] p-12 flex flex-col items-center justify-center">
           <Loader2 className="h-8 w-8 text-[#003087] animate-spin mb-4" />
-          <p className="text-sm font-bold text-slate-500">Loading profile data...</p>
+          <p className="text-sm font-bold text-slate-500">Loading portfolio...</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Column (Timeline & Major items) */}
           <div className="lg:col-span-2 space-y-6">
-            {experience.length > 0 && renderTimeline("Experience", Briefcase, experience)}
-            {education.length > 0 && renderTimeline("Education", GraduationCap, education, true)}
-            {renderGridSection("Publications & Journals", FileText, publications, "No publications added yet.")}
-            {renderGridSection("Projects & Research", Briefcase, projects, "No projects added yet.")}
+            {/* Experience */}
+            <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm overflow-hidden">
+              <div className="bg-slate-50 px-5 py-3.5 border-b border-slate-200 flex items-center justify-between">
+                <div className="flex items-center gap-2 font-bold text-sm text-slate-800">
+                  <Briefcase className="h-4 w-4 text-[#003087]" /> Experience
+                </div>
+                <span className="text-xs font-bold text-slate-500 bg-slate-200 px-2 py-0.5 rounded-full">{experience.length}</span>
+              </div>
+              <div className="p-5">
+                {experience.length === 0 ? (
+                  <p className="text-xs text-slate-400 text-center py-4">No experience items added yet.</p>
+                ) : (
+                  <div className="space-y-4">
+                    {experience.map(item => (
+                      <div key={item.id} className="flex justify-between items-start border-b border-slate-100 pb-3 last:border-b-0">
+                        <div>
+                          <h4 className="text-sm font-bold text-slate-800">{item.title}</h4>
+                          <p className="text-xs text-slate-600 mt-0.5">{item.description}</p>
+                          {item.date && <p className="text-[11px] text-slate-400 mt-1">{item.date}</p>}
+                        </div>
+                        <button onClick={() => handleDelete(item.id!)} className="text-slate-400 hover:text-red-500 p-1">
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Publications */}
+            <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm overflow-hidden">
+              <div className="bg-slate-50 px-5 py-3.5 border-b border-slate-200 flex items-center justify-between">
+                <div className="flex items-center gap-2 font-bold text-sm text-slate-800">
+                  <FileText className="h-4 w-4 text-[#003087]" /> Publications &amp; Research Papers
+                </div>
+                <span className="text-xs font-bold text-slate-500 bg-slate-200 px-2 py-0.5 rounded-full">{publications.length}</span>
+              </div>
+              <div className="p-5">
+                {publications.length === 0 ? (
+                  <p className="text-xs text-slate-400 text-center py-4">No publications added yet.</p>
+                ) : (
+                  <div className="space-y-4">
+                    {publications.map(item => (
+                      <div key={item.id} className="flex justify-between items-start border-b border-slate-100 pb-3 last:border-b-0">
+                        <div>
+                          <h4 className="text-sm font-bold text-slate-800">{item.title}</h4>
+                          <p className="text-xs text-slate-600 mt-0.5">{item.description}</p>
+                          {item.link && (
+                            <a href={item.link} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-[#003087] font-bold mt-1 hover:underline">
+                              <ExternalLink className="h-3 w-3" /> View Publication
+                            </a>
+                          )}
+                        </div>
+                        <button onClick={() => handleDelete(item.id!)} className="text-slate-400 hover:text-red-500 p-1">
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
-          
-          {/* Sidebar Column (Skills & Certifications) */}
+
           <div className="space-y-6">
-            {renderSkills()}
-            {renderGridSection("Certifications & Awards", Award, certifications, "No certifications added yet.")}
-            {others.length > 0 && renderGridSection("Other Activities", FileText, others, "")}
+            {/* Skills */}
+            <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm overflow-hidden">
+              <div className="bg-slate-50 px-5 py-3.5 border-b border-slate-200 flex items-center justify-between">
+                <div className="flex items-center gap-2 font-bold text-sm text-slate-800">
+                  <Code2 className="h-4 w-4 text-[#003087]" /> Technical Skills
+                </div>
+                <span className="text-xs font-bold text-slate-500 bg-slate-200 px-2 py-0.5 rounded-full">{skills.length}</span>
+              </div>
+              <div className="p-5">
+                {skills.length === 0 ? (
+                  <p className="text-xs text-slate-400 text-center py-4">No skills added yet.</p>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {skills.map(item => (
+                      <span key={item.id} className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 border border-slate-200 rounded-full text-xs font-semibold text-slate-700">
+                        {item.title}
+                        <button onClick={() => handleDelete(item.id!)} className="text-slate-400 hover:text-red-500">
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Certifications */}
+            <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm overflow-hidden">
+              <div className="bg-slate-50 px-5 py-3.5 border-b border-slate-200 flex items-center justify-between">
+                <div className="flex items-center gap-2 font-bold text-sm text-slate-800">
+                  <Award className="h-4 w-4 text-[#003087]" /> Certifications &amp; Awards
+                </div>
+                <span className="text-xs font-bold text-slate-500 bg-slate-200 px-2 py-0.5 rounded-full">{certifications.length}</span>
+              </div>
+              <div className="p-5">
+                {certifications.length === 0 ? (
+                  <p className="text-xs text-slate-400 text-center py-4">No certifications added yet.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {certifications.map(item => (
+                      <div key={item.id} className="flex justify-between items-start text-xs border-b border-slate-100 pb-2.5 last:border-b-0">
+                        <div>
+                          <p className="font-bold text-slate-800">{item.title}</p>
+                          <p className="text-slate-500 mt-0.5">{item.description}</p>
+                        </div>
+                        <button onClick={() => handleDelete(item.id!)} className="text-slate-400 hover:text-red-500 p-1">
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Add Modal */}
-      {isAdding && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4" onClick={() => setIsAdding(false)}>
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden" onClick={e => e.stopPropagation()}>
-            <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
-              <h2 className="text-lg font-bold text-slate-800">Add to Profile</h2>
+      {/* ── Edit Profile Modal ── */}
+      {isEditingBio && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4" onClick={() => setIsEditingBio(false)}>
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b border-slate-200 bg-[#003087] flex items-center justify-between text-white">
+              <h2 className="text-base font-bold">Edit Profile Details</h2>
+              <button onClick={() => setIsEditingBio(false)} className="text-white/70 hover:text-white">
+                <X className="h-5 w-5" />
+              </button>
             </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <form onSubmit={handleSaveBio} className="p-6 space-y-4 overflow-y-auto flex-1">
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Category *</label>
-                <select value={form.type} onChange={e => setForm({...form, type: e.target.value})} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:border-[#003087] outline-none font-semibold text-slate-700">
-                  <optgroup label="Profile Core">
-                    <option value="Experience">Experience</option>
-                    <option value="Education">Education</option>
-                    <option value="Skill">Skill</option>
-                  </optgroup>
-                  <optgroup label="Accomplishments">
-                    <option value="Publication">Publication</option>
-                    <option value="Journal">Journal</option>
-                    <option value="Project">Project</option>
-                    <option value="Research">Research</option>
-                    <option value="Certification">Certification</option>
-                    <option value="Award">Award</option>
-                    <option value="Other">Other</option>
-                  </optgroup>
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">{dynamicLabels.title} *</label>
-                <input required value={form.title} onChange={e => setForm({...form, title: e.target.value})} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:border-[#003087] outline-none" placeholder={`Enter ${dynamicLabels.title.toLowerCase()}`} />
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Biography</label>
+                <textarea
+                  rows={4}
+                  value={editForm.bio}
+                  onChange={e => setEditForm({ ...editForm, bio: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:border-[#003087] focus:bg-white outline-none"
+                  placeholder="Tell students and peers about your background, research interests, etc."
+                />
               </div>
 
-              {dynamicLabels.showDesc && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">{dynamicLabels.desc}</label>
-                  <textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} rows={2} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:border-[#003087] outline-none resize-none" placeholder={`Enter ${dynamicLabels.desc.toLowerCase()}`} />
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Highest Qualification</label>
+                  <input
+                    type="text"
+                    value={editForm.qualification}
+                    onChange={e => setEditForm({ ...editForm, qualification: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:border-[#003087] focus:bg-white outline-none"
+                    placeholder="e.g. M.E., Ph.D."
+                  />
                 </div>
-              )}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Experience (Years)</label>
+                  <input
+                    type="text"
+                    value={editForm.experience}
+                    onChange={e => setEditForm({ ...editForm, experience: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:border-[#003087] focus:bg-white outline-none"
+                    placeholder="e.g. 5"
+                  />
+                </div>
+              </div>
 
-              {dynamicLabels.showDate && (
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">{dynamicLabels.date}</label>
-                  <input type="text" value={form.date} onChange={e => setForm({...form, date: e.target.value})} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:border-[#003087] outline-none" placeholder="e.g. 2018 - 2022" />
-                </div>
-              )}
-              
-              {form.type !== "Skill" && (
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Link / URL (Optional)</label>
-                  <input type="url" value={form.link} onChange={e => setForm({...form, link: e.target.value})} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:border-[#003087] outline-none" placeholder="https://..." />
-                </div>
-              )}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Specialization / Domain</label>
+                <input
+                  type="text"
+                  value={editForm.specialization}
+                  onChange={e => setEditForm({ ...editForm, specialization: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:border-[#003087] focus:bg-white outline-none"
+                  placeholder="e.g. Deep Learning, NLP, Computer Vision"
+                />
+              </div>
 
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-                <button type="button" onClick={() => setIsAdding(false)} className="px-5 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">Cancel</button>
-                <button type="submit" disabled={submitting} className="flex items-center gap-2 px-6 py-2 bg-[#003087] text-white text-sm font-bold rounded-lg hover:bg-[#002266] transition-colors disabled:opacity-70">
-                  {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Save Item
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Contact Phone</label>
+                  <input
+                    type="text"
+                    value={editForm.phone}
+                    onChange={e => setEditForm({ ...editForm, phone: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:border-[#003087] focus:bg-white outline-none"
+                    placeholder="e.g. 9876543210"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Room / Cabin Location</label>
+                  <input
+                    type="text"
+                    value={editForm.roomLocation}
+                    onChange={e => setEditForm({ ...editForm, roomLocation: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:border-[#003087] focus:bg-white outline-none"
+                    placeholder="e.g. AIML Block Cabin 204"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsEditingBio(false)}
+                  className="flex-1 py-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-600 hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="flex-1 py-2 rounded-lg bg-[#003087] text-white text-sm font-bold hover:bg-[#002266] disabled:opacity-50 shadow-sm"
+                >
+                  {submitting ? "Saving..." : "Save Details"}
                 </button>
               </div>
             </form>
@@ -380,43 +572,89 @@ export default function FacultyProfileTab() {
         </div>
       )}
 
-      {/* Edit Bio Modal */}
-      {isEditingBio && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4" onClick={() => setIsEditingBio(false)}>
+      {/* ── Add Item Modal ── */}
+      {isAdding && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4" onClick={() => setIsAdding(false)}>
           <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden" onClick={e => e.stopPropagation()}>
-            <div className="px-6 py-4 border-b border-slate-200 bg-slate-50 flex items-center gap-2">
-              <User className="h-5 w-5 text-slate-500" />
-              <h2 className="text-lg font-bold text-slate-800">Edit Intro</h2>
+            <div className="px-6 py-4 border-b border-slate-200 bg-[#003087] text-white flex items-center justify-between">
+              <h2 className="text-base font-bold">Add Portfolio Item</h2>
+              <button onClick={() => setIsAdding(false)} className="text-white/70 hover:text-white">
+                <X className="h-5 w-5" />
+              </button>
             </div>
-            <form onSubmit={handleSaveBio} className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Designation</label>
-                  <input value={bioForm.designation} onChange={e => setBioForm({...bioForm, designation: e.target.value})} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:border-[#003087] outline-none" placeholder="e.g. Assistant Professor" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Highest Qualification</label>
-                  <input value={bioForm.qualification} onChange={e => setBioForm({...bioForm, qualification: e.target.value})} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:border-[#003087] outline-none" placeholder="e.g. Ph.D." />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Total Experience</label>
-                  <input type="number" value={bioForm.experience} onChange={e => setBioForm({...bioForm, experience: e.target.value})} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:border-[#003087] outline-none" placeholder="e.g. 5" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Specialization</label>
-                  <input value={bioForm.specialization} onChange={e => setBioForm({...bioForm, specialization: e.target.value})} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:border-[#003087] outline-none" placeholder="e.g. Machine Learning" />
-                </div>
-              </div>
+            <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">About / Bio</label>
-                <textarea value={bioForm.bio} onChange={e => setBioForm({...bioForm, bio: e.target.value})} rows={4} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:border-[#003087] outline-none resize-none" placeholder="A brief description about your professional background..." />
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Category *</label>
+                <select
+                  value={form.type}
+                  onChange={e => setForm({ ...form, type: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:border-[#003087] outline-none font-semibold text-slate-700"
+                >
+                  <option value="Experience">Experience</option>
+                  <option value="Education">Education</option>
+                  <option value="Skill">Skill</option>
+                  <option value="Publication">Publication</option>
+                  <option value="Project">Project / Research</option>
+                  <option value="Certification">Certification / Award</option>
+                </select>
               </div>
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-                <button type="button" onClick={() => { setIsEditingBio(false); setBioForm(bioData); }} className="px-5 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">Cancel</button>
-                <button type="submit" disabled={submitting} className="flex items-center gap-2 px-6 py-2 bg-[#003087] text-white text-sm font-bold rounded-lg hover:bg-[#002266] transition-colors disabled:opacity-70">
-                  {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />} Save Profile
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Title *</label>
+                <input
+                  required
+                  value={form.title}
+                  onChange={e => setForm({ ...form, title: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:border-[#003087] outline-none"
+                  placeholder="e.g. Assistant Professor, Ph.D., Machine Learning, Paper title"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Description / Organization</label>
+                <input
+                  value={form.description}
+                  onChange={e => setForm({ ...form, description: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:border-[#003087] outline-none"
+                  placeholder="e.g. Rajalakshmi Institute of Technology, Journal name"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Date / Duration</label>
+                  <input
+                    value={form.date}
+                    onChange={e => setForm({ ...form, date: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:border-[#003087] outline-none"
+                    placeholder="e.g. 2020 - Present"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Document / Link</label>
+                  <input
+                    value={form.link}
+                    onChange={e => setForm({ ...form, link: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:border-[#003087] outline-none"
+                    placeholder="https://..."
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsAdding(false)}
+                  className="flex-1 py-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-600 hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="flex-1 py-2 rounded-lg bg-[#003087] text-white text-sm font-bold hover:bg-[#002266] disabled:opacity-50 shadow-sm"
+                >
+                  {submitting ? "Adding..." : "Add to Profile"}
                 </button>
               </div>
             </form>

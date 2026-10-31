@@ -24,7 +24,7 @@ export default function ContactSection() {
             <div>
               <div className="mb-10">
                 <h3 className="text-2xl font-black text-slate-900 mb-2">
-                  Department of AIML &amp; AI&amp;DS
+                  Department of Artificial Intelligence &amp; Machine Learning (AIML)
                 </h3>
                 <p className="text-slate-600">
                   Rajalakshmi Institute of Technology<br/>

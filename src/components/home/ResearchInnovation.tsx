@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Brain, Network, Eye, LineChart } from "lucide-react";
+import { ArrowRight, Brain, Network, Eye, Sparkles } from "lucide-react";
 import RevealSection from "../RevealSection";
 import CardReveal from "../CardReveal";
 
@@ -25,9 +25,9 @@ const researchAreas = [
     color: "sky"
   },
   {
-    title: "Data Science & Analytics",
-    description: "Extracting knowledge and insights from structured and unstructured data.",
-    icon: LineChart,
+    title: "Natural Language Processing",
+    description: "Empowering intelligent systems to comprehend, synthesize, and interact via human language.",
+    icon: Sparkles,
     color: "emerald"
   }
 ];

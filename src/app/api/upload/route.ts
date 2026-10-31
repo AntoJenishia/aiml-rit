@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server"
-import { getStorage } from "firebase-admin/storage"
-import { getApps } from "firebase-admin/app"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import "@/lib/firebaseAdmin" // Ensure admin is initialized
+import { supabaseAdmin } from "@/lib/supabase"
+
+const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB limit for student uploads
 
 export async function POST(req: Request) {
   try {
@@ -20,24 +20,40 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 })
     }
 
-    // Create unique filename
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        { error: `File size exceeds 5MB limit (${(file.size / (1024 * 1024)).toFixed(1)}MB). Please choose a compressed file.` },
+        { status: 400 }
+      )
+    }
+
+    // Create sanitized unique filename
     const ext = file.name.split(".").pop() || "jpg"
-    const filename = `${folder}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`
+    const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_")
+    const filename = `${folder}/${Date.now()}_${Math.random().toString(36).slice(2, 7)}_${safeName}`
 
-    const app = getApps()[0]
-    const bucketName = (process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "").replace(".firebasestorage.app", ".appspot.com")
-    const bucket = getStorage(app).bucket(bucketName)
-    const fileRef = bucket.file(filename)
-    
     const buffer = Buffer.from(await file.arrayBuffer())
-    await fileRef.save(buffer, { contentType: file.type })
-    await fileRef.makePublic()
-    
-    const downloadURL = `https://storage.googleapis.com/${bucket.name}/${filename}`
 
-    return NextResponse.json({ url: downloadURL })
-  } catch (e) {
+    // Upload directly to Supabase Storage 'proofs' bucket
+    const { error: uploadError } = await supabaseAdmin.storage
+      .from("proofs")
+      .upload(filename, buffer, {
+        contentType: file.type || "application/octet-stream",
+        upsert: true,
+      })
+
+    if (uploadError) {
+      console.error("[API /upload POST] Supabase storage error:", uploadError)
+      throw new Error(`Storage upload error: ${uploadError.message}`)
+    }
+
+    const { data: publicData } = supabaseAdmin.storage
+      .from("proofs")
+      .getPublicUrl(filename)
+
+    return NextResponse.json({ url: publicData.publicUrl, name: file.name, size: file.size })
+  } catch (e: any) {
     console.error("[API /upload POST]", e)
-    return NextResponse.json({ error: String(e) }, { status: 500 })
+    return NextResponse.json({ error: e?.message || String(e) }, { status: 500 })
   }
 }

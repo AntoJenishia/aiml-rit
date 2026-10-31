@@ -22,20 +22,26 @@ export async function GET(req: Request) {
       userMap[doc.id] = doc.data()
     })
 
-    const ods = snapshot.docs.map(doc => {
-      const data = doc.data()
-      const student = userMap[data.studentUid] || {}
-      return {
-        id: doc.id,
-        ...data,
-        studentName: student.name || "Unknown Student",
-        studentEmail: student.email || "N/A",
-        rollNumber: student.rollNumber || "N/A",
-        department: student.department || "Unknown",
-        batch: student.batch || "Unknown",
-        classId: student.classId || "Unknown",
-      }
-    })
+    const ods = snapshot.docs
+      .map(doc => {
+        const data = doc.data()
+        const student = userMap[data.studentUid] || {}
+        return {
+          id: doc.id,
+          ...data,
+          studentName: student.name || "Unknown Student",
+          studentEmail: student.email || "N/A",
+          rollNumber: student.rollNumber || "N/A",
+          department: student.department || "Unknown",
+          batch: student.batch || "Unknown",
+          classId: student.classId || "Unknown",
+        }
+      })
+      .filter(od => {
+        const dept = (od.department || "").toLowerCase()
+        const isAIDS = dept.includes("aids") || dept.includes("data science")
+        return !isAIDS
+      })
 
     return NextResponse.json(ods)
   } catch (error: any) {

@@ -11,8 +11,10 @@ export default function AdminTopbar() {
   const currentTab = searchParams.get("tab") || "dashboard"
   
   const [time, setTime] = useState<Date | null>(null)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
     setTime(new Date())
     const timer = setInterval(() => setTime(new Date()), 1000)
     return () => clearInterval(timer)
@@ -22,6 +24,9 @@ export default function AdminTopbar() {
   const formatTabName = (tab: string) => {
     if (tab === "dashboard") return "Overview Dashboard"
     if (tab === "od") return "OD Management"
+    if (tab === "leave") return "Leave Approvals"
+    if (tab === "activity") return "Activity Monitor"
+    if (["batches", "semesters", "sections", "class-allocation"].includes(tab)) return "Batches & Classes"
     return tab.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")
   }
 
@@ -66,16 +71,21 @@ export default function AdminTopbar() {
             <span className="absolute -top-1 -right-1 w-2 h-2 bg-amber-500 rounded-full border border-[#003087]"></span>
           </button>
           
-          <div className="flex items-center gap-3 ml-2">
-            <div className="text-right hidden sm:block text-white">
-              <div className="text-sm font-bold leading-tight">Dr. {name || "HOD"}</div>
-              <div className="text-[10px] font-bold text-amber-500 uppercase tracking-wider">HOD, AIML & AI&DS</div>
+          <div className="flex items-center gap-3 ml-2" suppressHydrationWarning>
+            <div className="text-right hidden sm:block text-white" suppressHydrationWarning>
+              <div className="text-sm font-bold leading-tight" suppressHydrationWarning>
+                {!name || name.toLowerCase().includes("test")
+                  ? "Dr. Selvakumaran S."
+                  : (name.toLowerCase().includes("dr.") ? name : `Dr. ${name}`)}
+              </div>
+              <div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">HOD, AIML</div>
             </div>
-            {image ? (
-              <Image src={image} alt="Profile" width={32} height={32} className="w-8 h-8 rounded border-2 border-white/20 object-cover bg-white" />
+            {mounted && image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={image} alt="Profile" className="w-8 h-8 rounded-full border-2 border-white/20 object-cover bg-white" />
             ) : (
-              <div className="w-8 h-8 rounded bg-white text-[#003087] flex items-center justify-center font-bold text-sm shadow-sm">
-                {name?.[0] ?? "H"}
+              <div className="w-8 h-8 rounded-full bg-white text-[#003087] flex items-center justify-center font-bold text-sm shadow-sm" suppressHydrationWarning>
+                {name?.[0] ?? "S"}
               </div>
             )}
           </div>

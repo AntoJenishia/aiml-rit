@@ -24,7 +24,7 @@ interface ODRequest {
   hodRemarks?: string
 }
 
-export default function HodOdTab({ departmentFilter }: { departmentFilter: "ALL" | "AIML" | "AIDS" }) {
+export default function HodOdTab({ departmentFilter }: { departmentFilter?: string } = {}) {
   const [ods, setOds] = useState<ODRequest[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -91,7 +91,10 @@ export default function HodOdTab({ departmentFilter }: { departmentFilter: "ALL"
   }
 
   const filteredODs = ods.filter(od => {
-    const matchesDept = departmentFilter === "ALL" || od.department === departmentFilter
+    const dept = (od.department || "").toLowerCase()
+    if (dept.includes("aids") || dept.includes("data science")) {
+      return false
+    }
     const q = searchQuery.toLowerCase()
     const matchesSearch = !q || (
       od.studentName.toLowerCase().includes(q) ||
@@ -99,7 +102,7 @@ export default function HodOdTab({ departmentFilter }: { departmentFilter: "ALL"
       od.referenceNumber.toLowerCase().includes(q) ||
       od.eventName.toLowerCase().includes(q)
     )
-    return matchesDept && matchesSearch
+    return matchesSearch
   })
 
   if (loading) return <div className="flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-[#003087]" /></div>

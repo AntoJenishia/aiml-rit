@@ -20,12 +20,12 @@ const upcomingEvents = [
   {
     id: 2,
     date: "Oct 05, 2026",
-    title: "Data Science Bootcamp",
+    title: "Deep Learning & Neural Networks Bootcamp",
     type: "Workshop",
-    organizer: "AI&DS Department",
+    organizer: "AIML Department",
     venue: "Lab 4, Tech Block",
-    description: "A hands-on workshop covering data preprocessing, visualization, and basic machine learning models.",
-    tagColor: "bg-violet-100 text-violet-700"
+    description: "A hands-on workshop covering deep neural architectures, PyTorch, model optimization and real-time deployment.",
+    tagColor: "bg-indigo-100 text-indigo-700"
   },
   {
     id: 3,

@@ -9,12 +9,14 @@ import {
   Clock, AlertCircle, Loader2, Award,
   ExternalLink, Download, X, Briefcase, Plus,
   Mail, Shield, User, Activity, LayoutDashboard, CalendarDays,
-  BarChart3, Bell, Search
+  BarChart3, Bell, Search, Eye
 } from "lucide-react"
 
 import AchievementModal from "./AchievementModal"
 import FacultyProfileTab from "./faculty/FacultyProfileTab"
 import ReportsTab from "./faculty/ReportsTab"
+import FacultyAttendanceTab from "./faculty/FacultyAttendanceTab"
+import LeaveReviewModal from "./LeaveReviewModal"
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface ODRequest {
@@ -179,6 +181,12 @@ function StaffDashInner() {
   const [students, setStudents] = useState<Student[]>([])
   const [odRequests, setOdRequests] = useState<ODRequest[]>([])
   const [achievements, setAchievements] = useState<any[]>([])
+  const [leaveRequests, setLeaveRequests] = useState<any[]>([])
+  const [leaveSearch, setLeaveSearch] = useState("")
+  const [leaveFilter, setLeaveFilter] = useState<"ALL" | "PENDING" | "APPROVED" | "REJECTED">("ALL")
+  const [rejectLeaveTarget, setRejectLeaveTarget] = useState<any | null>(null)
+  const [rejectLeaveReason, setRejectLeaveReason] = useState("")
+  const [reviewLeaveTarget, setReviewLeaveTarget] = useState<any | null>(null)
   
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   
@@ -208,6 +216,13 @@ function StaffDashInner() {
       const achRes = await fetch("/api/faculty/achievements")
       if (achRes.ok) setAchievements(await achRes.json())
 
+      // 4. Fetch Leave Requests
+      const leaveRes = await fetch("/api/leave")
+      if (leaveRes.ok) {
+        const d = await leaveRes.json()
+        setLeaveRequests(d.leaves || [])
+      }
+
     } catch (err) {
       console.error(err)
     } finally {
@@ -219,6 +234,7 @@ function StaffDashInner() {
 
   const pendingODs = odRequests.filter(o => o.status === "FACULTY_VERIFICATION" || o.status === "post_pending_faculty")
   const approvedODs = odRequests.filter(o => ["VERIFIED", "COMPLETED", "ACTIVITY_COMPLETED"].includes(o.status))
+  const pendingLeaves = leaveRequests.filter(l => l.status === "PENDING" || l.status === "PENDING_INCHARGE")
 
   // Generate Recent Activities
   const recentActivities = useMemo(() => {
@@ -284,6 +300,52 @@ function StaffDashInner() {
     })
     if (res.ok) await loadData()
     setActionLoading(null)
+  }
+
+  const handleApproveLeave = async (leave: any, customNotes?: string) => {
+    setActionLoading(leave.id)
+    try {
+      const res = await fetch("/api/leave", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: leave.id,
+          action: "approve",
+          reviewNotes: customNotes || "Recommended and forwarded to HOD by Class Incharge.",
+        })
+      })
+      if (res.ok) await loadData()
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const handleRejectLeave = async (targetLeave?: any, customReason?: string) => {
+    const target = targetLeave || rejectLeaveTarget
+    if (!target) return
+    setActionLoading(target.id)
+    try {
+      const res = await fetch("/api/leave", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: target.id,
+          action: "reject",
+          reviewNotes: customReason || rejectLeaveReason.trim() || "Rejected by Class Incharge"
+        })
+      })
+      if (res.ok) {
+        setRejectLeaveTarget(null)
+        setRejectLeaveReason("")
+        await loadData()
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setActionLoading(null)
+    }
   }
 
   // Helper render components
@@ -462,6 +524,192 @@ function StaffDashInner() {
       </div>
     </div>
   )
+
+  const renderLeaveRequests = () => {
+    const filteredLeaves = leaveRequests.filter(l => {
+      if (leaveFilter !== "ALL" && l.status !== leaveFilter) return false
+      if (leaveSearch) {
+        const q = leaveSearch.toLowerCase()
+        return (
+          (l.studentName || "").toLowerCase().includes(q) ||
+          (l.registerNumber || "").toLowerCase().includes(q) ||
+          (l.category || "").toLowerCase().includes(q)
+        )
+      }
+      return true
+    })
+
+    return (
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-bold text-slate-800">Advance Leave Requests</h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Review and grant approval for advance leaves submitted by your section students.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="relative w-48">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+              <input
+                type="text"
+                value={leaveSearch}
+                onChange={(e) => setLeaveSearch(e.target.value)}
+                placeholder="Search leaves..."
+                className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 outline-none focus:border-[#003087]"
+              />
+            </div>
+            <div className="inline-flex rounded-lg border border-slate-200 bg-white p-0.5 text-xs font-semibold">
+              {(["ALL", "PENDING", "APPROVED", "REJECTED"] as const).map(f => (
+                <button
+                  key={f}
+                  onClick={() => setLeaveFilter(f)}
+                  className={`px-3 py-1 rounded-md transition-all ${
+                    leaveFilter === f ? "bg-[#003087] text-white" : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  {f === "ALL" ? "All" : f.charAt(0) + f.slice(1).toLowerCase()}
+                  {f === "PENDING" && pendingLeaves.length > 0 && (
+                    <span className="ml-1.5 px-1.5 py-0.2 rounded-full bg-amber-400 text-slate-950 text-[10px] font-black">
+                      {pendingLeaves.length}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg border border-[#E2E8F0] shadow-sm overflow-hidden">
+          {loading ? (
+            <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-[#003087]" /></div>
+          ) : filteredLeaves.length === 0 ? (
+            <EmptyState icon={FileText} title="No leave requests" subtitle="No advance leave applications match your current selection." />
+          ) : (
+            <div className="divide-y divide-[#E5E7EB]">
+              {filteredLeaves.map((leave) => {
+                const isPendingIncharge = leave.status === "PENDING" || leave.status === "PENDING_INCHARGE"
+                const isPendingHod = leave.status === "PENDING_HOD"
+                const isApproved = leave.status === "APPROVED"
+                const isRejected = leave.status === "REJECTED"
+
+                return (
+                  <div key={leave.id} className="p-5 hover:bg-slate-50 transition-colors">
+                    <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">
+                            {leave.category}
+                          </span>
+                          <span className="text-xs font-bold text-slate-900">{leave.studentName}</span>
+                          <span className="text-[11px] font-mono text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+                            {leave.registerNumber || "—"}
+                          </span>
+                          {leave.batch && leave.section && (
+                            <span className="text-[10px] text-slate-400 font-bold">
+                              Batch {leave.batch} · Sec {leave.section}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2 text-xs font-bold text-slate-700 pt-1">
+                          <CalendarDays className="h-3.5 w-3.5 text-slate-400" />
+                          <span>Leave Dates: {leave.startDate} {leave.startDate !== leave.endDate ? `to ${leave.endDate}` : ""}</span>
+                        </div>
+
+                        <p className="text-xs text-slate-600 font-medium leading-relaxed bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                          &ldquo;{leave.reason}&rdquo;
+                        </p>
+
+                        <div className="pt-1 flex items-center gap-2 flex-wrap">
+                          <button
+                            type="button"
+                            onClick={() => setReviewLeaveTarget(leave)}
+                            className="inline-flex items-center gap-1.5 text-xs text-[#003087] font-bold bg-blue-50 hover:bg-blue-100 border border-blue-200 px-2.5 py-1 rounded-md transition-colors"
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                            {leave.attachmentUrl ? "View Attached Document" : "Review Request"}
+                          </button>
+                          {leave.leaveSequence && (
+                            <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
+                              🎯 {leave.leaveSequence === 1 ? "1st Leave" : leave.leaveSequence === 2 ? "2nd Leave" : `${leave.leaveSequence}th Leave`}
+                            </span>
+                          )}
+                          {typeof leave.attendancePercentage === "number" && (
+                            <span className={`text-[11px] font-bold px-2 py-0.5 rounded border ${
+                              leave.attendancePercentage >= 75
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                : "bg-rose-50 text-rose-700 border-rose-200"
+                            }`}>
+                              {leave.attendancePercentage}% Attendance
+                            </span>
+                          )}
+                        </div>
+
+                        {leave.reviewNotes && (
+                          <p className="text-[11px] text-slate-500 italic">
+                            Review note ({leave.reviewedBy}): &ldquo;{leave.reviewNotes}&rdquo;
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex flex-col items-start md:items-end gap-2.5 shrink-0">
+                        {isApproved && (
+                          <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 inline-flex items-center gap-1">
+                            <CheckCircle className="h-3.5 w-3.5 text-emerald-600" /> Final Approved by HOD
+                          </span>
+                        )}
+                        {isPendingHod && (
+                          <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800 border border-blue-200 inline-flex items-center gap-1">
+                            <Clock className="h-3.5 w-3.5 text-blue-600" /> Forwarded to HOD
+                          </span>
+                        )}
+                        {isRejected && (
+                          <span className="px-3 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-800 border border-rose-200 inline-flex items-center gap-1">
+                            <XCircle className="h-3.5 w-3.5 text-rose-600" /> Rejected
+                          </span>
+                        )}
+                        {isPendingIncharge && (
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => setReviewLeaveTarget(leave)}
+                              disabled={actionLoading === leave.id}
+                              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#003087] hover:bg-[#002266] text-white rounded text-xs font-bold transition-colors shadow-sm disabled:opacity-50"
+                              title="Review document & verify"
+                            >
+                              <Eye className="h-3.5 w-3.5" /> Review &amp; Verify
+                            </button>
+                            <button
+                              onClick={() => {
+                                setRejectLeaveTarget(leave)
+                                setRejectLeaveReason("")
+                              }}
+                              disabled={actionLoading === leave.id}
+                              className="flex items-center gap-1 px-3 py-1.5 bg-white border border-rose-200 text-rose-600 rounded text-xs font-bold hover:bg-rose-50 transition-colors shadow-sm disabled:opacity-50"
+                            >
+                              <XCircle className="h-3.5 w-3.5" /> Reject
+                            </button>
+                          </div>
+                        )}
+                        {!isPendingIncharge && (
+                          <button
+                            onClick={() => setReviewLeaveTarget(leave)}
+                            className="flex items-center gap-1 px-2.5 py-1 bg-slate-50 border border-slate-200 text-slate-700 rounded text-xs font-semibold hover:bg-slate-100 transition-colors"
+                          >
+                            <Eye className="h-3.5 w-3.5 text-slate-500" /> View Details
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
 
   const renderAchievements = () => {
     const pendingAch = achievements.filter(a => a.status === "PENDING_VERIFICATION")
@@ -696,9 +944,64 @@ function StaffDashInner() {
           onConfirm={(reason) => handleRejectAchievement(rejectAchievementTarget, reason)} 
         />
       )}
+
+      {/* Reject Leave Modal */}
+      {rejectLeaveTarget && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4" onClick={() => setRejectLeaveTarget(null)}>
+          <div className="w-full max-w-md bg-white rounded-xl shadow-xl overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+              <div>
+                <h3 className="text-base font-bold text-slate-800">Reject Advance Leave</h3>
+                <p className="text-xs text-slate-500 mt-0.5">{rejectLeaveTarget.studentName} — {rejectLeaveTarget.category}</p>
+              </div>
+              <button onClick={() => setRejectLeaveTarget(null)} className="text-slate-400 hover:text-slate-700 p-1"><X className="h-5 w-5" /></button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Reason for Rejection</label>
+                <textarea
+                  rows={3}
+                  value={rejectLeaveReason}
+                  onChange={(e) => setRejectLeaveReason(e.target.value)}
+                  placeholder="e.g. Mandatory lab examination or event scheduled on this date..."
+                  className="w-full p-2.5 text-xs border border-slate-300 rounded-lg outline-none focus:border-rose-500 resize-none"
+                />
+              </div>
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <button onClick={() => setRejectLeaveTarget(null)} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg transition-colors">
+                  Cancel
+                </button>
+                <button
+                  onClick={handleRejectLeave}
+                  disabled={actionLoading === rejectLeaveTarget.id || !rejectLeaveReason.trim()}
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-lg shadow-sm transition-all disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  {actionLoading === rejectLeaveTarget.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <XCircle className="h-3.5 w-3.5" />}
+                  Confirm Rejection
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Preview Modal */}
       {previewUrl && <DocumentPreviewModal url={previewUrl} title="Document Preview" onClose={() => setPreviewUrl(null)} />}
+
+      {/* In-Page Leave Document & Live Stats Review Modal */}
+      {reviewLeaveTarget && (
+        <LeaveReviewModal
+          leave={reviewLeaveTarget}
+          role="staff"
+          onClose={() => setReviewLeaveTarget(null)}
+          onApprove={async (l, notes) => {
+            await handleApproveLeave(l, notes)
+          }}
+          onReject={async (l, reason) => {
+            await handleRejectLeave(l, reason)
+          }}
+        />
+      )}
 
       {/* Student Profile Modal */}
       {renderStudentModal()}
@@ -728,6 +1031,8 @@ function StaffDashInner() {
 
       {/* Tabs Layout */}
       {activeTab === "dashboard" && renderDashboardOverview()}
+      {activeTab === "attendance" && <FacultyAttendanceTab staffName={name || "Class Incharge"} />}
+      {activeTab === "leave" && renderLeaveRequests()}
       {activeTab === "students" && renderMyStudents()}
       {activeTab === "od" && renderODRequests()}
       {activeTab === "profile" && <FacultyProfileTab />}
