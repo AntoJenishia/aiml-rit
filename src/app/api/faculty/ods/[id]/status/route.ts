@@ -3,6 +3,7 @@ import { adminDb } from "@/lib/firebaseAdmin"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { FieldValue } from "firebase-admin/firestore"
+import { logActivity } from "@/lib/auditLogger"
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -75,6 +76,20 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     }
 
     await odRef.update(updates)
+
+    // Audit log OD status change with IP & location
+    logActivity({
+      userId: uid,
+      userName: facultyData.name || "Faculty",
+      userEmail: session.user.email || "",
+      userRole: facultyData.role || "staff",
+      action: action === "reject" ? "OD_REJECTED" : (isProof ? "OD_PROOF_VERIFIED" : "OD_VERIFIED"),
+      entityType: "od",
+      entityId: id,
+      details: `${facultyData.name} (${facultyData.role?.toUpperCase()}): ${action === "reject" ? `Rejected OD` : `Verified ${isProof ? "Proof" : "OD"}`} for ${odData.studentName || "Student"} [Ref: ${odData.referenceNumber}]`,
+      metadata: { action, reason, newStatus: updates.status },
+      req,
+    })
     
     // 2. Call Google Apps Script webhook to notify backend spreadsheets if needed
     try {

@@ -225,7 +225,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
             </Link>
           )}
           <button
-            onClick={() => signOut({ callbackUrl: "/login" })}
+            onClick={() => signOut({ callbackUrl: user?.role === "student" ? "/login" : "/ops" })}
             className="w-full flex items-center gap-3 rounded-md px-3 py-2.5 min-h-[40px] text-[13px] font-medium text-red-500 border-l-2 border-transparent transition-all hover:bg-red-50 hover:text-red-600">
             <LogOut className="h-4 w-4 shrink-0" />
             Sign Out
@@ -234,8 +234,8 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* ── Main content ── */}
-      <main className="flex-1 overflow-y-auto min-w-0 p-4 md:p-6 bg-[#F0F2F5] print:overflow-visible print:bg-white print:p-0">
-        <div className="max-w-5xl mx-auto">
+      <main className="flex-1 overflow-y-auto overflow-x-hidden min-w-0 p-3 sm:p-4 md:p-6 bg-[#F0F2F5] print:overflow-visible print:bg-white print:p-0">
+        <div className="max-w-5xl mx-auto w-full">
           {children}
         </div>
       </main>

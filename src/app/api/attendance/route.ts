@@ -4,6 +4,54 @@ import { authOptions } from "@/lib/auth"
 import { adminDb } from "@/lib/firebaseAdmin"
 import { supabaseAdmin } from "@/lib/supabase"
 import { FieldValue } from "firebase-admin/firestore"
+import { logActivity } from "@/lib/auditLogger"
+
+async function resolveStaffIdentity(session: any) {
+  const sessionUser = session?.user as any
+  const sessionEmail = session?.user?.email?.toLowerCase().trim() || ""
+  const sessionName = (session?.user?.name || "").trim()
+  const sessionUid = (sessionUser?.uid || sessionUser?.id || "").trim()
+
+  let staffCode = (sessionUser?.staffCode || sessionUser?.username || "").toUpperCase().trim()
+  let isHod =
+    sessionUser?.role === "hod" ||
+    sessionUser?.role === "admin" ||
+    staffCode === "CS91" ||
+    sessionEmail === "antojenishiadev@gmail.com" ||
+    sessionEmail === "selvakumaran.s@ritchennai.edu.in"
+
+  if (!staffCode || staffCode.includes("@")) {
+    let facultyRow: any = null
+    if (sessionEmail && !sessionEmail.includes("@internal.aiml.rit")) {
+      const { data } = await supabaseAdmin.from("staff").select("*").ilike("email", sessionEmail).maybeSingle()
+      if (data) facultyRow = data
+    }
+    if (!facultyRow && sessionEmail?.includes("@internal.aiml.rit")) {
+      const code = sessionEmail.split("@")[0].trim().toUpperCase()
+      const { data } = await supabaseAdmin.from("staff").select("*").ilike("staff_code", code).maybeSingle()
+      if (data) facultyRow = data
+    }
+    if (!facultyRow && sessionName && !sessionName.toLowerCase().includes("test")) {
+      const { data } = await supabaseAdmin.from("staff").select("*").ilike("name", sessionName).maybeSingle()
+      if (data) facultyRow = data
+    }
+    if (!facultyRow && sessionUid) {
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sessionUid)
+      if (isUUID) {
+        const { data } = await supabaseAdmin.from("staff").select("*").eq("id", sessionUid).maybeSingle()
+        if (data) facultyRow = data
+      }
+    }
+    if (facultyRow) {
+      staffCode = (facultyRow.staff_code || "").toUpperCase().trim()
+      if (facultyRow.role === "hod" || staffCode === "CS91") {
+        isHod = true
+      }
+    }
+  }
+
+  return { staffCode, isHod }
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -21,6 +69,9 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Batch and section are required" }, { status: 400 })
     }
 
+    const sessionUser = session.user as any
+    const { staffCode, isHod } = await resolveStaffIdentity(session)
+
     // 1. Fetch enrolled students from Supabase
     const { data: students, error: stuErr } = await supabaseAdmin
       .from("students")
@@ -32,6 +83,16 @@ export async function GET(req: NextRequest) {
     if (stuErr) {
       console.error("[GET /api/attendance] Supabase Error:", stuErr)
       return NextResponse.json({ error: "Failed to load students" }, { status: 500 })
+    }
+
+    // Strict Security Check: Verify staff is incharge of this section or HOD
+    if (!isHod) {
+      const isAssigned = students?.some((s) => (s.staff_code || "").toUpperCase() === staffCode)
+      if (!isAssigned) {
+        return NextResponse.json({
+          error: "Unauthorized: You are only permitted to mark attendance for your assigned class section."
+        }, { status: 403 })
+      }
     }
 
     // 2. Fetch existing saved attendance record from Firestore
@@ -152,12 +213,27 @@ export async function POST(req: NextRequest) {
     const existingRecords = existingData?.records || {}
 
     // Check lock status: If already locked, only HOD / Admin can override directly, otherwise incharge must have HOD unlock it
-    const role = (session.user as any)?.role
-    const isHodOrAdmin =
-      role === "hod" ||
-      role === "admin" ||
-      (session.user as any)?.username === "CS91" ||
-      session.user?.email === "antojenishiadev@gmail.com"
+    const sessionUser = session.user as any
+    const { staffCode, isHod } = await resolveStaffIdentity(session)
+    const role = sessionUser?.role
+    const isHodOrAdmin = isHod || role === "admin"
+
+    // Strict Security Check for POST: Verify staff is incharge or HOD
+    if (!isHodOrAdmin) {
+      const { data: studentCheck } = await supabaseAdmin
+        .from("students")
+        .select("id")
+        .eq("batch", batch.trim())
+        .eq("section", section.trim().toUpperCase())
+        .eq("staff_code", staffCode)
+        .limit(1)
+
+      if (!studentCheck || studentCheck.length === 0) {
+        return NextResponse.json({
+          error: "Unauthorized: You are only permitted to submit attendance for your assigned class section."
+        }, { status: 403 })
+      }
+    }
 
     if (existingData?.isLocked && !isHodOrAdmin) {
       return NextResponse.json({
@@ -227,6 +303,21 @@ export async function POST(req: NextRequest) {
     }
 
     await adminDb.collection("attendance").doc(docId).set(payload, { merge: true })
+
+    // Log attendance submission with IP & location
+    logActivity({
+      userId: sessionUser.uid || sessionUser.id,
+      userName: session.user.name || "Faculty",
+      userEmail: session.user.email || "",
+      userRole: (sessionUser.role as any) || "staff",
+      staffCode,
+      action: "ATTENDANCE_LOCKED",
+      entityType: "attendance",
+      entityId: docId,
+      details: `Saved & locked attendance for Batch ${batch} Sec ${section} on ${date}: ${presentCount} Present, ${absentCount} Absent, ${odCount} OD (${totalStudents} total)`,
+      metadata: { batch, section, date, totalStudents, presentCount, absentCount, odCount },
+      req,
+    })
 
     return NextResponse.json({
       success: true,

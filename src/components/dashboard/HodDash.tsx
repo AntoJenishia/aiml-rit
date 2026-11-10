@@ -13,6 +13,8 @@ import HodBatchesTab from "./hod/HodBatchesTab"
 import HodAttendanceTab from "./hod/HodAttendanceTab"
 import HodActivityTab from "./hod/HodActivityTab"
 import HodLeaveTab from "./hod/HodLeaveTab"
+import HodAuditLogsTab from "./hod/HodAuditLogsTab"
+import DocumentPreviewModal from "@/components/common/DocumentPreviewModal"
 
 function HodDashInner() {
   const { name } = useUser()
@@ -22,6 +24,7 @@ function HodDashInner() {
   const [metrics, setMetrics] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
   useEffect(() => {
     let isMounted = true
@@ -47,28 +50,28 @@ function HodDashInner() {
   }, [])
 
   return (
-    <div className="space-y-6 pb-20">
+    <div className="space-y-4 sm:space-y-6 pb-16 max-w-full overflow-hidden">
       {/* ── Academic Portal Banner ── */}
-      <div className="bg-[#003087] rounded border border-[#002266] shadow-sm p-6 relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-[#003087] rounded-2xl border border-[#002266] shadow-sm p-4 sm:p-6 relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-4">
         {/* Subtle Watermark */}
         <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
-          <Building2 className="w-40 h-40 text-white -translate-y-8 translate-x-4" />
+          <Building2 className="w-32 h-32 sm:w-40 sm:h-40 text-white -translate-y-8 translate-x-4" />
         </div>
         
-        <div className="relative z-10">
-          <p className="text-blue-200 text-xs font-bold tracking-widest uppercase mb-1">Academic Dashboard</p>
-          <h1 className="text-2xl font-black text-white">
+        <div className="relative z-10 min-w-0">
+          <p className="text-blue-200 text-[10px] sm:text-xs font-bold tracking-widest uppercase mb-1">Academic Dashboard</p>
+          <h1 className="text-xl sm:text-2xl font-black text-white truncate">
             Welcome, {!name || name.toLowerCase().includes("test")
               ? "Dr. Selvakumaran S."
               : (name.toLowerCase().includes("dr.") ? name : `Dr. ${name}`)}
           </h1>
-          <p className="text-blue-100 text-sm mt-1">Head of Department • Artificial Intelligence &amp; Machine Learning (AIML)</p>
+          <p className="text-blue-100 text-xs sm:text-sm mt-0.5 sm:mt-1 line-clamp-1 sm:line-clamp-none">Head of Department • Artificial Intelligence &amp; Machine Learning (AIML)</p>
         </div>
 
         {/* Department Badge */}
-        <div className="relative z-10 flex items-center gap-2 bg-white/10 px-4 py-2 rounded border border-white/20 self-start md:self-auto">
+        <div className="relative z-10 flex items-center gap-2 bg-white/10 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl border border-white/20 self-start md:self-auto shrink-0">
           <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-xs font-bold text-white uppercase tracking-wider">AIML Department</span>
+          <span className="text-[11px] sm:text-xs font-bold text-white uppercase tracking-wider">AIML Department</span>
         </div>
       </div>
 
@@ -98,11 +101,13 @@ function HodDashInner() {
       ) : activeTab === "od" ? (
         <HodOdTab />
       ) : activeTab === "achievements" ? (
-        <HodAchievementsTab previewDoc={(url) => window.open(url, '_blank')} />
+        <HodAchievementsTab previewDoc={(url) => setPreviewUrl(url)} />
       ) : activeTab === "faculty-portfolios" ? (
         <HodStaffTab />
       ) : activeTab === "batches" || activeTab === "semesters" || activeTab === "sections" || activeTab === "class-allocation" ? (
         <HodBatchesTab />
+      ) : activeTab === "audit-logs" ? (
+        <HodAuditLogsTab />
       ) : (
         <div className="bg-white rounded-xl border border-[#E5E7EB] shadow-sm p-12 text-center flex flex-col items-center">
           <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mb-4">
@@ -113,6 +118,14 @@ function HodDashInner() {
             This module is part of the HOD Master Dashboard Phase 2+ implementation plan.
           </p>
         </div>
+      )}
+
+      {previewUrl && (
+        <DocumentPreviewModal
+          url={previewUrl}
+          title="Achievement Document Proof"
+          onClose={() => setPreviewUrl(null)}
+        />
       )}
     </div>
   )

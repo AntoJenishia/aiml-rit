@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin, formatProfileUrl } from "@/lib/supabase";
 
 export async function GET(req: Request) {
   try {
@@ -126,8 +126,9 @@ export async function GET(req: Request) {
       semester: s.semester,
       email: s.email,
       phone: s.phone,
-      profile: s.profile_url,
-      photoURL: s.profile_url,
+      profile: formatProfileUrl(s.profile_url),
+      photoURL: formatProfileUrl(s.profile_url),
+      profile_url: formatProfileUrl(s.profile_url),
       hosteler: s.hosteler,
       gender: s.gender,
       classIncharge: s.staff?.name || s.class_incharge_name || faculty.name,

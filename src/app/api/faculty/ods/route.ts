@@ -2,63 +2,53 @@ import { NextResponse } from "next/server"
 import { adminDb } from "@/lib/firebaseAdmin"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
+import { supabaseAdmin } from "@/lib/supabase"
 
 export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     
-    const uid = (session.user as any).uid || (session.user as any).id
-    const facultyDoc = await adminDb.collection("users").doc(uid).get()
-    if (!facultyDoc.exists) return NextResponse.json({ error: "Faculty not found" }, { status: 404 })
-    
-    const facultyData = facultyDoc.data()
-    if (facultyData?.role !== "staff") {
-      return NextResponse.json({ error: "Unauthorized role" }, { status: 403 })
+    const sessionUser = session.user as any
+    const staffCode = (sessionUser.staffCode || sessionUser.username || "").toUpperCase().trim()
+    const email = session.user.email?.toLowerCase().trim()
+    const isHod = sessionUser.role === "hod" || staffCode === "CS91" || email === "antojenishiadev@gmail.com"
+
+    let assignedStudentUids: string[] = []
+
+    if (!isHod) {
+      // Find students assigned to this faculty via staff_code
+      const { data: students } = await supabaseAdmin
+        .from("students")
+        .select("id, class, batch, section, staff_code")
+        .eq("staff_code", staffCode)
+
+      if (students && students.length > 0) {
+        assignedStudentUids = students.map((s) => s.id)
+      }
     }
 
-    const { isClassIncharge, classId } = facultyData!
-    if (!isClassIncharge || !classId) {
-      return NextResponse.json([])
+    // Fetch OD requests from Firestore
+    const odsSnap = await adminDb.collection("odRequests").get()
+    if (odsSnap.empty) return NextResponse.json([])
+
+    let ods = odsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+
+    // If not HOD, filter to only assigned students
+    if (!isHod) {
+      ods = ods.filter((od: any) => assignedStudentUids.includes(od.studentUid))
     }
 
-    // 2. Fetch students in the class to get their UIDs
-    const studentsSnap = await adminDb.collection("users")
-      .where("role", "==", "student")
-      .where("classId", "==", classId)
-      .get()
-
-    if (studentsSnap.empty) return NextResponse.json([])
-    
-    const studentUids = studentsSnap.docs.map(d => d.id)
-
-    // 3. Firestore doesn't support 'in' queries for >10 items.
-    // Instead, since it's a dashboard, we could fetch all ODs with studentUid in list, or just fetch all recent ODs and filter.
-    // Assuming class sizes are ~60, we can chunk the `in` queries.
-    const odRequests: any[] = []
-    
-    // Chunk array into groups of 10
-    for (let i = 0; i < studentUids.length; i += 10) {
-      const chunk = studentUids.slice(i, i + 10)
-      const odSnap = await adminDb.collection("odRequests")
-        .where("studentUid", "in", chunk)
-        .get()
-        
-      odSnap.forEach(doc => {
-        odRequests.push({ id: doc.id, ...doc.data() })
-      })
-    }
-    
-    // Sort combined results by descending creation date
-    odRequests.sort((a, b) => {
-      const timeA = a.createdAt?.seconds || 0
-      const timeB = b.createdAt?.seconds || 0
+    // Sort newest first
+    ods.sort((a: any, b: any) => {
+      const timeA = a.createdAt?.seconds ? a.createdAt.seconds * 1000 : (a.createdAt ? new Date(a.createdAt).getTime() : 0)
+      const timeB = b.createdAt?.seconds ? b.createdAt.seconds * 1000 : (b.createdAt ? new Date(b.createdAt).getTime() : 0)
       return timeB - timeA
     })
 
-    return NextResponse.json(odRequests)
+    return NextResponse.json(ods)
   } catch (error) {
-    console.error("Error fetching faculty ODs:", error)
+    console.error("[GET /api/faculty/ods] Error:", error)
     return NextResponse.json({ error: "Internal error" }, { status: 500 })
   }
 }

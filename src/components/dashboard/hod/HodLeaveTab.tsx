@@ -273,8 +273,20 @@ export default function HodLeaveTab() {
                       {/* 1. Student Details */}
                       <td className="px-5 py-3.5 align-middle">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-[#003087]/10 text-[#003087] flex items-center justify-center font-black text-xs shrink-0">
-                            {leave.studentName?.[0] || "S"}
+                          <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 text-[#003087] flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden shadow-2xs">
+                            {leave.studentPhoto || leave.photoURL ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={leave.studentPhoto || leave.photoURL}
+                                alt={leave.studentName}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  (e.target as HTMLElement).style.display = "none"
+                                }}
+                              />
+                            ) : (
+                              leave.studentName?.[0] || "S"
+                            )}
                           </div>
                           <div className="min-w-0">
                             <span className="font-bold text-slate-900 text-sm block truncate">
@@ -288,8 +300,21 @@ export default function HodLeaveTab() {
                               )}
                               <span>Batch {leave.batch || "—"}</span>
                               {leave.section && <span>(Sec {leave.section})</span>}
+                              {leave.hosteler !== undefined && leave.hosteler !== null && leave.hosteler !== "" && (
+                                <span className="text-[10px] font-bold text-purple-700 bg-purple-50 px-1.5 py-0.2 rounded border border-purple-200">
+                                  {String(leave.hosteler) === "1" || String(leave.hosteler).toLowerCase() === "hosteler" ? "Hostel" : "Day"}
+                                </span>
+                              )}
                             </div>
                             <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                              {leave.studentPhone && (
+                                <a
+                                  href={`tel:${leave.studentPhone}`}
+                                  className="text-[10px] font-mono font-bold text-blue-700 bg-blue-50 px-1.5 py-0.2 rounded border border-blue-200"
+                                >
+                                  📞 {leave.studentPhone}
+                                </a>
+                              )}
                               {leave.leaveSequence && (
                                 <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
                                   🎯 {leave.leaveSequence === 1 ? "1st Leave" : leave.leaveSequence === 2 ? "2nd Leave" : `${leave.leaveSequence}th Leave`}
@@ -299,7 +324,7 @@ export default function HodLeaveTab() {
                                 <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded border ${
                                   leave.attendancePercentage >= 75
                                     ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                    : "bg-rose-50 text-rose-700 border-rose-200"
+                                    : "bg-rose-50 text-rose-700 border-rose-200 font-black"
                                 }`}>
                                   {leave.attendancePercentage}% Attd
                                 </span>

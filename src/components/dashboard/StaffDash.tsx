@@ -17,6 +17,7 @@ import FacultyProfileTab from "./faculty/FacultyProfileTab"
 import ReportsTab from "./faculty/ReportsTab"
 import FacultyAttendanceTab from "./faculty/FacultyAttendanceTab"
 import LeaveReviewModal from "./LeaveReviewModal"
+import DocumentPreviewModal from "@/components/common/DocumentPreviewModal"
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface ODRequest {
@@ -49,6 +50,12 @@ interface Student {
   phone?: string
   currentYear?: string
   semester?: number
+  profile?: string
+  photoURL?: string
+  profile_url?: string
+  gender?: string
+  hosteler?: string | number
+  classIncharge?: string
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -139,38 +146,6 @@ function LiveClock() {
   )
 }
 
-// ── Document Preview Modal ───────────────────────────────────────────────────
-function DocumentPreviewModal({url, title, onClose}: {url: string, title: string, onClose: ()=>void}) {
-  let finalUrl = url;
-  if (url.includes('drive.google.com/drive/folders/')) {
-    const match = url.match(/\/folders\/([a-zA-Z0-9-_]+)/);
-    if (match && match[1]) {
-      finalUrl = `https://drive.google.com/embeddedfolderview?id=${match[1]}#list`;
-    }
-  } else if (url.includes('drive.google.com')) {
-    finalUrl = url.replace('/view', '/preview');
-  }
-
-  return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 md:p-8" onClick={onClose}>
-      <div className="w-full max-w-4xl h-full max-h-[90vh] bg-white rounded-lg shadow-xl overflow-hidden flex flex-col" onClick={e=>e.stopPropagation()}>
-        <div className="px-5 py-4 border-b border-[#E2E8F0] flex items-center justify-between bg-slate-50 shrink-0">
-          <div><h2 className="text-lg font-bold text-slate-800">{title}</h2></div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-700 p-1.5 rounded hover:bg-slate-200 transition-colors"><X className="h-5 w-5"/></button>
-        </div>
-        <div className="flex-1 bg-slate-100 p-2 md:p-4 overflow-hidden relative">
-          <iframe 
-            src={finalUrl} 
-            className="w-full h-full rounded shadow-sm border-0 bg-white" 
-            title="Document Preview"
-            allow="autoplay"
-          />
-        </div>
-      </div>
-    </div>
-  )
-}
-
 // ── Main Component ────────────────────────────────────────────────────────────
 function StaffDashInner() {
   const { name, image, isClassIncharge, classId, uid } = useUser()
@@ -192,6 +167,7 @@ function StaffDashInner() {
   
   // Student Profile Modal State
   const [selectedStudentProfile, setSelectedStudentProfile] = useState<any>(null)
+  const [studentSearch, setStudentSearch] = useState("")
   
   const [rejectTarget, setRejectTarget] = useState<ODRequest | null>(null)
   const [rejectAchievementTarget, setRejectAchievementTarget] = useState<any | null>(null)
@@ -200,6 +176,25 @@ function StaffDashInner() {
   // Reports Tab State
   const [reportStartDate, setReportStartDate] = useState<string>("")
   const [reportEndDate, setReportEndDate] = useState<string>("")
+
+  // Compute assigned incharge sections from enrolled students
+  const inchargeSections = useMemo(() => {
+    if (!students || students.length === 0) return []
+    const secMap = new Map<string, { batch: string; section: string; classTitle?: string }>()
+    students.forEach((s: any) => {
+      if (s.batch && s.section) {
+        const key = `${s.batch}__${s.section}`
+        if (!secMap.has(key)) {
+          secMap.set(key, {
+            batch: s.batch,
+            section: s.section,
+            classTitle: s.class || `Batch ${s.batch} · Section ${s.section}`,
+          })
+        }
+      }
+    })
+    return Array.from(secMap.values())
+  }, [students])
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -419,55 +414,104 @@ function StaffDashInner() {
     </div>
   )
 
-  const renderMyStudents = () => (
-    <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-lg font-bold text-slate-800">My Students</h2>
-          <p className="text-xs text-slate-500 mt-0.5">{isClassIncharge ? `Class Incharge: ${classId}` : "Assigned responsibilities"}</p>
-        </div>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-          <input type="text" placeholder="Search register no..." className="pl-9 pr-4 py-2 rounded border border-slate-200 text-sm focus:border-[#003087] focus:ring-1 focus:ring-[#003087] outline-none" />
-        </div>
-      </div>
+  const renderMyStudents = () => {
+    const filteredStudents = students.filter(s => {
+      if (!studentSearch.trim()) return true
+      const q = studentSearch.toLowerCase().trim()
+      return (
+        (s.name || "").toLowerCase().includes(q) ||
+        (s.registerNumber || "").toLowerCase().includes(q) ||
+        (s.email || "").toLowerCase().includes(q) ||
+        (s.classId || "").toLowerCase().includes(q)
+      )
+    })
 
-      <div className="bg-white rounded-lg border border-[#E2E8F0] shadow-sm overflow-hidden">
-        {loading ? (
-          <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-[#003087]" /></div>
-        ) : students.length === 0 ? (
-          <EmptyState icon={Users} title="No students assigned" subtitle="You currently do not have any students assigned to your profile." />
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50 border-b border-[#E2E8F0]">
-                  <th className="px-5 py-3 text-xs font-bold text-slate-500 uppercase">Register No</th>
-                  <th className="px-5 py-3 text-xs font-bold text-slate-500 uppercase">Name</th>
-                  <th className="px-5 py-3 text-xs font-bold text-slate-500 uppercase">Class</th>
-                  <th className="px-5 py-3 text-xs font-bold text-slate-500 uppercase">Email</th>
-                  <th className="px-5 py-3 text-xs font-bold text-slate-500 uppercase">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#E2E8F0]">
-                {students.map(s => (
-                  <tr key={s.uid} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-5 py-3.5 text-sm font-mono text-slate-600">{s.registerNumber || "—"}</td>
-                    <td className="px-5 py-3.5 text-sm font-bold text-slate-800">{s.name}</td>
-                    <td className="px-5 py-3.5 text-sm text-slate-600">{s.classId || "—"}</td>
-                    <td className="px-5 py-3.5 text-xs text-slate-500">{s.email || "—"}</td>
-                    <td className="px-5 py-3.5 text-sm">
-                      <button onClick={() => setSelectedStudentProfile(s)} className="text-[#003087] font-bold text-xs hover:underline">View Profile</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+    return (
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-bold text-slate-800">My Students</h2>
+              <span className="text-xs font-bold text-[#003087] bg-blue-50 border border-blue-200/80 px-2.5 py-0.5 rounded-full">
+                {students.length} Enrolled
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">{isClassIncharge ? `Class Incharge: ${classId}` : "Assigned responsibilities"}</p>
           </div>
-        )}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <input
+              type="text"
+              value={studentSearch}
+              onChange={(e) => setStudentSearch(e.target.value)}
+              placeholder="Search name, register no..."
+              className="pl-9 pr-4 py-2 rounded-lg border border-slate-200 text-sm focus:border-[#003087] focus:ring-1 focus:ring-[#003087] outline-none w-64 shadow-sm"
+            />
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg border border-[#E2E8F0] shadow-sm overflow-hidden">
+          {loading ? (
+            <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-[#003087]" /></div>
+          ) : filteredStudents.length === 0 ? (
+            <EmptyState icon={Users} title={studentSearch ? "No matching students" : "No students assigned"} subtitle={studentSearch ? "Try adjusting your search criteria." : "You currently do not have any students assigned to your profile."} />
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-[#E2E8F0]">
+                    <th className="px-5 py-3 text-xs font-bold text-slate-500 uppercase">Register No</th>
+                    <th className="px-5 py-3 text-xs font-bold text-slate-500 uppercase">Student</th>
+                    <th className="px-5 py-3 text-xs font-bold text-slate-500 uppercase">Class</th>
+                    <th className="px-5 py-3 text-xs font-bold text-slate-500 uppercase">Email</th>
+                    <th className="px-5 py-3 text-xs font-bold text-slate-500 uppercase">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#E2E8F0]">
+                  {filteredStudents.map(s => {
+                    const photo = s.profile || s.photoURL || s.profile_url
+                    return (
+                      <tr key={s.uid} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-5 py-3.5 text-sm font-mono text-slate-600 font-semibold">{s.registerNumber || "—"}</td>
+                        <td className="px-5 py-3.5 text-sm font-bold text-slate-800">
+                          <div className="flex items-center gap-3">
+                            <div className="h-9 w-9 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-xs text-[#003087] overflow-hidden shrink-0 shadow-sm">
+                              {photo ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  src={photo}
+                                  alt={s.name}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    (e.target as HTMLElement).style.display = 'none';
+                                  }}
+                                />
+                              ) : (
+                                s.name?.[0] || "S"
+                              )}
+                            </div>
+                            <div>
+                              <span className="font-bold text-slate-900 block">{s.name}</span>
+                              {s.gender && <span className="text-[10px] text-slate-400 font-medium">{s.gender}</span>}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-5 py-3.5 text-sm text-slate-600">{s.classId || "—"}</td>
+                        <td className="px-5 py-3.5 text-xs text-slate-500 font-mono">{s.email || "—"}</td>
+                        <td className="px-5 py-3.5 text-sm">
+                          <button onClick={() => setSelectedStudentProfile(s)} className="text-[#003087] font-bold text-xs hover:underline">View Profile</button>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
-  )
+    )
+  }
 
   const renderODRequests = () => (
     <div className="space-y-4">
@@ -593,89 +637,224 @@ function StaffDashInner() {
                 const isApproved = leave.status === "APPROVED"
                 const isRejected = leave.status === "REJECTED"
 
+                // Calculate duration in days
+                const sTime = leave.startDate ? new Date(leave.startDate).getTime() : 0
+                const eTime = (leave.endDate || leave.startDate) ? new Date(leave.endDate || leave.startDate).getTime() : 0
+                const durationDays = (!isNaN(sTime) && !isNaN(eTime) && eTime >= sTime)
+                  ? Math.round((eTime - sTime) / (1000 * 60 * 60 * 24)) + 1
+                  : 1
+
+                // Category styling
+                const categoryLower = (leave.category || "").toLowerCase()
+                let catBadgeClass = "bg-amber-50 text-amber-800 border-amber-200"
+                if (categoryLower.includes("medical") || categoryLower.includes("health") || categoryLower.includes("sick")) {
+                  catBadgeClass = "bg-rose-50 text-rose-700 border-rose-200"
+                } else if (categoryLower.includes("academic") || categoryLower.includes("exam") || categoryLower.includes("symposium")) {
+                  catBadgeClass = "bg-blue-50 text-blue-700 border-blue-200"
+                } else if (categoryLower.includes("od") || categoryLower.includes("duty")) {
+                  catBadgeClass = "bg-emerald-50 text-emerald-700 border-emerald-200"
+                } else if (categoryLower.includes("family") || categoryLower.includes("personal")) {
+                  catBadgeClass = "bg-purple-50 text-purple-700 border-purple-200"
+                }
+
+                const photo = leave.studentPhoto || leave.photoURL
+                const isHosteler = String(leave.hosteler) === "1" || String(leave.hosteler).toLowerCase() === "hosteler"
+                const hasHostelerInfo = leave.hosteler !== undefined && leave.hosteler !== null && leave.hosteler !== ""
+
+                const matchedStudent = students.find(
+                  (s) => s.uid === leave.studentUid || (s.registerNumber && s.registerNumber === leave.registerNumber)
+                )
+
                 return (
-                  <div key={leave.id} className="p-5 hover:bg-slate-50 transition-colors">
-                    <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                      <div className="min-w-0 flex-1 space-y-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">
-                            {leave.category}
-                          </span>
-                          <span className="text-xs font-bold text-slate-900">{leave.studentName}</span>
-                          <span className="text-[11px] font-mono text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
-                            {leave.registerNumber || "—"}
-                          </span>
-                          {leave.batch && leave.section && (
-                            <span className="text-[10px] text-slate-400 font-bold">
-                              Batch {leave.batch} · Sec {leave.section}
-                            </span>
-                          )}
+                  <div key={leave.id} className="p-5 hover:bg-slate-50/70 transition-colors">
+                    <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-5">
+                      {/* Left Block: Student Info & Leave Details */}
+                      <div className="min-w-0 flex-1 space-y-3">
+                        {/* 1. Student Identity Header */}
+                        <div className="flex items-start gap-3.5">
+                          {/* Student Photo Avatar */}
+                          <div className="w-12 h-12 rounded-xl bg-slate-100 border border-slate-200 shadow-sm flex items-center justify-center font-bold text-sm text-[#003087] overflow-hidden shrink-0">
+                            {photo ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={photo}
+                                alt={leave.studentName}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  (e.target as HTMLElement).style.display = "none"
+                                }}
+                              />
+                            ) : (
+                              leave.studentName?.[0] || "S"
+                            )}
+                          </div>
+
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h3 className="text-base font-bold text-slate-900 leading-snug">
+                                {leave.studentName}
+                              </h3>
+                              {leave.registerNumber && (
+                                <span className="font-mono text-xs font-bold text-slate-700 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded">
+                                  {leave.registerNumber}
+                                </span>
+                              )}
+                              {hasHostelerInfo && (
+                                <span
+                                  className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${
+                                    isHosteler
+                                      ? "bg-purple-50 text-purple-700 border-purple-200"
+                                      : "bg-slate-100 text-slate-700 border-slate-200"
+                                  }`}
+                                >
+                                  {isHosteler ? "🏠 Hosteller" : "🚌 Day Scholar"}
+                                </span>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setSelectedStudentProfile(
+                                    matchedStudent || {
+                                      uid: leave.studentUid,
+                                      name: leave.studentName,
+                                      registerNumber: leave.registerNumber,
+                                      classId:
+                                        leave.classTitle ||
+                                        (leave.batch && leave.section ? `Batch ${leave.batch} · Sec ${leave.section}` : ""),
+                                      email: leave.studentEmail,
+                                      phone: leave.studentPhone,
+                                      profile: photo,
+                                      photoURL: photo,
+                                      hosteler: leave.hosteler,
+                                      gender: leave.gender,
+                                    }
+                                  )
+                                }
+                                className="text-[11px] font-bold text-[#003087] hover:underline inline-flex items-center gap-0.5 ml-auto sm:ml-0"
+                              >
+                                View Profile →
+                              </button>
+                            </div>
+
+                            {/* Academic Class & Contact Chips */}
+                            <div className="flex items-center gap-2 pt-1 flex-wrap text-xs text-slate-500">
+                              {(leave.batch || leave.section) && (
+                                <span className="font-medium bg-slate-50 border border-slate-200/80 px-2 py-0.5 rounded text-[11px]">
+                                  Batch {leave.batch || "—"} {leave.section ? `· Sec ${leave.section}` : ""}
+                                </span>
+                              )}
+                              {leave.studentPhone && (
+                                <a
+                                  href={`tel:${leave.studentPhone}`}
+                                  className="font-mono text-[11px] text-blue-700 bg-blue-50/70 border border-blue-200/60 hover:bg-blue-100 px-2 py-0.5 rounded transition-colors inline-flex items-center gap-1 font-semibold"
+                                  title="Click to call student"
+                                >
+                                  📞 {leave.studentPhone}
+                                </a>
+                              )}
+                              {leave.studentEmail && (
+                                <span className="font-mono text-[11px] text-slate-500 hidden sm:inline-block">
+                                  {leave.studentEmail}
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </div>
 
-                        <div className="flex items-center gap-2 text-xs font-bold text-slate-700 pt-1">
-                          <CalendarDays className="h-3.5 w-3.5 text-slate-400" />
-                          <span>Leave Dates: {leave.startDate} {leave.startDate !== leave.endDate ? `to ${leave.endDate}` : ""}</span>
-                        </div>
+                        {/* 2. Leave Request Content & Metrics Card */}
+                        <div className="bg-slate-50/70 rounded-xl p-3.5 border border-slate-200/80 space-y-2">
+                          <div className="flex items-center justify-between gap-3 flex-wrap">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span
+                                className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded border ${catBadgeClass}`}
+                              >
+                                {leave.category}
+                              </span>
+                              <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                                <CalendarDays className="h-3.5 w-3.5 text-[#003087]" />
+                                {leave.startDate} {leave.startDate !== leave.endDate ? `to ${leave.endDate}` : ""}
+                                <span className="text-slate-500 font-semibold text-[11px]">
+                                  ({durationDays} {durationDays === 1 ? "day" : "days"})
+                                </span>
+                              </span>
+                            </div>
 
-                        <p className="text-xs text-slate-600 font-medium leading-relaxed bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-                          &ldquo;{leave.reason}&rdquo;
-                        </p>
+                            {/* Evaluation Badges */}
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {leave.leaveSequence && (
+                                <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                  🎯 {leave.leaveSequence === 1 ? "1st Leave" : leave.leaveSequence === 2 ? "2nd Leave" : `${leave.leaveSequence}th Leave`}
+                                  {leave.totalLeavesCount ? ` (${leave.totalLeavesCount} total)` : ""}
+                                </span>
+                              )}
+                              {typeof leave.attendancePercentage === "number" && (
+                                <span
+                                  className={`text-[11px] font-bold px-2 py-0.5 rounded border ${
+                                    leave.attendancePercentage >= 75
+                                      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                      : "bg-rose-50 text-rose-700 border-rose-200 font-black"
+                                  }`}
+                                >
+                                  {leave.attendancePercentage >= 75 ? "📈" : "⚠️"} {leave.attendancePercentage}% Attendance
+                                </span>
+                              )}
+                            </div>
+                          </div>
 
-                        <div className="pt-1 flex items-center gap-2 flex-wrap">
-                          <button
-                            type="button"
-                            onClick={() => setReviewLeaveTarget(leave)}
-                            className="inline-flex items-center gap-1.5 text-xs text-[#003087] font-bold bg-blue-50 hover:bg-blue-100 border border-blue-200 px-2.5 py-1 rounded-md transition-colors"
-                          >
-                            <Eye className="h-3.5 w-3.5" />
-                            {leave.attachmentUrl ? "View Attached Document" : "Review Request"}
-                          </button>
-                          {leave.leaveSequence && (
-                            <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
-                              🎯 {leave.leaveSequence === 1 ? "1st Leave" : leave.leaveSequence === 2 ? "2nd Leave" : `${leave.leaveSequence}th Leave`}
-                            </span>
-                          )}
-                          {typeof leave.attendancePercentage === "number" && (
-                            <span className={`text-[11px] font-bold px-2 py-0.5 rounded border ${
-                              leave.attendancePercentage >= 75
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                : "bg-rose-50 text-rose-700 border-rose-200"
-                            }`}>
-                              {leave.attendancePercentage}% Attendance
-                            </span>
-                          )}
-                        </div>
-
-                        {leave.reviewNotes && (
-                          <p className="text-[11px] text-slate-500 italic">
-                            Review note ({leave.reviewedBy}): &ldquo;{leave.reviewNotes}&rdquo;
+                          {/* Reason Quote */}
+                          <p className="text-xs text-slate-700 font-medium leading-relaxed bg-white p-2.5 rounded-lg border border-slate-200/70 shadow-2xs">
+                            <span className="text-slate-400 font-bold mr-1">&ldquo;</span>
+                            {leave.reason}
+                            <span className="text-slate-400 font-bold ml-1">&rdquo;</span>
                           </p>
-                        )}
+
+                          {/* Proof Document Preview Button */}
+                          {leave.attachmentUrl && (
+                            <div className="pt-1">
+                              <button
+                                type="button"
+                                onClick={() => setReviewLeaveTarget(leave)}
+                                className="inline-flex items-center gap-1.5 text-xs text-[#003087] font-bold bg-white hover:bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-lg transition-colors shadow-2xs"
+                              >
+                                <FileText className="h-3.5 w-3.5 text-[#003087]" />
+                                View Attached Proof ({leave.attachmentName || "Document"})
+                              </button>
+                            </div>
+                          )}
+
+                          {leave.reviewNotes && (
+                            <p className="text-[11px] text-slate-500 italic pt-1 border-t border-slate-200/60">
+                              Review note ({leave.reviewedBy}): &ldquo;{leave.reviewNotes}&rdquo;
+                            </p>
+                          )}
+                        </div>
                       </div>
 
-                      <div className="flex flex-col items-start md:items-end gap-2.5 shrink-0">
+                      {/* Right Block: Status & Decision Action Controls */}
+                      <div className="flex flex-col items-start lg:items-end gap-2.5 shrink-0 pt-1">
                         {isApproved && (
-                          <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 inline-flex items-center gap-1">
-                            <CheckCircle className="h-3.5 w-3.5 text-emerald-600" /> Final Approved by HOD
+                          <span className="px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 inline-flex items-center gap-1.5 shadow-2xs">
+                            <CheckCircle className="h-4 w-4 text-emerald-600" /> Final Approved by HOD
                           </span>
                         )}
                         {isPendingHod && (
-                          <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800 border border-blue-200 inline-flex items-center gap-1">
-                            <Clock className="h-3.5 w-3.5 text-blue-600" /> Forwarded to HOD
+                          <span className="px-3 py-1.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800 border border-blue-200 inline-flex items-center gap-1.5 shadow-2xs">
+                            <Clock className="h-4 w-4 text-blue-600" /> Forwarded to HOD
                           </span>
                         )}
                         {isRejected && (
-                          <span className="px-3 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-800 border border-rose-200 inline-flex items-center gap-1">
-                            <XCircle className="h-3.5 w-3.5 text-rose-600" /> Rejected
+                          <span className="px-3 py-1.5 rounded-full text-xs font-bold bg-rose-100 text-rose-800 border border-rose-200 inline-flex items-center gap-1.5 shadow-2xs">
+                            <XCircle className="h-4 w-4 text-rose-600" /> Rejected
                           </span>
                         )}
-                        {isPendingIncharge && (
+
+                        {isPendingIncharge ? (
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => setReviewLeaveTarget(leave)}
                               disabled={actionLoading === leave.id}
-                              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#003087] hover:bg-[#002266] text-white rounded text-xs font-bold transition-colors shadow-sm disabled:opacity-50"
-                              title="Review document & verify"
+                              className="flex items-center gap-1.5 px-3.5 py-2 bg-[#003087] hover:bg-[#002266] text-white rounded-lg text-xs font-bold transition-all shadow-sm hover:shadow disabled:opacity-50"
+                              title="Review document, attendance rate & forward to HOD"
                             >
                               <Eye className="h-3.5 w-3.5" /> Review &amp; Verify
                             </button>
@@ -685,18 +864,17 @@ function StaffDashInner() {
                                 setRejectLeaveReason("")
                               }}
                               disabled={actionLoading === leave.id}
-                              className="flex items-center gap-1 px-3 py-1.5 bg-white border border-rose-200 text-rose-600 rounded text-xs font-bold hover:bg-rose-50 transition-colors shadow-sm disabled:opacity-50"
+                              className="flex items-center gap-1.5 px-3 py-2 bg-white border border-rose-200 text-rose-600 rounded-lg text-xs font-bold hover:bg-rose-50 transition-colors shadow-2xs disabled:opacity-50"
                             >
                               <XCircle className="h-3.5 w-3.5" /> Reject
                             </button>
                           </div>
-                        )}
-                        {!isPendingIncharge && (
+                        ) : (
                           <button
                             onClick={() => setReviewLeaveTarget(leave)}
-                            className="flex items-center gap-1 px-2.5 py-1 bg-slate-50 border border-slate-200 text-slate-700 rounded text-xs font-semibold hover:bg-slate-100 transition-colors"
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 text-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-50 transition-colors shadow-2xs"
                           >
-                            <Eye className="h-3.5 w-3.5 text-slate-500" /> View Details
+                            <Eye className="h-3.5 w-3.5 text-slate-500" /> Full Details
                           </button>
                         )}
                       </div>
@@ -822,6 +1000,7 @@ function StaffDashInner() {
     if (!selectedStudentProfile) return null;
     const stuODs = odRequests.filter(od => od.studentUid === selectedStudentProfile.uid);
     const stuAch = achievements.filter(ach => ach.studentUid === selectedStudentProfile.uid);
+    const photo = selectedStudentProfile.profile || selectedStudentProfile.photoURL || selectedStudentProfile.profile_url;
 
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4" onClick={() => setSelectedStudentProfile(null)}>
@@ -836,15 +1015,38 @@ function StaffDashInner() {
           <div className="overflow-y-auto flex-1 p-6">
             {/* Header / Bio Info */}
             <div className="flex flex-col md:flex-row items-center md:items-start gap-6 border-b border-slate-100 pb-6 mb-6">
-              <div className="h-24 w-24 rounded-full bg-[#003087]/10 text-[#003087] flex items-center justify-center text-4xl font-black shrink-0 border-4 border-white shadow-sm">
-                {selectedStudentProfile.name?.[0] || "S"}
+              <div className="h-24 w-24 rounded-full bg-slate-100 border-4 border-slate-50 shadow-md flex items-center justify-center text-4xl font-black text-[#003087] shrink-0 overflow-hidden">
+                {photo ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={photo}
+                    alt={selectedStudentProfile.name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLElement).style.display = 'none';
+                    }}
+                  />
+                ) : (
+                  selectedStudentProfile.name?.[0] || "S"
+                )}
               </div>
               <div className="flex-1 text-center md:text-left space-y-1">
                 <h3 className="text-2xl font-black text-slate-800">{selectedStudentProfile.name}</h3>
-                <p className="text-sm font-medium text-slate-500">{selectedStudentProfile.email}</p>
-                <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 pt-2">
-                  <span className="text-xs font-bold text-slate-600 bg-slate-100 px-3 py-1 rounded-full">Reg: {selectedStudentProfile.registerNumber || "—"}</span>
-                  <span className="text-xs font-bold text-slate-600 bg-slate-100 px-3 py-1 rounded-full">Class: {selectedStudentProfile.classId || "—"}</span>
+                <p className="text-sm font-medium text-slate-500 font-mono">{selectedStudentProfile.email}</p>
+                <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 pt-2">
+                  <span className="text-xs font-bold text-slate-700 bg-slate-100 px-3 py-1 rounded-full font-mono">Reg: {selectedStudentProfile.registerNumber || "—"}</span>
+                  <span className="text-xs font-bold text-slate-700 bg-slate-100 px-3 py-1 rounded-full">Class: {selectedStudentProfile.classId || "—"}</span>
+                  {selectedStudentProfile.phone && (
+                    <span className="text-xs font-bold text-slate-700 bg-slate-100 px-3 py-1 rounded-full font-mono">📞 {selectedStudentProfile.phone}</span>
+                  )}
+                  {selectedStudentProfile.gender && (
+                    <span className="text-xs font-bold text-slate-700 bg-slate-100 px-3 py-1 rounded-full">{selectedStudentProfile.gender}</span>
+                  )}
+                  {selectedStudentProfile.hosteler && (
+                    <span className="text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 px-3 py-1 rounded-full">
+                      {String(selectedStudentProfile.hosteler) === "1" || String(selectedStudentProfile.hosteler).toLowerCase() === "hosteler" ? "Hosteller" : "Day Scholar"}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -1031,7 +1233,12 @@ function StaffDashInner() {
 
       {/* Tabs Layout */}
       {activeTab === "dashboard" && renderDashboardOverview()}
-      {activeTab === "attendance" && <FacultyAttendanceTab staffName={name || "Class Incharge"} />}
+      {activeTab === "attendance" && (
+        <FacultyAttendanceTab
+          staffName={name || "Class Incharge"}
+          inchargeSections={inchargeSections}
+        />
+      )}
       {activeTab === "leave" && renderLeaveRequests()}
       {activeTab === "students" && renderMyStudents()}
       {activeTab === "od" && renderODRequests()}

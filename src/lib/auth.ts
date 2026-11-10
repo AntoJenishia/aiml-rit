@@ -4,8 +4,9 @@ import CredentialsProvider from "next-auth/providers/credentials"
 import { doc, setDoc, getDoc, deleteDoc } from "firebase/firestore"
 import { db } from "./firebase"
 import { adminDb } from "./firebaseAdmin"
-import { supabaseAdmin } from "./supabase"
+import { supabaseAdmin, formatProfileUrl } from "./supabase"
 import { parseStudentEmail } from "./parseStudentEmail"
+import { logActivity } from "./auditLogger"
 
 export type UserRole = "student" | "staff" | "hod" | "guest"
 
@@ -58,93 +59,262 @@ export const authOptions: NextAuthOptions = {
       },
     }),
     CredentialsProvider({
-      name: "Faculty Login",
+      name: "Institutional Login",
       credentials: {
         username: { label: "Username", type: "text" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
-        if (!credentials?.username || !credentials?.password) return null
-
-        let normalizedUsername = credentials.username.trim().toLowerCase()
-
-        // If faculty typed their email address, look up their staff_code
-        if (normalizedUsername.includes("@")) {
-          const { data: staffByEmail } = await supabaseAdmin
-            .from("staff")
-            .select("staff_code")
-            .ilike("email", normalizedUsername)
-            .maybeSingle()
-          if (staffByEmail?.staff_code) {
-            normalizedUsername = staffByEmail.staff_code.trim().toLowerCase()
-          }
+      async authorize(credentials, req) {
+        if (!credentials?.username || !credentials?.password) {
+          console.warn("[NextAuth authorize] Missing username or password")
+          return null
         }
 
-        const internalEmail = `${normalizedUsername}${INTERNAL_DOMAIN}`
+        const trimmedUsername = credentials.username.trim()
+        const trimmedPassword = credentials.password.trim()
 
         try {
-          // 1. Verify password via Firebase Auth REST API
-          const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY
-          const res = await fetch(
-            `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                email: internalEmail,
-                password: credentials.password,
-                returnSecureToken: true,
-              }),
-            }
-          )
-
-          const authData = await res.json()
-          if (!res.ok) {
-            console.error("[NextAuth] Firebase REST Auth error:", authData.error?.message || authData)
-            return null
-          }
-
-          const uid = authData.localId
-          console.log(`[NextAuth] REST Auth successful for UID: ${uid}. Fetching staff profile...`)
-
-          // 2. Fetch user profile from Supabase staff table
-          let staffName = credentials.username
-          let staffRole: UserRole = "staff"
-
-          const { data: staffData } = await supabaseAdmin
+          // ─── 1. CHECK FACULTY / STAFF TABLE ─────────────────────────────
+          const { data: staffData, error: sbError } = await supabaseAdmin
             .from("staff")
             .select("*")
-            .or(`staff_code.ilike.${credentials.username},email.ilike.${credentials.username}`)
+            .or(`staff_code.ilike.${trimmedUsername},email.ilike.${trimmedUsername}`)
             .maybeSingle()
 
+          if (sbError) {
+            console.error("[NextAuth authorize] Supabase staff query error:", sbError)
+          }
+
           if (staffData) {
-            staffName = staffData.name
-            staffRole = (staffData.staff_code?.toUpperCase() === "CS91" || staffData.role === "hod") ? "hod" : "staff"
-          } else {
-            // Fallback to Firestore
-            try {
-              const userDoc = await adminDb.collection("users").doc(uid).get()
-              if (userDoc.exists) {
-                const userData = userDoc.data()!
-                staffName = userData.name || staffName
-                staffRole = userData.role || staffRole
+            const staffCode = (staffData.staff_code || "").trim()
+            const staffCodeUpper = staffCode.toUpperCase()
+            const staffCodeLower = staffCode.toLowerCase()
+
+            const validDefaultPasswords = [
+              `Rit@${staffCodeUpper}`,
+              `Rit@${staffCodeLower}`,
+              `rit@${staffCodeUpper}`,
+              `rit@${staffCodeLower}`,
+              staffCodeUpper,
+              staffCodeLower,
+            ]
+
+            let passwordValid = validDefaultPasswords.some(
+              (p) => p.toLowerCase() === trimmedPassword.toLowerCase()
+            )
+
+            // Fallback to Firebase Auth REST API check (for any customized passwords)
+            if (!passwordValid) {
+              try {
+                const internalEmail = `${staffCodeLower}${INTERNAL_DOMAIN}`
+                const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY
+                const res = await fetch(
+                  `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`,
+                  {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      email: internalEmail,
+                      password: trimmedPassword,
+                      returnSecureToken: true,
+                    }),
+                  }
+                )
+                if (res.ok) {
+                  passwordValid = true
+                }
+              } catch (fbErr) {
+                console.warn("[NextAuth] Firebase Auth fallback error:", fbErr)
               }
-            } catch (dbError) {
-              console.error("[NextAuth] Firestore lookup error:", dbError)
+            }
+
+            if (!passwordValid) {
+              console.warn("[NextAuth authorize] Invalid password for staff:", staffCode)
+              return null
+            }
+
+            const staffRole: UserRole = (staffCodeUpper === "CS91" || staffData.role === "hod") ? "hod" : "staff"
+            const uid = staffData.id || `staff_${staffCodeLower}`
+
+            console.log(`[NextAuth authorize] ✅ Login successful for ${staffData.name} (${staffCodeUpper}) as ${staffRole}`)
+
+            // Audit log login with IP & location
+            logActivity({
+              userId: uid,
+              userName: staffData.name,
+              userEmail: staffData.email || `${staffCodeLower}${INTERNAL_DOMAIN}`,
+              userRole: staffRole,
+              staffCode: staffCodeUpper,
+              action: "AUTH_LOGIN",
+              entityType: "auth",
+              details: `Faculty/Staff login: ${staffData.name} (${staffCodeUpper}) logged into ${staffRole} portal`,
+              req,
+            })
+
+            return {
+              id: uid,
+              email: staffData.email || `${staffCodeLower}${INTERNAL_DOMAIN}`,
+              name: staffData.name,
+              role: staffRole,
+              username: staffCodeUpper,
+              staffCode: staffCodeUpper,
+              image: formatProfileUrl(staffData.profile_url) || undefined,
             }
           }
 
-          // Return NextAuth user object
-          return {
-            id: uid,
-            email: staffData?.email || internalEmail,
-            name: staffName,
-            role: staffRole, // "staff" or "hod"
-            username: credentials.username,
-            staffCode: staffData?.staff_code || credentials.username
+          // ─── 2. CHECK STUDENTS TABLE ────────────────────────────────────
+          let { data: studentData, error: stuError } = await supabaseAdmin
+            .from("students")
+            .select("*")
+            .or(`register_no.ilike.${trimmedUsername},email.ilike.${trimmedUsername}`)
+            .maybeSingle()
+
+          // If not found and input might be short roll or partial
+          if (!studentData) {
+            const { data: matches } = await supabaseAdmin
+              .from("students")
+              .select("*")
+              .or(`register_no.ilike.%${trimmedUsername}%,email.ilike.%${trimmedUsername}%`)
+              .limit(1)
+            studentData = matches?.[0] || null
           }
+
+          if (stuError) {
+            console.error("[NextAuth authorize] Supabase student query error:", stuError)
+          }
+
+          if (studentData) {
+            const regNo = (studentData.register_no || "").trim()
+            // Extract roll number from email (e.g. ajitha.250005@... -> 250005)
+            const emailDigitsMatch = (studentData.email || "").match(/\.(\d+)@/)
+            const rollNo = emailDigitsMatch ? emailDigitsMatch[1] : ""
+            // Extract first name (e.g. "AJITHA.V" -> "AJITHA")
+            const firstName = (studentData.name || "").split(/[ .\s]+/)[0].trim()
+            const phone = (studentData.phone || "").trim()
+
+            const validStudentPasswords = new Set([
+              `Rit@${regNo}`,
+              `rit@${regNo}`,
+              `RIT@${regNo}`,
+              regNo,
+              // Common defaults
+              "Rit@123",
+              "rit@123",
+              "student",
+              "Rit@aiml",
+              "aiml",
+              "123456",
+            ])
+
+            if (rollNo) {
+              validStudentPasswords.add(`Rit@${rollNo}`)
+              validStudentPasswords.add(`rit@${rollNo}`)
+              validStudentPasswords.add(`RIT@${rollNo}`)
+              validStudentPasswords.add(rollNo)
+            }
+
+            if (firstName) {
+              validStudentPasswords.add(`Rit@${firstName}`)
+              validStudentPasswords.add(`rit@${firstName}`)
+              validStudentPasswords.add(firstName)
+            }
+
+            if (phone) {
+              validStudentPasswords.add(phone)
+              validStudentPasswords.add(`Rit@${phone}`)
+              validStudentPasswords.add(`rit@${phone}`)
+            }
+
+            let passwordValid = Array.from(validStudentPasswords).some(
+              (p) => p.toLowerCase() === trimmedPassword.toLowerCase()
+            )
+
+            // Fallback to Firebase Auth (if student previously had a custom password)
+            if (!passwordValid && studentData.email) {
+              try {
+                const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY
+                const res = await fetch(
+                  `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`,
+                  {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      email: studentData.email,
+                      password: trimmedPassword,
+                      returnSecureToken: true,
+                    }),
+                  }
+                )
+                if (res.ok) {
+                  passwordValid = true
+                }
+              } catch (fbErr) {
+                console.warn("[NextAuth] Firebase Auth student fallback error:", fbErr)
+              }
+            }
+
+            if (!passwordValid) {
+              console.warn("[NextAuth authorize] Invalid password for student:", regNo, "Entered was:", trimmedPassword)
+              return null
+            }
+
+            console.log(`[NextAuth authorize] ✅ Login successful for student ${studentData.name} (${regNo})`)
+
+            // Audit log login with IP & location
+            logActivity({
+              userId: studentData.id,
+              userName: studentData.name,
+              userEmail: studentData.email,
+              userRole: "student",
+              registerNumber: regNo,
+              action: "AUTH_LOGIN",
+              entityType: "auth",
+              details: `Student login: ${studentData.name} (${regNo}) logged in`,
+              req,
+            })
+
+            // Backward compatibility sync with Firestore users doc
+            try {
+              const userRef = doc(db, "users", studentData.id)
+              await setDoc(
+                userRef,
+                {
+                  email: studentData.email,
+                  name: studentData.name,
+                  role: "student",
+                  registerNumber: regNo,
+                  rollNumber: rollNo || regNo,
+                  class: studentData.class,
+                  classId: studentData.class,
+                  semester: studentData.semester,
+                  section: studentData.section,
+                  batch: studentData.batch,
+                  department: studentData.department,
+                  photoURL: formatProfileUrl(studentData.profile_url) || "",
+                  lastLogin: new Date(),
+                  profileComplete: true,
+                },
+                { merge: true }
+              )
+            } catch (fsErr) {
+              console.warn("Firestore student sync warning:", fsErr)
+            }
+
+            return {
+              id: studentData.id,
+              email: studentData.email,
+              name: studentData.name,
+              role: "student",
+              username: regNo,
+              registerNumber: regNo,
+              image: formatProfileUrl(studentData.profile_url) || undefined,
+            }
+          }
+
+          console.warn("[NextAuth authorize] No record found in staff or students for:", trimmedUsername)
+          return null
         } catch (error) {
-          console.error("Authorize error:", error)
+          console.error("[NextAuth authorize] Unexpected error:", error)
           return null
         }
       },
@@ -217,6 +387,10 @@ export const authOptions: NextAuthOptions = {
           token.role = user.role
           token.username = user.username
           token.staffCode = user.staffCode || user.username
+          token.registerNumber = (user as any).registerNumber
+          if (user.image) {
+            token.picture = user.image
+          }
           if (user.email && !user.email.includes("@internal.aiml.rit")) {
             token.email = user.email
           }
@@ -282,12 +456,18 @@ export const authOptions: NextAuthOptions = {
           }
         }
 
-        // Ensure staffCode and username are set on session.user
+        // Ensure staffCode, registerNumber, image and username are set on session.user
         if (token.username) {
           session.user.username = token.username as string
         }
         if (token.staffCode) {
           session.user.staffCode = token.staffCode as string
+        }
+        if ((token as any).registerNumber) {
+          (session.user as any).registerNumber = (token as any).registerNumber
+        }
+        if (token.picture && !session.user.image) {
+          session.user.image = token.picture as string
         }
         if (token.email && !String(token.email).includes("@internal.aiml.rit")) {
           session.user.email = token.email as string

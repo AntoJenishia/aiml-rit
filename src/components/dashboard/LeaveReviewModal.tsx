@@ -122,24 +122,70 @@ export default function LeaveReviewModal({
           {/* 1. Student Identity & Live Stats Bar */}
           <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4.5 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-3.5">
-              <div className="w-12 h-12 rounded-2xl bg-[#003087] text-white flex items-center justify-center font-black text-lg shadow-sm shrink-0">
-                {leave.studentName?.[0] || "S"}
+              <div className="w-14 h-14 rounded-2xl bg-[#003087] text-white flex items-center justify-center font-black text-xl shadow-sm shrink-0 overflow-hidden border-2 border-white">
+                {leave.studentPhoto || leave.photoURL ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={leave.studentPhoto || leave.photoURL}
+                    alt={leave.studentName}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLElement).style.display = 'none';
+                    }}
+                  />
+                ) : (
+                  leave.studentName?.[0] || "S"
+                )}
               </div>
-              <div>
+              <div className="space-y-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h4 className="text-base font-black text-slate-900">
                     {leave.studentName}
                   </h4>
                   {leave.registerNumber && (
-                    <span className="text-xs font-mono font-bold text-slate-600 bg-slate-200 px-2 py-0.5 rounded">
+                    <span className="text-xs font-mono font-bold text-slate-700 bg-slate-200/80 px-2 py-0.5 rounded border border-slate-300/60">
                       {leave.registerNumber}
                     </span>
                   )}
+                  {leave.hosteler !== undefined && leave.hosteler !== null && leave.hosteler !== "" && (
+                    <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${
+                      String(leave.hosteler) === "1" || String(leave.hosteler).toLowerCase() === "hosteler"
+                        ? "bg-purple-100 text-purple-800 border-purple-200"
+                        : "bg-slate-200 text-slate-700 border-slate-300"
+                    }`}>
+                      {String(leave.hosteler) === "1" || String(leave.hosteler).toLowerCase() === "hosteler" ? "🏠 Hosteller" : "🚌 Day Scholar"}
+                    </span>
+                  )}
                 </div>
-                <p className="text-xs text-slate-500 font-semibold mt-0.5">
+                <p className="text-xs text-slate-500 font-semibold">
                   Batch: {leave.batch || "—"} {leave.section ? `· Section ${leave.section}` : ""}
+                  {leave.classTitle ? ` · ${leave.classTitle}` : ""}
                   {leave.classInchargeName && ` · Incharge: ${leave.classInchargeName}`}
                 </p>
+                <div className="flex items-center gap-2 pt-0.5 flex-wrap">
+                  {leave.studentPhone && (
+                    <a
+                      href={`tel:${leave.studentPhone}`}
+                      className="text-[11px] font-mono font-bold text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1 transition-colors"
+                      title="Call student / parent"
+                    >
+                      📞 {leave.studentPhone}
+                    </a>
+                  )}
+                  {leave.studentEmail && (
+                    <a
+                      href={`mailto:${leave.studentEmail}`}
+                      className="text-[11px] font-mono text-slate-600 hover:text-slate-900 bg-slate-100 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1"
+                    >
+                      ✉️ {leave.studentEmail}
+                    </a>
+                  )}
+                  {leave.gender && (
+                    <span className="text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full font-bold">
+                      {leave.gender}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 

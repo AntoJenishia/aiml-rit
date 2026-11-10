@@ -784,7 +784,7 @@ export default function HodStudentsTab({ departmentFilter }: { departmentFilter?
                         ? "bg-amber-50 text-amber-800 border border-amber-200"
                         : "bg-emerald-50 text-emerald-800 border border-emerald-200"
                     }`}>
-                      {String(selectedStudent.hosteler) === "1" || String(selectedStudent.hosteler).toLowerCase() === "hosteler" ? "Hosteler" : "Day Scholar"}
+                      {String(selectedStudent.hosteler) === "1" || String(selectedStudent.hosteler).toLowerCase() === "hosteler" ? "Hosteller" : "Day Scholar"}
                     </span>
                   </div>
 
@@ -822,7 +822,7 @@ export default function HodStudentsTab({ departmentFilter }: { departmentFilter?
                   <div>
                     <span className="text-slate-400 font-semibold uppercase tracking-wider text-[10px]">Residential Status</span>
                     <p className="font-semibold mt-0.5 text-slate-800">
-                      {String(selectedStudent.hosteler) === "1" || String(selectedStudent.hosteler).toLowerCase() === "hosteler" ? "Hosteler (Campus Hostel)" : "Day Scholar"}
+                      {String(selectedStudent.hosteler) === "1" || String(selectedStudent.hosteler).toLowerCase() === "hosteler" ? "Hosteller (Campus Hostel)" : "Day Scholar"}
                     </p>
                   </div>
                   <div>

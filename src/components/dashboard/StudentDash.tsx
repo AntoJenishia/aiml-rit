@@ -14,6 +14,7 @@ import {
 
 import AchievementModal from "./AchievementModal"
 import StudentAttendanceTab from "./student/StudentAttendanceTab"
+import DocumentPreviewModal from "@/components/common/DocumentPreviewModal"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface ODRequest {
@@ -86,12 +87,14 @@ function SummaryCard({icon:Icon,label,value,borderColor="border-[#003087]",iconC
   icon:any;label:string;value:string;borderColor?:string;iconColor?:string
 }) {
   return (
-    <div className={`bg-white rounded-lg border border-[#E2E8F0] border-l-4 ${borderColor} p-4 shadow-sm`}>
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">{label}</p>
-        <Icon className={`h-4 w-4 ${iconColor} opacity-60`}/>
+    <div className={`bg-white rounded-xl border border-slate-200 border-l-4 ${borderColor} p-3 sm:p-4 shadow-xs min-w-0 transition-all hover:shadow-sm`}>
+      <div className="flex items-center justify-between gap-1 mb-1.5">
+        <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider truncate">{label}</p>
+        <div className="p-1 rounded-md bg-slate-50 shrink-0">
+          <Icon className={`h-3.5 w-3.5 ${iconColor}`}/>
+        </div>
       </div>
-      <p className="text-base font-bold text-slate-800 leading-snug break-all">{value||"—"}</p>
+      <p className="text-sm sm:text-base font-bold text-slate-800 leading-snug truncate" title={value}>{value||"—"}</p>
     </div>
   )
 }
@@ -359,28 +362,6 @@ function PostODProofModal({od,onClose,onSuccess}:{od:ODRequest;onClose:()=>void;
   )
 }
 
-// ── Document Preview Modal ───────────────────────────────────────────────────
-function DocumentPreviewModal({url, title, onClose}: {url: string, title: string, onClose: ()=>void}) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 md:p-8" onClick={onClose}>
-      <div className="w-full max-w-4xl h-full max-h-[90vh] bg-white rounded-lg shadow-xl overflow-hidden flex flex-col" onClick={e=>e.stopPropagation()}>
-        <div className="px-5 py-4 border-b border-[#E2E8F0] flex items-center justify-between bg-slate-50 shrink-0">
-          <div><h2 className="text-lg font-bold text-slate-800">{title}</h2></div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-700 p-1.5 rounded hover:bg-slate-200 transition-colors"><X className="h-5 w-5"/></button>
-        </div>
-        <div className="flex-1 bg-slate-100 p-2 md:p-4 overflow-hidden relative">
-          <iframe 
-            src={url.includes('drive.google.com') ? url.replace('/view', '/preview') : url} 
-            className="w-full h-full rounded shadow-sm border-0 bg-white" 
-            title="Document Preview"
-            allow="autoplay"
-          />
-        </div>
-      </div>
-    </div>
-  )
-}
-
 // ── Recent Activity ───────────────────────────────────────────────────────────
 function RecentActivity({odRequests}:{odRequests:ODRequest[]}) {
   const activities = odRequests
@@ -395,8 +376,8 @@ function RecentActivity({odRequests}:{odRequests:ODRequest[]}) {
       }
     })
   return (
-    <div className="bg-white rounded-lg border border-[#E2E8F0] shadow-sm overflow-hidden">
-      <div className="px-5 py-3 border-b border-[#E2E8F0] bg-slate-50">
+    <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+      <div className="px-4 py-3 border-b border-slate-200 bg-slate-50">
         <h3 className="text-xs font-bold text-slate-600 uppercase tracking-wider flex items-center gap-2">
           <Activity className="h-3.5 w-3.5 text-slate-400"/> Recent Activity
         </h3>
@@ -404,17 +385,17 @@ function RecentActivity({odRequests}:{odRequests:ODRequest[]}) {
       {activities.length===0?(
         <EmptyState icon={Activity} title="No recent activity" subtitle="Your OD requests, achievements, and events will appear here once you start using the portal." accentBg="bg-slate-50" accent="#94A3B8"/>
       ):(
-        <ul className="divide-y divide-[#E2E8F0]">
+        <ul className="divide-y divide-slate-100">
           {activities.map(a=>(
-            <li key={a.id} className="px-5 py-3 flex items-center justify-between gap-3 hover:bg-slate-50 transition-colors">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="h-1.5 w-1.5 rounded-full bg-slate-300 shrink-0"/>
+            <li key={a.id} className="p-3 sm:px-5 sm:py-3 flex items-center justify-between gap-3 hover:bg-slate-50 transition-colors">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="h-2 w-2 rounded-full bg-slate-300 shrink-0"/>
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-slate-800 truncate">{a.text}</p>
-                  <p className={`text-[10px] font-semibold uppercase tracking-wider mt-0.5 ${a.color}`}>{a.sub}</p>
+                  <p className="text-xs sm:text-sm font-semibold text-slate-800 truncate">{a.text}</p>
+                  <p className={`text-[10px] font-bold uppercase tracking-wider mt-0.5 ${a.color}`}>{a.sub}</p>
                 </div>
               </div>
-              <span className="text-[10px] font-medium text-slate-400 shrink-0">{a.time}</span>
+              <span className="text-[10px] font-semibold text-slate-400 shrink-0">{a.time}</span>
             </li>
           ))}
         </ul>
@@ -509,78 +490,97 @@ export default function StudentDash() {
         <div className="space-y-5">
 
           {/* Page Header — clean institutional style */}
-          <div className="bg-white rounded-lg border border-[#E2E8F0] shadow-sm overflow-hidden">
+          <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
             {/* Navy top bar */}
-            <div className="bg-[#003087] px-6 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
+            <div className="bg-[#003087] p-4 sm:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex items-center gap-3 sm:gap-4 min-w-0">
                 {profile?.profile || profile?.photoURL || image ? (
                   <img src={profile?.profile || profile?.photoURL || image} alt={displayName}
-                    className="rounded-full ring-2 ring-white/30 w-12 h-12 object-cover shrink-0"/>
+                    className="rounded-full ring-2 ring-white/30 w-12 h-12 sm:w-14 sm:h-14 object-cover shrink-0 shadow-sm"/>
                 ) : (
-                  <div className="h-12 w-12 rounded-full bg-white/20 text-white flex items-center justify-center text-xl font-bold ring-2 ring-white/30 shrink-0">
+                  <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-white/20 text-white flex items-center justify-center text-xl font-bold ring-2 ring-white/30 shrink-0">
                     {displayName[0]??"S"}
                   </div>
                 )}
-                <div className="min-w-0">
-                  <p className="text-white/70 text-[10px] font-semibold uppercase tracking-widest mb-0.5">RIT — Student Portal</p>
-                  <h1 className="text-lg font-bold text-white leading-tight">Welcome, {displayName.split(" ")[0]}</h1>
-                  <p className="text-white/60 text-xs mt-0.5">{department} &nbsp;•&nbsp; {semesterLabel} &nbsp;•&nbsp; Section {section}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-blue-200 text-[10px] font-bold uppercase tracking-widest mb-0.5">RIT — Student Portal</p>
+                  <h1 className="text-base sm:text-lg md:text-xl font-black text-white leading-tight truncate">Welcome, {displayName}</h1>
+                  <p className="text-white/75 text-xs mt-1 truncate">{department} &nbsp;•&nbsp; {semesterLabel} &nbsp;•&nbsp; Section {section}</p>
                 </div>
               </div>
-              {/* Stat chips */}
-              <div className="flex gap-3 flex-wrap">
-                <div className="bg-white/10 border border-white/20 rounded px-3 py-2 text-center min-w-[80px]">
-                  <p className="text-white/60 text-[9px] font-semibold uppercase tracking-wider">Class Incharge</p>
-                  <p className="text-white font-semibold text-xs mt-1 truncate max-w-[110px]">{classInchargeName}</p>
+              {/* Stat chips - Balanced 3-column grid on mobile, flex row on tablet/desktop */}
+              <div className="grid grid-cols-3 gap-2 w-full md:w-auto md:flex md:gap-3 shrink-0">
+                <div className="bg-white/10 hover:bg-white/15 border border-white/20 rounded-xl px-2 py-2 sm:px-3.5 sm:py-2.5 text-center flex flex-col justify-center min-w-0 transition-colors">
+                  <p className="text-white/70 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider truncate">Incharge</p>
+                  <p className="text-white font-bold text-xs sm:text-sm mt-0.5 truncate" title={classInchargeName}>{classInchargeName || "Assigned"}</p>
                 </div>
-                <div className="bg-white/10 border border-white/20 rounded px-3 py-2 text-center min-w-[70px]">
-                  <p className="text-white/60 text-[9px] font-semibold uppercase tracking-wider">OD Requests</p>
-                  <p className="text-white font-bold text-lg mt-0.5">{odRequests.length}</p>
+                <div className="bg-white/10 hover:bg-white/15 border border-white/20 rounded-xl px-2 py-2 sm:px-3.5 sm:py-2.5 text-center flex flex-col justify-center min-w-0 transition-colors">
+                  <p className="text-white/70 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider truncate">OD Requests</p>
+                  <p className="text-white font-black text-sm sm:text-lg mt-0.5">{odRequests.length}</p>
                 </div>
-                <div className="bg-white/10 border border-white/20 rounded px-3 py-2 text-center min-w-[70px]">
-                  <p className="text-white/60 text-[9px] font-semibold uppercase tracking-wider">Approved</p>
-                  <p className="text-white font-bold text-lg mt-0.5">{approvedODs}</p>
+                <div className="bg-white/10 hover:bg-white/15 border border-white/20 rounded-xl px-2 py-2 sm:px-3.5 sm:py-2.5 text-center flex flex-col justify-center min-w-0 transition-colors">
+                  <p className="text-white/70 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider truncate">Approved</p>
+                  <p className="text-emerald-300 font-black text-sm sm:text-lg mt-0.5">{approvedODs}</p>
                 </div>
               </div>
             </div>
-            {/* Register number strip */}
-            <div className="px-6 py-3 bg-slate-50 border-t border-[#E2E8F0] flex items-center justify-between gap-2 flex-wrap">
-              <div className="flex items-center gap-4 text-xs text-slate-500 flex-wrap">
-                <span><span className="font-semibold text-slate-700">Reg. No:</span> {registerNumber}</span>
-                <span><span className="font-semibold text-slate-700">Roll:</span> {rollNumber}</span>
-                <span><span className="font-semibold text-slate-700">Batch:</span> {batch}</span>
-                <span><span className="font-semibold text-slate-700">Gender:</span> {profile?.gender || "—"}</span>
-                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${String(profile?.hosteler) === "1" ? "bg-amber-100 text-amber-800 border border-amber-200" : "bg-emerald-100 text-emerald-800 border border-emerald-200"}`}>
-                  {String(profile?.hosteler) === "1" ? "Hosteler" : "Day Scholar"}
-                </span>
+            {/* Structured responsive student metadata cards */}
+            <div className="p-3 sm:px-6 sm:py-3.5 bg-slate-50/90 border-t border-slate-200">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 text-xs">
+                <div className="bg-white p-2.5 rounded-lg border border-slate-200/90 shadow-2xs min-w-0">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Register No</span>
+                  <span className="font-mono font-bold text-slate-800 text-xs sm:text-sm truncate block mt-0.5">{registerNumber || "—"}</span>
+                </div>
+                <div className="bg-white p-2.5 rounded-lg border border-slate-200/90 shadow-2xs min-w-0">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Roll & Batch</span>
+                  <span className="font-bold text-slate-800 text-xs sm:text-sm truncate block mt-0.5">{rollNumber || "—"} · {batch || "—"}</span>
+                </div>
+                <div className="bg-white p-2.5 rounded-lg border border-slate-200/90 shadow-2xs min-w-0">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Gender</span>
+                  <span className="font-bold text-slate-800 text-xs sm:text-sm capitalize block mt-0.5">{profile?.gender || "—"}</span>
+                </div>
+                <div className="bg-white p-2.5 rounded-lg border border-slate-200/90 shadow-2xs min-w-0 flex flex-col justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Residence & Dept</span>
+                  <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                      String(profile?.hosteler) === "1"
+                        ? "bg-amber-100 text-amber-800 border border-amber-200"
+                        : "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                    }`}>
+                      {String(profile?.hosteler) === "1" ? "Hosteller" : "Day Scholar"}
+                    </span>
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 bg-blue-50 text-blue-800 border border-blue-200 rounded-md">
+                      {deptShort}
+                    </span>
+                  </div>
+                </div>
               </div>
-              <span className="text-[10px] font-semibold uppercase tracking-widest px-2 py-1 bg-[#003087]/10 text-[#003087] rounded">{deptShort}</span>
             </div>
           </div>
 
           {/* Summary Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
             <SummaryCard icon={Building2}     label="Department"   value={deptShort}             borderColor="border-[#003087]" iconColor="text-[#003087]"/>
             <SummaryCard icon={GraduationCap} label="Semester"     value={semesterLabel}         borderColor="border-[#7C3AED]" iconColor="text-[#7C3AED]"/>
             <SummaryCard icon={Users}         label="Section"      value={`Sec. ${section}`}     borderColor="border-[#0891B2]" iconColor="text-[#0891B2]"/>
-            <SummaryCard icon={Building2}     label="Residence"    value={String(profile?.hosteler) === "1" ? "Hosteler" : "Day Scholar"} borderColor="border-[#F59E0B]" iconColor="text-[#F59E0B]"/>
+            <SummaryCard icon={Building2}     label="Residence"    value={String(profile?.hosteler) === "1" ? "Hosteller" : "Day Scholar"} borderColor="border-[#F59E0B]" iconColor="text-[#F59E0B]"/>
           </div>
 
           {/* Quick Actions */}
-          <div className="bg-white rounded-lg border border-[#E2E8F0] shadow-sm p-4">
-            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Quick Actions</h3>
-            <div className="flex flex-wrap gap-2">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-3.5 sm:p-4">
+            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2.5">Quick Actions</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
               <button onClick={()=>setShowODForm(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded bg-[#003087] text-white text-sm font-semibold hover:bg-[#002070] transition-colors">
-                <FileText className="h-3.5 w-3.5"/> Apply for OD
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#003087] text-white text-xs sm:text-sm font-bold hover:bg-[#002070] transition-colors shadow-xs">
+                <FileText className="h-4 w-4 shrink-0"/> Apply for OD
               </button>
               <Link href="/dashboard/student?tab=profile"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded border border-[#D1D5DB] text-slate-700 text-sm font-semibold hover:bg-slate-50 transition-colors">
-                <User className="h-3.5 w-3.5"/> View Profile
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 text-xs sm:text-sm font-bold hover:bg-slate-50 transition-colors shadow-xs">
+                <User className="h-4 w-4 shrink-0"/> View Profile
               </Link>
               <Link href="/dashboard/student?tab=achievements"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded border border-[#D1D5DB] text-slate-700 text-sm font-semibold hover:bg-slate-50 transition-colors">
-                <Award className="h-3.5 w-3.5"/> My Achievements
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 text-xs sm:text-sm font-bold hover:bg-slate-50 transition-colors shadow-xs">
+                <Award className="h-4 w-4 shrink-0"/> My Achievements
               </Link>
             </div>
           </div>
@@ -590,29 +590,29 @@ export default function StudentDash() {
       )}
 
       {currentTab==="profile"&&(
-        <div className="space-y-5">
+        <div className="space-y-4 sm:space-y-5">
           {/* Profile Header */}
-          <div className="bg-[#003087] rounded-lg shadow-sm overflow-hidden">
-            <div className="px-6 py-6 flex flex-col sm:flex-row items-center sm:items-start gap-5">
+          <div className="bg-[#003087] rounded-xl sm:rounded-2xl shadow-xs overflow-hidden">
+            <div className="p-4 sm:p-6 flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-5 text-center sm:text-left">
               {profile?.profile || profile?.photoURL || image ? (
-                <img src={profile?.profile || profile?.photoURL || image} alt={displayName} className="rounded-full ring-4 ring-white/30 w-20 h-20 object-cover shadow-md shrink-0"/>
+                <img src={profile?.profile || profile?.photoURL || image} alt={displayName} className="rounded-full ring-4 ring-white/30 w-16 h-16 sm:w-20 sm:h-20 object-cover shadow-md shrink-0"/>
               ) : (
-                <div className="h-20 w-20 rounded-full bg-white/20 text-white flex items-center justify-center text-3xl font-bold ring-4 ring-white/30 shadow-md shrink-0">
+                <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-white/20 text-white flex items-center justify-center text-2xl sm:text-3xl font-bold ring-4 ring-white/30 shadow-md shrink-0">
                   {displayName[0] ?? "S"}
                 </div>
               )}
-              <div>
-                <div className="flex items-center gap-2 mb-1 flex-wrap">
-                  <span className="text-white/60 text-[10px] font-semibold uppercase tracking-widest">Student Profile</span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-center sm:justify-start gap-1.5 mb-1 flex-wrap">
+                  <span className="text-blue-200 text-[10px] font-bold uppercase tracking-widest">Student Profile</span>
                   <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${String(profile?.hosteler) === "1" ? "bg-amber-400 text-slate-900" : "bg-emerald-400 text-slate-900"}`}>
-                    {String(profile?.hosteler) === "1" ? "Hosteler" : "Day Scholar"}
+                    {String(profile?.hosteler) === "1" ? "Hosteller" : "Day Scholar"}
                   </span>
-                  <span className="bg-white/20 text-white text-[10px] font-bold px-2 py-0.5 rounded">
+                  <span className="bg-white/20 text-white text-[10px] font-bold px-2 py-0.5 rounded capitalize">
                     {profile?.gender || "Student"}
                   </span>
                 </div>
-                <h2 className="text-xl font-bold text-white leading-tight">{displayName}</h2>
-                <p className="text-white/80 text-sm mt-1">{department} &nbsp;•&nbsp; {semesterLabel} &nbsp;•&nbsp; Section {section}</p>
+                <h2 className="text-lg sm:text-xl md:text-2xl font-black text-white leading-tight truncate">{displayName}</h2>
+                <p className="text-white/80 text-xs sm:text-sm mt-1">{department} &nbsp;•&nbsp; {semesterLabel} &nbsp;•&nbsp; Section {section}</p>
                 <p className="text-white/60 text-xs mt-1 font-mono">Reg. No: {registerNumber} &nbsp;•&nbsp; Batch: {batch}</p>
               </div>
             </div>
@@ -620,18 +620,18 @@ export default function StudentDash() {
           {loadingProfile?(
             <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-[#3B5BFF]"/></div>
           ):(
-            <div className="bg-white rounded-lg border border-[#E2E8F0] shadow-sm p-5 lg:p-6">
-              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-5 flex items-center gap-2">
+            <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-4 sm:p-6">
+              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
                 <User className="h-3.5 w-3.5"/> Complete Academic &amp; Personal Information
               </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 <ProfileField label="Full Name"       value={displayName}                  locked={true}/>
                 <ProfileField label="Register Number" value={registerNumber}               locked={true}/>
                 <ProfileField label="Roll Number"     value={rollNumber}                   locked={true}/>
                 <ProfileField label="College Email"   value={profileEmail}                 locked={true}/>
                 <ProfileField label="Phone Number"    value={phone}                        locked={false}/>
                 <ProfileField label="Gender"          value={profile?.gender || "—"}       locked={true}/>
-                <ProfileField label="Residence"       value={String(profile?.hosteler) === "1" ? "Hosteler (Campus Hostel)" : "Day Scholar"} locked={true}/>
+                <ProfileField label="Residence"       value={String(profile?.hosteler) === "1" ? "Hosteller (Campus Hostel)" : "Day Scholar"} locked={true}/>
                 <ProfileField label="Degree Type"     value={profile?.degreeType || "UG"}  locked={true}/>
                 <ProfileField label="Course"          value={profile?.course || "B.E. Computer Science & Engineering (AI & ML)"} locked={true}/>
                 <ProfileField label="Department"      value={department}                   locked={true}/>
@@ -661,30 +661,30 @@ export default function StudentDash() {
       {/* MY OD */}
       {currentTab==="od"&&(
         <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">My OD Requests</h2>
               <p className="text-xs text-slate-500 mt-0.5">{pendingODs>0?`${pendingODs} pending approval`:"All requests reviewed"}{approvedODs>0&&` · ${approvedODs} approved`}</p>
             </div>
-            <button onClick={()=>setShowODForm(true)} className="inline-flex items-center gap-2 px-4 py-2 bg-[#003087] text-white rounded text-sm font-semibold hover:bg-[#002070] transition-colors shrink-0">
-              <PlusCircle className="h-3.5 w-3.5"/> Apply for OD
+            <button onClick={()=>setShowODForm(true)} className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#003087] text-white rounded-xl text-xs sm:text-sm font-bold hover:bg-[#002070] transition-colors shrink-0 shadow-xs">
+              <PlusCircle className="h-4 w-4"/> Apply for OD
             </button>
           </div>
-          <div className="bg-white rounded-lg border border-[#E2E8F0] shadow-sm overflow-hidden">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
             {loadingOD?(
               <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-[#3B5BFF]"/></div>
             ):odRequests.length===0?(
               <EmptyState icon={FileText} title="No OD requests yet" subtitle="Apply for On-Duty when you need to attend an external event, workshop, hackathon, or conference."/>
             ):(
-              <div className="divide-y divide-[#E5E7EB]">
+              <div className="divide-y divide-slate-100">
                 {odRequests.map(od=>{
                   const sc=OD_STATUS[od.status]||OD_STATUS.FACULTY_VERIFICATION
                   const StatusIcon=sc.icon
                   const isRejected=od.status==="REJECTED"
                   const isApproved=od.status==="VERIFIED"||od.status==="ACTIVITY_COMPLETED"||od.status==="COMPLETED"
                   return (
-                    <div key={od.id} className={`px-5 py-4 hover:bg-slate-50 transition-colors ${isRejected?"border-l-4 border-l-[#EF4444]":isApproved?"border-l-4 border-l-[#16A34A]":""}`}>
-                      <div className="flex items-start justify-between gap-3">
+                    <div key={od.id} className={`p-3.5 sm:p-5 hover:bg-slate-50/80 transition-colors ${isRejected?"border-l-4 border-l-[#EF4444]":isApproved?"border-l-4 border-l-[#16A34A]":""}`}>
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1 flex-wrap">
                             <p className="text-sm font-bold text-slate-800">{od.eventName}</p>
@@ -696,11 +696,11 @@ export default function StudentDash() {
                             <div className="mt-2">
                               <p className="text-xs text-[#EF4444] font-medium">Reason: {od.facultyRejectReason||"—"}</p>
                               {od.postODProofsUrl ? (
-                                <button onClick={()=>setSelectedODForProof(od)} className="mt-2 text-[10px] font-bold px-3 py-1.5 rounded bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors">
+                                <button onClick={()=>setSelectedODForProof(od)} className="mt-2 text-[10px] font-bold px-3 py-1.5 rounded-lg bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors">
                                   Upload Proof Again
                                 </button>
                               ) : (
-                                <button onClick={() => setReapplyData(od)} className="mt-2 text-[10px] font-bold px-3 py-1.5 rounded bg-red-100 text-red-700 hover:bg-red-200 transition-colors">
+                                <button onClick={() => setReapplyData(od)} className="mt-2 text-[10px] font-bold px-3 py-1.5 rounded-lg bg-red-100 text-red-700 hover:bg-red-200 transition-colors">
                                   Edit & Re-Apply
                                 </button>
                               )}
@@ -708,20 +708,20 @@ export default function StudentDash() {
                           )}
                           
                           {od.status==="VERIFIED"&&od.eventType!=="Meeting"&&od.eventType!=="Official Department Work"&&(
-                            <div className="mt-3 p-2.5 bg-rose-50 border border-rose-200 rounded text-xs text-rose-700 font-medium flex flex-col gap-2">
+                            <div className="mt-3 p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 font-medium flex flex-col gap-2">
                               <span className="flex items-center gap-1.5"><AlertCircle className="h-4 w-4 shrink-0"/> You MUST upload post-event proof (certificate/photos) after attending this event.</span>
-                              <button onClick={()=>setSelectedODForProof(od)} className="self-start px-3 py-1.5 bg-rose-600 text-white rounded font-bold hover:bg-rose-700 transition-colors shadow-sm text-[10px]">
+                              <button onClick={()=>setSelectedODForProof(od)} className="self-start px-3 py-1.5 bg-rose-600 text-white rounded-lg font-bold hover:bg-rose-700 transition-colors shadow-xs text-[10px]">
                                 Upload Proof Now
                               </button>
                             </div>
                           )}
                         </div>
-                        <div className="flex flex-col items-end gap-2 shrink-0">
-                          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-[10px] font-bold ${sc.bg} ${sc.color}`}>
+                        <div className="flex items-center justify-between sm:justify-end sm:flex-col sm:items-end gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold ${sc.bg} ${sc.color}`}>
                             <StatusIcon className="h-3 w-3"/> {sc.label}
                           </div>
                           <div className="flex gap-2 items-center flex-wrap justify-end">
-                            {od.signedLetterUrl&&<button onClick={()=>setPreviewUrl(od.signedLetterUrl!)} className="flex items-center gap-1 px-2.5 py-1.5 rounded bg-slate-100 text-[10px] font-bold text-[#003087] hover:bg-slate-200 transition-colors"><FileText className="h-3 w-3"/> Signed Letter</button>}
+                            {od.signedLetterUrl&&<button onClick={()=>setPreviewUrl(od.signedLetterUrl!)} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 text-[10px] font-bold text-[#003087] hover:bg-slate-200 transition-colors"><FileText className="h-3 w-3"/> Signed Letter</button>}
                           </div>
                         </div>
                       </div>
@@ -736,17 +736,17 @@ export default function StudentDash() {
 
       {currentTab==="achievements"&&(
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">My Achievements</h2>
               <p className="text-xs text-slate-500 mt-0.5">Awards, recognitions, and competition results</p>
             </div>
-            <button onClick={() => setShowAchievementForm(true)} className="flex items-center gap-2 px-4 py-2 bg-[#003087] text-white text-sm font-bold rounded-lg hover:bg-[#002266] transition-colors shadow-sm">
+            <button onClick={() => setShowAchievementForm(true)} className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#003087] text-white text-xs sm:text-sm font-bold rounded-xl hover:bg-[#002266] transition-colors shadow-xs shrink-0">
               <Plus className="h-4 w-4" /> Add Achievement
             </button>
           </div>
           
-          <div className="bg-white rounded-lg border border-[#E2E8F0] shadow-sm overflow-hidden">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
             {loadingAchievements ? (
               <div className="p-10 flex flex-col items-center justify-center space-y-4">
                 <Loader2 className="h-8 w-8 text-[#003087] animate-spin" />
@@ -755,14 +755,14 @@ export default function StudentDash() {
             ) : achievements.length === 0 ? (
               <EmptyState icon={Award} title="No achievements added yet" subtitle="Your achievements, awards, and competition results will appear here once submitted and verified by the department." accent="#D97706" accentBg="bg-amber-100"/>
             ) : (
-              <div className="divide-y divide-[#E5E7EB]">
+              <div className="divide-y divide-slate-100">
                 {achievements.map((ach: any) => {
                   const isVerified = ach.status === "VERIFIED"
                   const isRejected = ach.status === "REJECTED"
                   
                   return (
-                    <div key={ach.id} className={`px-5 py-4 hover:bg-slate-50 transition-colors ${isVerified ? "border-l-4 border-l-[#16A34A]" : isRejected ? "border-l-4 border-l-[#EF4444]" : "border-l-4 border-l-[#F59E0B]"}`}>
-                      <div className="flex items-start justify-between gap-3">
+                    <div key={ach.id} className={`p-3.5 sm:p-5 hover:bg-slate-50/80 transition-colors ${isVerified ? "border-l-4 border-l-[#16A34A]" : isRejected ? "border-l-4 border-l-[#EF4444]" : "border-l-4 border-l-[#F59E0B]"}`}>
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1 flex-wrap">
                             <p className="text-sm font-bold text-slate-800">{ach.title}</p>
@@ -773,15 +773,15 @@ export default function StudentDash() {
                           {ach.description && <p className="text-xs text-slate-600 mt-2">{ach.description}</p>}
                           {isRejected && <p className="text-xs text-[#EF4444] mt-1 font-medium">Reason: {ach.facultyRemarks || "—"}</p>}
                         </div>
-                        <div className="flex flex-col items-end gap-2 shrink-0">
-                          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-[10px] font-bold ${
+                        <div className="flex items-center justify-between sm:justify-end sm:flex-col sm:items-end gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold ${
                             isVerified ? "bg-green-100 text-green-700" :
                             isRejected ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"
                           }`}>
                             {isVerified ? "Verified" : isRejected ? "Rejected" : "Pending Verification"}
                           </div>
                           {ach.proofFileUrl && (
-                            <button onClick={() => setPreviewUrl(ach.proofFileUrl)} className="flex items-center gap-1 px-2.5 py-1.5 rounded bg-slate-100 text-[10px] font-bold text-[#003087] hover:bg-slate-200 transition-colors">
+                            <button onClick={() => setPreviewUrl(ach.proofFileUrl)} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 text-[10px] font-bold text-[#003087] hover:bg-slate-200 transition-colors">
                               <FileText className="h-3 w-3" /> View Proof
                             </button>
                           )}

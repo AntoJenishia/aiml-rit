@@ -59,6 +59,18 @@ export default function AdminNav() {
     setMounted(true)
   }, [])
 
+  // Listen for custom event from AdminTopbar hamburger button on mobile
+  useEffect(() => {
+    const handleToggle = () => setSidebarOpen((prev) => !prev)
+    const handleClose = () => setSidebarOpen(false)
+    window.addEventListener("toggle-admin-nav", handleToggle)
+    window.addEventListener("close-admin-nav", handleClose)
+    return () => {
+      window.removeEventListener("toggle-admin-nav", handleToggle)
+      window.removeEventListener("close-admin-nav", handleClose)
+    }
+  }, [])
+
   // Close sidebar on route change
   useEffect(() => setSidebarOpen(false), [pathname, searchParams])
 
@@ -66,43 +78,41 @@ export default function AdminNav() {
 
   return (
     <>
-      {/* Mobile top bar */}
-      <div className="md:hidden flex items-center justify-between px-4 py-3 bg-[#0A192F] border-b border-[#1E2D4A] sticky top-0 z-30">
-        <div className="flex items-center gap-3">
-          <Link href="/" className="block">
-            <div className="bg-white rounded px-1.5 py-1">
-              <div className="relative h-6 w-20">
-                <Image src="/new-logo.png" alt="RIT AIML" fill sizes="80px" className="object-contain object-center" />
-              </div>
-            </div>
-          </Link>
-          <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-400">
-            HOD
-          </span>
-        </div>
-        <button
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="p-2 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
-          aria-label="Toggle menu"
-        >
-          {sidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-        </button>
-      </div>
-
-      {/* Sidebar backdrop (mobile) */}
+      {/* Sidebar Backdrop (Mobile Drawer) */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden"
+          className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs md:hidden animate-in fade-in"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
-      {/* Sidebar */}
-      <aside className={clsx(
-        "z-40 w-64 flex flex-col h-full bg-[#0A192F] border-r border-[#1E2D4A] shadow-lg",
-        "fixed inset-y-0 left-0 transition-transform duration-300 ease-out md:relative md:translate-x-0 md:shrink-0",
-        sidebarOpen ? "translate-x-0 top-16" : "-translate-x-full"
-      )}>
+      {/* Sidebar (Desktop Permanent + Mobile Slide-Over Drawer) */}
+      <aside
+        className={clsx(
+          "flex flex-col h-full bg-[#0A192F] border-r border-[#1E2D4A] shadow-2xl transition-transform duration-300 ease-out",
+          "fixed inset-y-0 left-0 z-50 w-72 md:relative md:w-64 md:translate-x-0 md:z-0 md:shadow-lg",
+          sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+        )}
+      >
+        {/* Mobile Header with Close Button */}
+        <div className="md:hidden flex items-center justify-between px-4 py-3.5 border-b border-[#1E2D4A] bg-[#071324]">
+          <div className="flex items-center gap-2.5">
+            <div className="bg-white rounded px-1.5 py-0.5">
+              <div className="relative h-5 w-16">
+                <Image src="/new-logo.png" alt="RIT AIML" fill sizes="70px" className="object-contain" priority />
+              </div>
+            </div>
+            <span className="text-xs font-black text-white uppercase tracking-wider">HOD Portal</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(false)}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+            aria-label="Close Navigation"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
         {/* Profile (Compact) */}
         <div className="px-5 py-4 border-b border-[#1E2D4A] bg-[#071324]">
@@ -124,11 +134,11 @@ export default function AdminNav() {
           </div>
         </div>
 
-        {/* Nav links */}
-        <nav className="flex-1 px-3 py-4 space-y-6 overflow-y-auto">
+        {/* Nav Links */}
+        <nav className="flex-1 px-3 py-4 space-y-5 overflow-y-auto">
           {navGroups.map((group) => (
             <div key={group.title}>
-              <div className="px-2 mb-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+              <div className="px-2 mb-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                 {group.title}
               </div>
               <div className="space-y-0.5">
@@ -139,15 +149,19 @@ export default function AdminNav() {
                   const active = pathname === "/admin" && (itemTab === currentTab || isBatchesMatch)
 
                   return (
-                    <Link key={item.href} href={item.href}
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setSidebarOpen(false)}
                       className={clsx(
-                        "group flex items-center gap-3 rounded-md px-3 py-2 text-[13px] font-semibold transition-all duration-200",
+                        "group flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-semibold transition-all duration-200",
                         active
-                          ? "bg-indigo-500/10 text-indigo-400"
-                          : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200"
-                      )}>
+                          ? "bg-indigo-500/15 text-indigo-400 font-bold border border-indigo-500/30"
+                          : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-200"
+                      )}
+                    >
                       <item.icon className="h-4 w-4 shrink-0" />
-                      {item.label}
+                      <span>{item.label}</span>
                     </Link>
                   )
                 })}
@@ -156,20 +170,26 @@ export default function AdminNav() {
           ))}
 
           <div className="pt-4 border-t border-[#1E2D4A] mt-4 px-2">
-            <Link href="/"
-              className="group flex items-center gap-3 rounded-md px-3 py-2 text-[13px] font-semibold text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 transition-all">
+            <Link
+              href="/"
+              onClick={() => setSidebarOpen(false)}
+              className="group flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-semibold text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 transition-all"
+            >
               <Globe className="h-4 w-4 shrink-0" />
-              Public Site
+              <span>Public Site</span>
             </Link>
           </div>
         </nav>
 
         {/* Logout */}
-        <div className="px-4 pb-4 shrink-0">
-          <button onClick={() => signOut({ callbackUrl: "/login" })}
-            className="w-full flex items-center gap-3 rounded-md px-3 py-2 text-[13px] font-semibold text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 transition-all">
+        <div className="px-4 pb-4 pt-2 border-t border-[#1E2D4A]/60 shrink-0">
+          <button
+            type="button"
+            onClick={() => signOut({ callbackUrl: "/ops" })}
+            className="w-full flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-semibold text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 transition-all"
+          >
             <LogOut className="h-4 w-4 shrink-0" />
-            Logout
+            <span>Logout</span>
           </button>
         </div>
       </aside>

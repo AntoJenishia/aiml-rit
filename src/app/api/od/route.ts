@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth"
 import { adminDb } from "@/lib/firebaseAdmin"
 import { supabaseAdmin } from "@/lib/supabase"
 import { FieldValue } from "firebase-admin/firestore"
+import { logActivity } from "@/lib/auditLogger"
 import { generateFormalODPdf } from "@/lib/pdf-generator"
 import { initializeApp, getApps } from "firebase-admin/app"
 
@@ -134,6 +135,21 @@ export async function POST(req: NextRequest) {
       driveFolderId: driveFolderId || "",
       driveFolderUrl: driveFolderUrl || "",
       createdAt: FieldValue.serverTimestamp(),
+    })
+
+    // Log OD application with IP & location
+    logActivity({
+      userId: uid,
+      userName: userData.name || "Student",
+      userEmail: session.user.email || "",
+      userRole: "student",
+      registerNumber: userData.registerNumber,
+      action: "OD_SUBMITTED",
+      entityType: "od",
+      entityId: docRef.id,
+      details: `Student applied for OD: ${eventName} (${eventType}) at ${venue} from ${startDate} to ${endDate} [Ref: ${refNumber}]`,
+      metadata: { refNumber, eventName, eventType, venue, startDate, endDate },
+      req,
     })
 
     return NextResponse.json({ id: docRef.id, referenceNumber: refNumber, signedLetterUrl })

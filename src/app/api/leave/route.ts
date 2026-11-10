@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { adminDb } from "@/lib/firebaseAdmin"
-import { supabaseAdmin } from "@/lib/supabase"
+import { supabaseAdmin, formatProfileUrl } from "@/lib/supabase"
 import { FieldValue } from "firebase-admin/firestore"
+import { logActivity } from "@/lib/auditLogger"
 
 export async function POST(req: NextRequest) {
   try {
@@ -37,10 +38,16 @@ export async function POST(req: NextRequest) {
     let section = ""
     let classInchargeName = ""
     let staffCode = ""
+    let studentPhone = ""
+    let studentEmail = session.user.email || ""
+    let studentPhoto = ""
+    let hosteler: any = ""
+    let gender = ""
+    let classTitle = ""
 
     const { data: studentData } = await supabaseAdmin
       .from("students")
-      .select("id, name, register_no, batch, section, class_incharge_name, staff_code")
+      .select("id, name, register_no, batch, section, class_incharge_name, staff_code, phone, email, profile_url, hosteler, gender, class")
       .eq("id", uid)
       .maybeSingle()
 
@@ -51,6 +58,12 @@ export async function POST(req: NextRequest) {
       section = studentData.section || ""
       classInchargeName = studentData.class_incharge_name || ""
       staffCode = studentData.staff_code || ""
+      studentPhone = studentData.phone || ""
+      studentEmail = studentData.email || studentEmail
+      studentPhoto = formatProfileUrl(studentData.profile_url) || ""
+      hosteler = studentData.hosteler || ""
+      gender = studentData.gender || ""
+      classTitle = studentData.class || ""
     } else {
       const userDoc = await adminDb.collection("users").doc(uid).get()
       if (userDoc.exists) {
@@ -59,6 +72,12 @@ export async function POST(req: NextRequest) {
         registerNumber = u.registerNumber || ""
         batch = u.batch || ""
         section = u.section || ""
+        studentPhone = u.phone || ""
+        studentEmail = u.email || studentEmail
+        studentPhoto = formatProfileUrl(u.photoURL || u.profile) || ""
+        hosteler = u.hosteler || ""
+        gender = u.gender || ""
+        classTitle = u.classId || u.class || ""
       }
     }
 
@@ -71,6 +90,12 @@ export async function POST(req: NextRequest) {
       section,
       classInchargeName,
       staffCode,
+      studentPhone,
+      studentEmail,
+      studentPhoto,
+      hosteler,
+      gender,
+      classTitle,
       startDate,
       endDate,
       category,
@@ -83,6 +108,21 @@ export async function POST(req: NextRequest) {
     }
 
     const docRef = await adminDb.collection("leaveRequests").add(leaveDoc)
+
+    // Log leave submission with IP & location
+    logActivity({
+      userId: uid,
+      userName: studentName,
+      userEmail: session.user.email || "",
+      userRole: "student",
+      registerNumber,
+      action: "LEAVE_REQUEST_SUBMITTED",
+      entityType: "leave",
+      entityId: docRef.id,
+      details: `Student ${studentName} (${registerNumber}) applied for ${category} leave: ${startDate} to ${endDate}`,
+      metadata: { startDate, endDate, category, reason },
+      req,
+    })
 
     return NextResponse.json({
       success: true,
@@ -169,6 +209,18 @@ export async function GET(req: NextRequest) {
       })
     })
 
+    // 3. Fetch student profile details from Supabase for all leaves
+    const { data: studentsData } = await supabaseAdmin
+      .from("students")
+      .select("id, name, register_no, phone, email, profile_url, hosteler, gender, class, batch, section")
+
+    const studentMap = new Map<string, any>()
+    studentsData?.forEach((stu) => {
+      if (stu.id) studentMap.set(stu.id, stu)
+      if (stu.register_no) studentMap.set(stu.register_no.trim(), stu)
+      if (stu.name) studentMap.set(stu.name.trim().toLowerCase(), stu)
+    })
+
     const leaves = snap.docs.map((doc) => {
       const d = doc.data()
       const seq = leaveSequenceMap[doc.id] || { sequence: 1, total: 1 }
@@ -180,6 +232,12 @@ export async function GET(req: NextRequest) {
         od: 0,
       }
 
+      const stu = (d.studentUid ? studentMap.get(d.studentUid) : null) ||
+                  (d.registerNumber ? studentMap.get(d.registerNumber.trim()) : null) ||
+                  (d.studentName ? studentMap.get(d.studentName.trim().toLowerCase()) : null)
+
+      const formattedPhoto = formatProfileUrl(stu?.profile_url || d.studentPhoto)
+
       const totalDays = stat.total
       const presentCount = stat.present + stat.od
       const attendancePercentage = totalDays > 0 ? Math.round((presentCount / totalDays) * 100) : 100
@@ -187,6 +245,17 @@ export async function GET(req: NextRequest) {
       return {
         id: doc.id,
         ...d,
+        studentName: stu?.name || d.studentName || "Student",
+        registerNumber: stu?.register_no || d.registerNumber || "",
+        studentPhoto: formattedPhoto,
+        photoURL: formattedPhoto,
+        studentPhone: stu?.phone || d.studentPhone || "",
+        studentEmail: stu?.email || d.studentEmail || "",
+        hosteler: stu?.hosteler !== undefined && stu?.hosteler !== null ? stu.hosteler : d.hosteler,
+        gender: stu?.gender || d.gender || "",
+        classTitle: stu?.class || d.classTitle || "",
+        batch: stu?.batch || d.batch || "",
+        section: stu?.section || d.section || "",
         leaveSequence: seq.sequence,
         totalLeavesCount: seq.total,
         attendancePercentage,
@@ -277,6 +346,22 @@ export async function PATCH(req: NextRequest) {
     }
 
     await leaveRef.update(updates)
+
+    // Log review action with IP & location
+    const actionName = action === "reject" ? "LEAVE_REJECTED" : (isHod ? "LEAVE_APPROVED_HOD" : "LEAVE_VERIFIED_INCHARGE")
+    logActivity({
+      userId: (session.user as any)?.uid || (session.user as any)?.id,
+      userName: reviewerName,
+      userEmail: session.user.email || "",
+      userRole: role as any,
+      staffCode: (session.user as any)?.staffCode,
+      action: actionName,
+      entityType: "leave",
+      entityId: id,
+      details: `${reviewerName} (${role.toUpperCase()}): ${action === "reject" ? "Rejected" : (isHod ? "Granted final approval for" : "Verified & forwarded")} leave for ${currentData.studentName} (${currentData.registerNumber})`,
+      metadata: { reviewNotes, newStatus },
+      req,
+    })
 
     return NextResponse.json({
       success: true,

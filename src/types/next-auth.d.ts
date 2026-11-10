@@ -9,6 +9,7 @@ declare module "next-auth" {
       uid?: string
       staffCode?: string
       username?: string
+      registerNumber?: string
     } & DefaultSession["user"]
   }
 
@@ -17,6 +18,7 @@ declare module "next-auth" {
     uid?: string
     staffCode?: string
     username?: string
+    registerNumber?: string
   }
 }
 
@@ -26,5 +28,6 @@ declare module "next-auth/jwt" {
     uid?: string
     staffCode?: string
     username?: string
+    registerNumber?: string
   }
 }
