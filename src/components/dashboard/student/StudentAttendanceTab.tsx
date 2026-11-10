@@ -62,8 +62,7 @@ export default function StudentAttendanceTab() {
   const [reasonCategory, setReasonCategory] = useState("Medical Illness / Fever")
   const [reasonText, setReasonText] = useState("")
   const [proofUrl, setProofUrl] = useState("")
-  const [absentFile, setAbsentFile] = useState<File | null>(null)
-  const absentFileInputRef = useRef<HTMLInputElement>(null)
+  const [absentPublicAccess, setAbsentPublicAccess] = useState(false)
   const [submittingReason, setSubmittingReason] = useState(false)
 
   // Advance Leave State
@@ -80,8 +79,7 @@ export default function StudentAttendanceTab() {
   const [leaveCategory, setLeaveCategory] = useState("Medical Illness")
   const [leaveReason, setLeaveReason] = useState("")
   const [leaveAttachmentUrl, setLeaveAttachmentUrl] = useState("")
-  const [leaveFile, setLeaveFile] = useState<File | null>(null)
-  const leaveFileInputRef = useRef<HTMLInputElement>(null)
+  const [leavePublicAccess, setLeavePublicAccess] = useState(false)
   const [submittingLeave, setSubmittingLeave] = useState(false)
 
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null)
@@ -91,45 +89,6 @@ export default function StudentAttendanceTab() {
     setTimeout(() => setToast(null), 5000)
   }
 
-  // Upload file to Supabase cloud storage
-  const uploadFileToCloud = async (file: File, folderName = "student-proofs"): Promise<string> => {
-    if (file.size > 5 * 1024 * 1024) {
-      throw new Error("File exceeds 5MB limit. Please compress before uploading.")
-    }
-    const formData = new FormData()
-    formData.append("file", file)
-    formData.append("folder", folderName)
-    const res = await fetch("/api/upload", {
-      method: "POST",
-      body: formData,
-    })
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}))
-      throw new Error(err.error || "File upload failed")
-    }
-    const data = await res.json()
-    return data.url || ""
-  }
-
-  const handleLeaveFileChange = (file: File | null) => {
-    if (file && file.size > 5 * 1024 * 1024) {
-      showToast(`File "${file.name}" exceeds 5MB limit (${(file.size / (1024 * 1024)).toFixed(1)}MB). Please choose a compressed file.`, "error")
-      setLeaveFile(null)
-      if (leaveFileInputRef.current) leaveFileInputRef.current.value = ""
-      return
-    }
-    setLeaveFile(file)
-  }
-
-  const handleAbsentFileChange = (file: File | null) => {
-    if (file && file.size > 5 * 1024 * 1024) {
-      showToast(`File "${file.name}" exceeds 5MB limit (${(file.size / (1024 * 1024)).toFixed(1)}MB). Please choose a compressed file.`, "error")
-      setAbsentFile(null)
-      if (absentFileInputRef.current) absentFileInputRef.current.value = ""
-      return
-    }
-    setAbsentFile(file)
-  }
 
   const fetchStudentAttendance = async () => {
     setLoading(true)
@@ -171,7 +130,7 @@ export default function StudentAttendanceTab() {
     setReasonCategory(item.absentCategory || "Medical Illness / Fever")
     setReasonText(item.absentReason || "")
     setProofUrl(item.absentProofUrl || "")
-    setAbsentFile(null)
+    setAbsentPublicAccess(!!item.absentProofUrl)
   }
 
   const handleSubmitReason = async (e: React.FormEvent) => {
@@ -181,18 +140,14 @@ export default function StudentAttendanceTab() {
       return
     }
 
+    if (proofUrl.trim() && !absentPublicAccess) {
+      showToast("Please check the box confirming the file is uploaded and the link is set to public access.", "error")
+      return
+    }
+
     setSubmittingReason(true)
     try {
-      let finalProofUrl = proofUrl.trim() || null
-      if (absentFile) {
-        try {
-          finalProofUrl = await uploadFileToCloud(absentFile, "absent-proofs")
-        } catch (uploadErr: any) {
-          showToast("Document upload failed: " + uploadErr.message, "error")
-          setSubmittingReason(false)
-          return
-        }
-      }
+      const finalProofUrl = proofUrl.trim() || null
 
       const res = await fetch("/api/attendance/student", {
         method: "PATCH",
@@ -211,7 +166,8 @@ export default function StudentAttendanceTab() {
       if (res.ok) {
         showToast("Absence reason submitted successfully to Class Incharge!", "success")
         setSelectedAbsentItem(null)
-        setAbsentFile(null)
+        setProofUrl("")
+        setAbsentPublicAccess(false)
         await fetchStudentAttendance()
       } else {
         throw new Error(result.error || "Failed to submit reason")
@@ -234,18 +190,14 @@ export default function StudentAttendanceTab() {
       return
     }
 
+    if (leaveAttachmentUrl.trim() && !leavePublicAccess) {
+      showToast("Please check the box confirming the file is uploaded and the link is set to public access.", "error")
+      return
+    }
+
     setSubmittingLeave(true)
     try {
-      let finalAttachmentUrl = leaveAttachmentUrl.trim() || null
-      if (leaveFile) {
-        try {
-          finalAttachmentUrl = await uploadFileToCloud(leaveFile, "leave-proofs")
-        } catch (uploadErr: any) {
-          showToast("Document upload failed: " + uploadErr.message, "error")
-          setSubmittingLeave(false)
-          return
-        }
-      }
+      const finalAttachmentUrl = leaveAttachmentUrl.trim() || null
 
       const res = await fetch("/api/leave", {
         method: "POST",
@@ -265,7 +217,7 @@ export default function StudentAttendanceTab() {
         setShowLeaveModal(false)
         setLeaveReason("")
         setLeaveAttachmentUrl("")
-        setLeaveFile(null)
+        setLeavePublicAccess(false)
         await fetchLeaveRequests()
       } else {
         throw new Error(result.error || "Failed to submit leave request")
@@ -763,51 +715,32 @@ export default function StudentAttendanceTab() {
               </div>
 
               <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600">
-                    Attach Medical Certificate / Parent Permission Letter (Optional)
-                  </label>
-                  <span className="text-[10px] font-semibold text-slate-400">Max 5MB</span>
-                </div>
-                <input
-                  ref={leaveFileInputRef}
-                  type="file"
-                  accept="application/pdf,image/*"
-                  className="hidden"
-                  onChange={(e) => handleLeaveFileChange(e.target.files?.[0] || null)}
-                />
-                <button
-                  type="button"
-                  onClick={() => leaveFileInputRef.current?.click()}
-                  className={`w-full py-3 px-4 border-2 border-dashed rounded-xl flex items-center justify-center gap-2 transition-all text-xs font-bold ${
-                    leaveFile
-                      ? "border-emerald-500 bg-emerald-50 text-emerald-800"
-                      : "border-slate-300 bg-slate-50 text-slate-600 hover:border-[#003087]"
-                  }`}
-                >
-                  {leaveFile ? <CheckCircle className="w-4 h-4 text-emerald-600" /> : <Upload className="w-4 h-4 text-slate-400" />}
-                  <span className="truncate max-w-[280px]">
-                    {leaveFile ? leaveFile.name : "Choose File (PDF or Image) to upload"}
-                  </span>
-                </button>
-                {leaveFile && (
-                  <button
-                    type="button"
-                    onClick={() => setLeaveFile(null)}
-                    className="text-[10px] text-rose-500 font-bold hover:underline mt-1 inline-block"
-                  >
-                    Remove selected file
-                  </button>
-                )}
-                <div className="mt-2">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                  Google Drive Link to Medical Certificate / Parent Permission Letter (Optional)
+                </label>
+                <div className="relative">
                   <input
                     type="url"
-                    placeholder="Or paste external Google Drive link here..."
+                    placeholder="https://drive.google.com/file/d/.../view?usp=sharing"
                     value={leaveAttachmentUrl}
                     onChange={(e) => setLeaveAttachmentUrl(e.target.value)}
-                    className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-700 focus:outline-none focus:border-[#003087]"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-700 focus:outline-none focus:border-[#003087]"
                   />
                 </div>
+                {leaveAttachmentUrl.trim() && (
+                  <div className="mt-2.5 flex items-start gap-2.5 p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                    <input
+                      type="checkbox"
+                      id="leave-public-access"
+                      checked={leavePublicAccess}
+                      onChange={(e) => setLeavePublicAccess(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 rounded border-slate-300 text-[#003087] focus:ring-[#003087] cursor-pointer"
+                    />
+                    <label htmlFor="leave-public-access" className="text-xs text-slate-600 font-medium cursor-pointer select-none leading-relaxed">
+                      The file is uploaded and the link is set to public access (<span className="font-semibold text-slate-800">"Anyone with the link can view"</span>)
+                    </label>
+                  </div>
+                )}
               </div>
 
               <div className="sticky bottom-0 bg-white/95 backdrop-blur-sm pt-3 pb-1 border-t border-slate-100 flex items-center justify-end gap-2.5">
@@ -893,51 +826,32 @@ export default function StudentAttendanceTab() {
               </div>
 
               <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600">
-                    Attach Medical Certificate / Doctor Prescription (Optional)
-                  </label>
-                  <span className="text-[10px] font-semibold text-slate-400">Max 5MB</span>
-                </div>
-                <input
-                  ref={absentFileInputRef}
-                  type="file"
-                  accept="application/pdf,image/*"
-                  className="hidden"
-                  onChange={(e) => handleAbsentFileChange(e.target.files?.[0] || null)}
-                />
-                <button
-                  type="button"
-                  onClick={() => absentFileInputRef.current?.click()}
-                  className={`w-full py-3 px-4 border-2 border-dashed rounded-xl flex items-center justify-center gap-2 transition-all text-xs font-bold ${
-                    absentFile
-                      ? "border-emerald-500 bg-emerald-50 text-emerald-800"
-                      : "border-slate-300 bg-slate-50 text-slate-600 hover:border-[#003087]"
-                  }`}
-                >
-                  {absentFile ? <CheckCircle className="w-4 h-4 text-emerald-600" /> : <Upload className="w-4 h-4 text-slate-400" />}
-                  <span className="truncate max-w-[280px]">
-                    {absentFile ? absentFile.name : "Choose File (PDF or Image) to upload"}
-                  </span>
-                </button>
-                {absentFile && (
-                  <button
-                    type="button"
-                    onClick={() => setAbsentFile(null)}
-                    className="text-[10px] text-rose-500 font-bold hover:underline mt-1 inline-block"
-                  >
-                    Remove selected file
-                  </button>
-                )}
-                <div className="mt-2">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                  Google Drive Link to Medical Certificate / Doctor Prescription (Optional)
+                </label>
+                <div className="relative">
                   <input
                     type="url"
-                    placeholder="Or paste external Google Drive link here..."
+                    placeholder="https://drive.google.com/file/d/.../view?usp=sharing"
                     value={proofUrl}
                     onChange={(e) => setProofUrl(e.target.value)}
-                    className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-700 focus:outline-none focus:border-[#003087]"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-700 focus:outline-none focus:border-[#003087]"
                   />
                 </div>
+                {proofUrl.trim() && (
+                  <div className="mt-2.5 flex items-start gap-2.5 p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                    <input
+                      type="checkbox"
+                      id="absent-public-access"
+                      checked={absentPublicAccess}
+                      onChange={(e) => setAbsentPublicAccess(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 rounded border-slate-300 text-[#003087] focus:ring-[#003087] cursor-pointer"
+                    />
+                    <label htmlFor="absent-public-access" className="text-xs text-slate-600 font-medium cursor-pointer select-none leading-relaxed">
+                      The file is uploaded and the link is set to public access (<span className="font-semibold text-slate-800">"Anyone with the link can view"</span>)
+                    </label>
+                  </div>
+                )}
               </div>
 
               <div className="sticky bottom-0 bg-white/95 backdrop-blur-sm pt-3 pb-1 border-t border-slate-100 flex items-center justify-end gap-2.5">

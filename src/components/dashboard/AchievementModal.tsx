@@ -1,5 +1,5 @@
 import { useState, useRef } from "react"
-import { Upload, X, Loader2, FileText, CheckCircle, Award } from "lucide-react"
+import { Link2, X, Loader2, CheckCircle, Award, ExternalLink } from "lucide-react"
 
 interface AchievementModalProps {
   onClose: () => void
@@ -9,7 +9,7 @@ interface AchievementModalProps {
 export default function AchievementModal({ onClose, onSuccess }: AchievementModalProps) {
   const [loading, setLoading] = useState(false)
   const [step, setStep] = useState(1)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [isPublicAccess, setIsPublicAccess] = useState(false)
   
   const [formData, setFormData] = useState({
     title: "",
@@ -19,45 +19,25 @@ export default function AchievementModal({ onClose, onSuccess }: AchievementModa
     position: "Participation",
     description: "",
     proofFileUrl: "",
-    proofFileName: ""
+    proofFileName: "Google Drive Proof"
   })
-  
-  const [file, setFile] = useState<File | null>(null)
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const f = e.target.files[0]
-      if (f.size > 5 * 1024 * 1024) {
-        alert("File size must be less than 5MB")
-        return
-      }
-      setFile(f)
-      setFormData(prev => ({ ...prev, proofFileName: f.name }))
-    }
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!file) return alert("Please upload a certificate or proof document.")
+    if (!formData.proofFileUrl.trim()) {
+      alert("Please provide the Google Drive link to your certificate / proof.")
+      return
+    }
+    if (!isPublicAccess) {
+      alert("Please confirm that the file is uploaded and the link is set to public access.")
+      return
+    }
     
     setLoading(true)
     try {
-      const reader = new FileReader()
-      const base64Promise = new Promise<string>((resolve, reject) => {
-        reader.onload = () => {
-          const result = reader.result as string
-          resolve(result.includes(",") ? result.split(",")[1] : result)
-        }
-        reader.onerror = error => reject(error)
-      })
-      reader.readAsDataURL(file)
-      const proofFileB64 = await base64Promise
-      
-      // 2. Submit to API
       const payload = { 
-        ...formData, 
-        proofFileB64, 
-        proofMimeType: file.type 
+        ...formData,
+        proofFileUrl: formData.proofFileUrl.trim()
       }
       
       const res = await fetch("/api/achievements", {
@@ -155,35 +135,35 @@ export default function AchievementModal({ onClose, onSuccess }: AchievementModa
             </div>
 
             <div className="sm:col-span-2">
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Upload Certificate / Proof (Max 5MB)</label>
-              <div 
-                onClick={() => fileInputRef.current?.click()}
-                className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors ${file ? "border-green-400 bg-green-50" : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"}`}
-              >
-                {file ? (
-                  <div className="flex flex-col items-center gap-2">
-                    <div className="w-10 h-10 bg-green-100 text-green-600 rounded-full flex items-center justify-center">
-                      <FileText className="h-5 w-5" />
-                    </div>
-                    <p className="text-sm font-bold text-green-700">{file.name}</p>
-                    <p className="text-xs text-green-600">Click to change file</p>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center gap-2">
-                    <div className="w-10 h-10 bg-slate-100 text-slate-500 rounded-full flex items-center justify-center">
-                      <Upload className="h-5 w-5" />
-                    </div>
-                    <p className="text-sm font-bold text-slate-700">Click to upload certificate</p>
-                    <p className="text-xs text-slate-500">PDF, JPG, PNG allowed</p>
-                  </div>
-                )}
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  onChange={handleFileChange} 
-                  accept=".pdf,image/jpeg,image/png" 
-                  className="hidden" 
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                Google Drive Link to Certificate / Proof <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                  <Link2 className="h-4 w-4" />
+                </div>
+                <input
+                  type="url"
+                  required
+                  placeholder="https://drive.google.com/file/d/.../view?usp=sharing"
+                  className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-[#003087] focus:bg-white transition-all outline-none"
+                  value={formData.proofFileUrl}
+                  onChange={e => setFormData({ ...formData, proofFileUrl: e.target.value })}
                 />
+              </div>
+
+              {/* Public access confirmation checkbox */}
+              <div className="mt-3 flex items-start gap-2.5 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                <input
+                  type="checkbox"
+                  id="achievement-public-access"
+                  checked={isPublicAccess}
+                  onChange={e => setIsPublicAccess(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-slate-300 text-[#003087] focus:ring-[#003087] cursor-pointer"
+                />
+                <label htmlFor="achievement-public-access" className="text-xs text-slate-600 font-medium cursor-pointer select-none leading-relaxed">
+                  The file is uploaded and the link is set to public access (<span className="font-semibold text-slate-800">"Anyone with the link can view"</span>)
+                </label>
               </div>
             </div>
           </div>

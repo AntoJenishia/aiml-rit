@@ -110,11 +110,11 @@ function ODModal({onClose,onSuccess,initialData}:{onClose:()=>void;onSuccess:()=
     endDate: initialData?.endDate || "",
     reason: initialData?.reason || ""
   })
-  const [proofFile,setProofFile] = useState<File|null>(null)
+  const [signedLetterUrl, setSignedLetterUrl] = useState(initialData?.signedLetterUrl || "")
+  const [isPublicAccess, setIsPublicAccess] = useState(false)
   const [uploading,setUploading] = useState(false)
   const [submitting,setSubmitting] = useState(false)
   const [error,setError] = useState("")
-  const fileRef = useRef<HTMLInputElement>(null)
 
   const set = (k:string,v:any) => setForm(f => ({...f,[k]:v}))
 
@@ -144,8 +144,8 @@ function ODModal({onClose,onSuccess,initialData}:{onClose:()=>void;onSuccess:()=
   const handleSubmit = async () => {
     setError("")
     if(!form.eventName||!form.organiser||!form.venue||!form.startDate||!form.endDate||!form.reason){setError("Please fill all required fields.");return}
-    if(!proofFile){setError("Please upload the signed OD letter.");return}
-    if(proofFile.size > 5 * 1024 * 1024){setError(`Signed letter exceeds 5MB limit (${(proofFile.size / (1024 * 1024)).toFixed(1)}MB). Please choose a compressed file.`);return}
+    if(!signedLetterUrl.trim()){setError("Please provide the Google Drive link to the signed OD letter.");return}
+    if(!isPublicAccess){setError("Please confirm that the file is uploaded and the link is set to public access.");return}
     
     setUploading(true)
     let gpsLocation;
@@ -157,20 +157,12 @@ function ODModal({onClose,onSuccess,initialData}:{onClose:()=>void;onSuccess:()=
       return;
     }
 
-    let proofFileB64="",proofFileName="",proofMimeType=""
-    try {
-      const toBase64=(f:File):Promise<string>=>new Promise((res,rej)=>{
-        const r=new FileReader();r.readAsDataURL(f)
-        r.onload=()=>res((r.result as string).split(",")[1]);r.onerror=rej
-      })
-      proofFileB64=await toBase64(proofFile);proofFileName=proofFile.name;proofMimeType=proofFile.type
-    } catch{setError("Failed to process file.");setUploading(false);return}
     setUploading(false);setSubmitting(true)
     
     const res=await fetch("/api/od",{
       method:"POST",
       headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({...form,proofFileB64,proofFileName,proofMimeType, gpsLocation})
+      body:JSON.stringify({...form, signedLetterUrl: signedLetterUrl.trim(), driveLink: signedLetterUrl.trim(), gpsLocation})
     })
     const data=await res.json()
     if(!res.ok){setError(data.error||"Submission failed.");setSubmitting(false);return}
@@ -201,25 +193,33 @@ function ODModal({onClose,onSuccess,initialData}:{onClose:()=>void;onSuccess:()=
           </div>
           <div><label className="block text-xs font-semibold text-slate-700 mb-1.5">Reason / Purpose *</label><textarea value={form.reason} onChange={e=>set("reason",e.target.value)} placeholder="Briefly explain why you need this OD..." rows={3} className={`${inp} resize-none`}/></div>
           <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-xs font-semibold text-slate-700">Upload Signed OD Letter <span className="text-red-500">*</span></label>
-              <span className="text-[10px] text-slate-400 font-medium">Max 5MB</span>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+              Google Drive Link to Signed OD Letter <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <input
+                type="url"
+                value={signedLetterUrl}
+                onChange={e => setSignedLetterUrl(e.target.value)}
+                placeholder="https://drive.google.com/file/d/.../view?usp=sharing"
+                className={inp}
+              />
             </div>
-            <input ref={fileRef} type="file" accept="application/pdf,image/*" className="hidden" onChange={e=>{
-              const f = e.target.files?.[0]
-              if (f && f.size > 5 * 1024 * 1024) {
-                setError(`File exceeds 5MB limit (${(f.size / (1024 * 1024)).toFixed(1)}MB). Please choose a compressed file.`)
-                setProofFile(null)
-                if (fileRef.current) fileRef.current.value = ""
-                return
-              }
-              setProofFile(f ?? null)
-            }}/>
-            <button onClick={()=>fileRef.current?.click()} className={`w-full flex flex-col items-center justify-center gap-2 rounded border-2 border-dashed py-5 text-sm font-semibold transition-all ${proofFile?"border-[#16A34A] bg-green-50 text-[#16A34A]":"border-[#E2E8F0] bg-slate-50 text-slate-500 hover:border-[#003087] hover:text-[#003087]"}`}>
-              {proofFile?<CheckCircle className="h-5 w-5"/>:<Upload className="h-5 w-5"/>}
-              {proofFile?proofFile.name:"Click to upload signed letter (PDF or Image, max 5MB)"}
-            </button>
-            <p className="text-[10px] text-slate-500 mt-2 text-center flex items-center justify-center gap-1"><Shield className="h-3 w-3"/> GPS location will be captured securely on submit</p>
+            <div className="mt-2.5 flex items-start gap-2.5 p-3 bg-slate-50 border border-slate-200 rounded">
+              <input
+                type="checkbox"
+                id="od-letter-public-access"
+                checked={isPublicAccess}
+                onChange={e => setIsPublicAccess(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-[#003087] focus:ring-[#003087] cursor-pointer"
+              />
+              <label htmlFor="od-letter-public-access" className="text-xs text-slate-600 font-medium cursor-pointer select-none leading-relaxed">
+                The file is uploaded and the link is set to public access (<span className="font-semibold text-slate-800">"Anyone with the link can view"</span>)
+              </label>
+            </div>
+            <p className="text-[10px] text-slate-500 mt-2 text-center flex items-center justify-center gap-1">
+              <Shield className="h-3 w-3"/> GPS location will be captured securely on submit
+            </p>
           </div>
         </div>
         <div className="px-5 py-4 border-t border-[#E2E8F0] flex gap-3 bg-slate-50">
@@ -236,33 +236,25 @@ function ODModal({onClose,onSuccess,initialData}:{onClose:()=>void;onSuccess:()=
 
 // ── Post OD Proof Modal ───────────────────────────────────────────────────────
 function PostODProofModal({od,onClose,onSuccess}:{od:ODRequest;onClose:()=>void;onSuccess:()=>void}) {
-  const [files,setFiles] = useState<File[]>([])
+  const [proofDriveUrl, setProofDriveUrl] = useState("")
+  const [isPublicAccess, setIsPublicAccess] = useState(false)
   const [category, setCategory] = useState<string>(od.eventType || "Competition / Hackathon")
   const [position, setPosition] = useState<string>("Completed / Participated")
   const [description, setDescription] = useState<string>("")
   const [uploading,setUploading] = useState(false)
   const [error,setError] = useState("")
-  const fileRef = useRef<HTMLInputElement>(null)
 
   const handleSubmit = async () => {
-    if(!files.length){setError("Please select at least one certificate or event photo.");return}
-    const oversized = files.find(f => f.size > 5 * 1024 * 1024)
-    if(oversized){
-      setError(`File "${oversized.name}" exceeds 5MB limit (${(oversized.size / (1024 * 1024)).toFixed(1)}MB). Please choose a compressed file.`)
-      return
-    }
+    if(!proofDriveUrl.trim()){setError("Please provide the Google Drive link to your certificates / photos.");return}
+    if(!isPublicAccess){setError("Please confirm that the file is uploaded and the link is set to public access.");return}
     setUploading(true);setError("")
     try {
-      const toBase64=(f:File):Promise<string>=>new Promise((res,rej)=>{
-        const r=new FileReader();r.readAsDataURL(f)
-        r.onload=()=>res((r.result as string).split(",")[1]);r.onerror=rej
-      })
-      const b64files=await Promise.all(files.map(async f=>({base64:await toBase64(f),name:f.name,mimeType:f.type})))
       const res=await fetch(`/api/od/${od.id}/proof`,{
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body:JSON.stringify({
-          files:b64files,
+          proofUrl: proofDriveUrl.trim(),
+          driveLink: proofDriveUrl.trim(),
           category,
           position,
           description: description.trim() || `OD completion proof for ${od.eventName}`,
@@ -330,31 +322,35 @@ function PostODProofModal({od,onClose,onSuccess}:{od:ODRequest;onClose:()=>void;
           </div>
 
           <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-xs font-semibold text-slate-700">Upload Certificate / Proof Photos <span className="text-red-500">*</span></label>
-              <span className="text-[10px] text-slate-400 font-medium">Max 5MB each</span>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+              Google Drive Link to Certificate / Proof Photos <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="url"
+              value={proofDriveUrl}
+              onChange={e=>setProofDriveUrl(e.target.value)}
+              placeholder="https://drive.google.com/file/d/.../view?usp=sharing"
+              className="w-full text-xs bg-slate-50 border border-slate-300 rounded p-2.5 text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#003087]"
+            />
+            <div className="mt-2.5 flex items-start gap-2.5 p-3 bg-slate-50 border border-slate-200 rounded">
+              <input
+                type="checkbox"
+                id="post-proof-public-access"
+                checked={isPublicAccess}
+                onChange={e => setIsPublicAccess(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-[#003087] focus:ring-[#003087] cursor-pointer"
+              />
+              <label htmlFor="post-proof-public-access" className="text-xs text-slate-600 font-medium cursor-pointer select-none leading-relaxed">
+                The file is uploaded and the link is set to public access (<span className="font-semibold text-slate-800">"Anyone with the link can view"</span>)
+              </label>
             </div>
-            <input ref={fileRef} type="file" multiple accept="image/*,application/pdf" className="hidden" onChange={e=>{
-              const selected = Array.from(e.target.files||[])
-              const oversized = selected.find(f => f.size > 5 * 1024 * 1024)
-              if (oversized) {
-                setError(`File "${oversized.name}" exceeds 5MB limit. Please choose compressed files.`)
-                return
-              }
-              setFiles(selected)
-            }}/>
-            <button onClick={()=>fileRef.current?.click()} className={`w-full flex flex-col items-center justify-center gap-2 rounded border-2 border-dashed py-5 text-sm font-semibold transition-all ${files.length>0?"border-[#16A34A] bg-green-50 text-[#16A34A]":"border-[#E2E8F0] bg-slate-50 text-slate-500 hover:border-[#003087] hover:text-[#003087]"}`}>
-              {files.length>0?<CheckCircle className="h-5 w-5"/>:<Upload className="h-5 w-5"/>}
-              {files.length>0?`${files.length} file(s) selected`:"Click to upload certificates / photos (Max 5MB each)"}
-            </button>
-            {files.length>0&&<ul className="mt-2 text-xs text-slate-500 space-y-1">{files.map(f=><li key={f.name} className="truncate">• {f.name}</li>)}</ul>}
           </div>
         </div>
         <div className="px-5 py-4 border-t border-[#E2E8F0] flex gap-3 bg-slate-50">
           <button onClick={onClose} className="flex-1 py-2 rounded border border-[#E2E8F0] bg-white text-sm font-semibold text-slate-600 hover:bg-slate-100">Cancel</button>
           <button onClick={handleSubmit} disabled={uploading} className="flex-1 py-2 rounded bg-[#003087] text-white text-sm font-semibold hover:bg-[#002070] disabled:opacity-60 flex items-center justify-center gap-2 shadow-sm">
             {uploading?<Loader2 className="h-4 w-4 animate-spin"/>:<CheckCircle className="h-4 w-4"/>}
-            {uploading?"Uploading...":"Submit & Sync"}
+            {uploading?"Submitting...":"Submit & Sync"}
           </button>
         </div>
       </div>

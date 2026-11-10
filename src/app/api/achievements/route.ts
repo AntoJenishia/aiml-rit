@@ -18,7 +18,8 @@ export async function POST(req: NextRequest) {
       title, category, eventName, date, position, description, proofFileB64, proofFileName, proofMimeType
     } = body
 
-    if (!title || !category || !eventName || !date || !position || !proofFileB64) {
+    const proofUrl = body.proofFileUrl || body.driveLink || ""
+    if (!title || !category || !eventName || !date || !position || (!proofFileB64 && !proofUrl)) {
       return NextResponse.json({ error: "All required fields must be filled." }, { status: 400 })
     }
 
@@ -57,8 +58,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 1. Direct upload proof file to Supabase Storage
-    let proofFileUrl = ""
+    // 1. Direct upload proof file to Supabase Storage (or use provided Drive link)
+    let proofFileUrl = proofUrl
     if (proofFileB64) {
       try {
         const buffer = Buffer.from(proofFileB64, "base64")

@@ -16,10 +16,12 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { description, files, refNumber, folderId, category, position } = await req.json()
+    const body = await req.json()
+    const { description, files, refNumber, folderId, category, position, proofUrl, driveLink } = body
 
-    if (!description && (!files || files.length === 0)) {
-      return NextResponse.json({ error: "Description or files required." }, { status: 400 })
+    const directProofUrl = proofUrl || driveLink || ""
+    if (!description && (!files || files.length === 0) && !directProofUrl) {
+      return NextResponse.json({ error: "Description, drive link, or proof files required." }, { status: 400 })
     }
 
     const odRef = adminDb.collection("odRequests").doc(id)
@@ -94,11 +96,12 @@ export async function POST(
       }
     }
 
-    const primaryProofUrl = uploadedUrls[0] || driveProofFolderUrl || ""
+    const primaryProofUrl = directProofUrl || uploadedUrls[0] || driveProofFolderUrl || ""
+    const allProofUrls = directProofUrl ? [directProofUrl, ...uploadedUrls] : uploadedUrls
 
     await odRef.update({
       status: "post_pending_faculty",
-      postProofUrls: uploadedUrls,
+      postProofUrls: allProofUrls,
       postODProofsUrl: primaryProofUrl,
       postODDescription: description || "",
       postODCategory: category || odData.eventType || "Competition / Hackathon",

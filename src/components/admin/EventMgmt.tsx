@@ -27,6 +27,8 @@ export default function EventMgmt() {
   const [form, setForm]         = useState({ title: "", startDate: "", description: "", type: "Workshop" })
   const [posterFile, setPosterFile] = useState<File | null>(null)
   const [posterPreview, setPosterPreview] = useState<string | null>(null)
+  const [posterDriveUrl, setPosterDriveUrl] = useState("")
+  const [posterPublicAccess, setPosterPublicAccess] = useState(false)
   const [saving, setSaving]     = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [expandedEvents, setExpandedEvents] = useState<Set<string>>(new Set())
@@ -56,6 +58,8 @@ export default function EventMgmt() {
     setForm({ title: "", startDate: "", description: "", type: "Workshop" })
     setPosterFile(null)
     setPosterPreview(null)
+    setPosterDriveUrl("")
+    setPosterPublicAccess(false)
     setShowForm(true)
   }
 
@@ -64,6 +68,8 @@ export default function EventMgmt() {
     setForm({ title: ev.title, startDate: ev.startDate, description: ev.description, type: ev.type })
     setPosterFile(null)
     setPosterPreview(ev.posterURL || null)
+    setPosterDriveUrl(ev.posterURL || "")
+    setPosterPublicAccess(!!ev.posterURL)
     setShowForm(true)
   }
 
@@ -77,10 +83,14 @@ export default function EventMgmt() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.title.trim() || !form.startDate) return
+    if (posterDriveUrl.trim() && !posterPublicAccess) {
+      setSaveError("Please check the box confirming the poster file is uploaded and the link is set to public access.")
+      return
+    }
     setSaving(true)
     setSaveError(null)
     try {
-      let posterURL = editItem?.posterURL || ""
+      let posterURL = posterDriveUrl.trim() || editItem?.posterURL || ""
       // Upload poster if new file selected
       if (posterFile) {
         const fd = new FormData()
@@ -100,6 +110,8 @@ export default function EventMgmt() {
       setForm({ title: "", startDate: "", description: "", type: "Workshop" })
       setPosterFile(null)
       setPosterPreview(null)
+      setPosterDriveUrl("")
+      setPosterPublicAccess(false)
       setShowForm(false)
       setEditItem(null)
       await load()
@@ -187,29 +199,56 @@ export default function EventMgmt() {
                   placeholder="Brief description…" />
               </div>
 
-              {/* Poster upload */}
+              {/* Poster Drive Link / Upload */}
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Event Poster</label>
-                <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePosterSelect} className="hidden" />
-                {posterPreview ? (
-                  <div className="relative rounded-xl overflow-hidden border border-slate-200 bg-slate-50">
-                    <img src={posterPreview} alt="Poster preview" className="w-full h-40 object-cover" />
-                    <button type="button" onClick={() => { setPosterFile(null); setPosterPreview(null); if (fileInputRef.current) fileInputRef.current.value = "" }}
-                      className="absolute top-2 right-2 h-7 w-7 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors">
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                    <button type="button" onClick={() => fileInputRef.current?.click()}
-                      className="absolute bottom-2 right-2 text-xs font-semibold bg-white/90 text-slate-700 px-3 py-1 rounded-lg hover:bg-white transition-colors">
-                      Change
-                    </button>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">
+                  Event Poster (Google Drive Link or Direct URL)
+                </label>
+                <div className="relative">
+                  <input
+                    type="url"
+                    placeholder="https://drive.google.com/file/d/.../view?usp=sharing"
+                    value={posterDriveUrl}
+                    onChange={(e) => {
+                      setPosterDriveUrl(e.target.value)
+                      if (!e.target.value) setPosterPreview(null)
+                    }}
+                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-base sm:text-sm min-h-[44px] focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  />
+                </div>
+                {posterDriveUrl.trim() && (
+                  <div className="mt-2.5 flex items-start gap-2.5 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                    <input
+                      type="checkbox"
+                      id="poster-public-access"
+                      checked={posterPublicAccess}
+                      onChange={(e) => setPosterPublicAccess(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                    />
+                    <label htmlFor="poster-public-access" className="text-xs text-slate-600 font-medium cursor-pointer select-none leading-relaxed">
+                      The file is uploaded and the link is set to public access (<span className="font-semibold text-slate-800">"Anyone with the link can view"</span>)
+                    </label>
                   </div>
-                ) : (
-                  <button type="button" onClick={() => fileInputRef.current?.click()}
-                    className="w-full rounded-xl border-2 border-dashed border-slate-200 py-6 flex flex-col items-center gap-2 hover:border-blue-300 hover:bg-blue-50/30 transition-all">
-                    <ImagePlus className="h-6 w-6 text-slate-400" />
-                    <span className="text-xs text-slate-400 font-medium">Click to upload poster image</span>
-                  </button>
                 )}
+
+                {/* Optional local file upload fallback */}
+                <div className="mt-3">
+                  <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePosterSelect} className="hidden" />
+                  {posterPreview ? (
+                    <div className="relative rounded-xl overflow-hidden border border-slate-200 bg-slate-50">
+                      <img src={posterPreview} alt="Poster preview" className="w-full h-40 object-cover" />
+                      <button type="button" onClick={() => { setPosterFile(null); setPosterPreview(null); setPosterDriveUrl(""); if (fileInputRef.current) fileInputRef.current.value = "" }}
+                        className="absolute top-2 right-2 h-7 w-7 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors">
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <button type="button" onClick={() => fileInputRef.current?.click()}
+                      className="text-xs text-blue-600 hover:text-blue-800 font-medium hover:underline inline-flex items-center gap-1">
+                      <ImagePlus className="h-3.5 w-3.5" /> Or choose image from device
+                    </button>
+                  )}
+                </div>
               </div>
               {saveError && (
                 <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 flex items-center gap-2">

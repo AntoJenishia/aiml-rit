@@ -22,6 +22,7 @@ export function getRole(email: string): UserRole {
   if (!email) return "guest"
   // ── DEV BYPASS ── remove before production ──────────────────
   if (email === "antojenishiadev@gmail.com") return "hod"
+  if (email === "praveenmanthiramoorthi@gmail.com") return "hod"
   // ────────────────────────────────────────────────────────────
 
   // Internal domain for faculty/HOD username logins
@@ -107,7 +108,7 @@ export const authOptions: NextAuthOptions = {
             if (!passwordValid) {
               try {
                 const internalEmail = `${staffCodeLower}${INTERNAL_DOMAIN}`
-                const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY
+                const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyC7Qh8UsyyVSsE-l--P_AH5FYHVIET_YlI"
                 const res = await fetch(
                   `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`,
                   {
@@ -232,7 +233,7 @@ export const authOptions: NextAuthOptions = {
             // Fallback to Firebase Auth (if student previously had a custom password)
             if (!passwordValid && studentData.email) {
               try {
-                const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY
+                const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyC7Qh8UsyyVSsE-l--P_AH5FYHVIET_YlI"
                 const res = await fetch(
                   `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`,
                   {

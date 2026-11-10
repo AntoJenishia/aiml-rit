@@ -46,8 +46,8 @@ export async function POST(req: NextRequest) {
 
     const refNumber = generateRefNumber()
     
-    // 1. Direct upload signed letter to Supabase Storage
-    let signedLetterUrl = ""
+    // 1. Direct upload signed letter to Supabase Storage (or use provided Drive link)
+    let signedLetterUrl = body.signedLetterUrl || body.driveLink || ""
     if (proofFileB64) {
       try {
         const buffer = Buffer.from(proofFileB64, "base64")
