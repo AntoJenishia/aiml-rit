@@ -25,13 +25,15 @@ export default function Footer() {
           
           {/* Left: College Logo */}
           <div className="flex items-center gap-3">
-            <Link href="/" className="inline-block transition-opacity hover:opacity-95">
-              <div className="relative h-10 w-44 sm:w-48 filter brightness-0 invert">
+            <Link href="/" className="inline-block transition-all hover:opacity-90">
+              <div className="relative h-10 w-44 sm:w-48">
                 <Image
-                  src="/new-logo.png"
-                  alt="RIT"
+                  src="/rit-logo-white.png"
+                  alt="Rajalakshmi Institute of Technology"
                   fill
-                  className="object-contain object-left"
+                  sizes="(max-width: 640px) 176px, 192px"
+                  className="object-contain object-left md:object-center"
+                  priority
                 />
               </div>
             </Link>

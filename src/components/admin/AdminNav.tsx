@@ -8,7 +8,7 @@ import { useState, useEffect } from "react"
 import {
   GraduationCap, Users, FileText, Award, LogOut, ChevronRight, Globe, Menu, X, LayoutDashboard,
   FolderOpen, CalendarDays, User, Briefcase, CalendarPlus, TrendingUp, Shield, Bell, Settings,
-  BarChart3, Clock
+  BarChart3, Clock, BookOpen
 } from "lucide-react"
 import clsx from "clsx"
 
@@ -17,6 +17,7 @@ const navGroups = [
     title: "MAIN",
     items: [
       { href: "/admin",                                label: "Dashboard",           icon: LayoutDashboard },
+      { href: "/admin?tab=pec",                        label: "PEC",                 icon: BookOpen },
     ]
   },
   {

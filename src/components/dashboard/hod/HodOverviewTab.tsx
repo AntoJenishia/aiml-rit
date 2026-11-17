@@ -4,7 +4,8 @@ import Link from "next/link"
 import {
   Users, GraduationCap, FileText, Award, CalendarDays,
   TrendingUp, Building2, ChevronRight, AlertTriangle,
-  CheckCircle, Phone, ArrowRight, Loader2, Sparkles
+  CheckCircle, Phone, ArrowRight, Loader2, Sparkles,
+  BookOpen, UserCheck, Plus
 } from "lucide-react"
 
 interface HodOverviewProps {
@@ -25,6 +26,46 @@ export default function HodOverviewTab({ metrics }: HodOverviewProps) {
   const todayStr = new Date().toISOString().split("T")[0]
   const [attendanceData, setAttendanceData] = useState<any>(null)
   const [loadingAttendance, setLoadingAttendance] = useState(true)
+
+  // PEC Coordinator assignment
+  const [coordCode, setCoordCode] = useState("")
+  const [coordMsg, setCoordMsg] = useState<string | null>(null)
+  const [coordLoading, setCoordLoading] = useState(false)
+  const [currentCoord, setCurrentCoord] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetch("/api/hod/assign-coordinator")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.coordinator?.staffCode) {
+          setCurrentCoord(data.coordinator.staffCode)
+        }
+      })
+      .catch(() => {})
+  }, [])
+
+  const handleAssignCoordinator = async () => {
+    if (!coordCode.trim()) return
+    setCoordLoading(true)
+    setCoordMsg(null)
+    try {
+      const code = coordCode.trim().toUpperCase()
+      const res = await fetch("/api/hod/assign-coordinator", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ staffCode: code }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Failed to assign coordinator")
+      setCoordMsg(`✅ Successfully assigned ${code} as PEC Coordinator`)
+      setCurrentCoord(code)
+      setCoordCode("")
+    } catch (err: any) {
+      setCoordMsg(`❌ ${err.message}`)
+    } finally {
+      setCoordLoading(false)
+    }
+  }
 
   useEffect(() => {
     fetch(`/api/admin/attendance?date=${todayStr}`)
@@ -226,6 +267,54 @@ export default function HodOverviewTab({ metrics }: HodOverviewProps) {
               <span className="text-sm font-black text-slate-800">{metrics.upcomingEvents}</span>
             </div>
           </div>
+        </div>
+
+        {/* ── PEC Coordinator Assignment Card ── */}
+        <div className="bg-white rounded-xl border border-[#E5E7EB] shadow-sm p-5">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+              <UserCheck className="w-4 h-4 text-indigo-600" />
+              PEC Coordinator Assignment
+            </h3>
+            <Link
+              href="/admin?tab=pec"
+              className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+            >
+              Open PEC <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+          <p className="text-xs text-slate-500 mb-3">
+            Assign a faculty member as PEC Coordinator by their staff code. They will be granted full access to PEC timetable creation and monitoring in their dashboard.
+          </p>
+
+          {currentCoord && (
+            <div className="mb-3 px-3 py-2 bg-indigo-50 border border-indigo-200 rounded-lg flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs">
+                <span className="font-semibold text-indigo-900">Current PEC Coordinator:</span>
+                <span className="px-2 py-0.5 rounded bg-indigo-600 text-white font-mono font-bold text-[11px]">{currentCoord}</span>
+              </div>
+              <span className="text-[10px] text-indigo-700 font-medium">Active</span>
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder="Enter Staff Code (e.g. CS91, ES274)"
+              value={coordCode}
+              onChange={(e) => setCoordCode(e.target.value.toUpperCase())}
+              className="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm uppercase placeholder:normal-case font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+            <button
+              onClick={handleAssignCoordinator}
+              disabled={coordLoading || !coordCode.trim()}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-lg transition-colors disabled:opacity-50 flex items-center gap-1.5 shrink-0"
+            >
+              {coordLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+              Assign Coordinator
+            </button>
+          </div>
+          {coordMsg && <p className="mt-2 text-xs font-medium">{coordMsg}</p>}
         </div>
 
         <div className="bg-white rounded-xl border border-[#E5E7EB] shadow-sm p-5">

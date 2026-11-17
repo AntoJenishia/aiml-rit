@@ -14,6 +14,7 @@ import HodAttendanceTab from "./hod/HodAttendanceTab"
 import HodActivityTab from "./hod/HodActivityTab"
 import HodLeaveTab from "./hod/HodLeaveTab"
 import HodAuditLogsTab from "./hod/HodAuditLogsTab"
+import HodPecTab from "./hod/HodPecTab"
 import DocumentPreviewModal from "@/components/common/DocumentPreviewModal"
 
 function HodDashInner() {
@@ -108,6 +109,8 @@ function HodDashInner() {
         <HodBatchesTab />
       ) : activeTab === "audit-logs" ? (
         <HodAuditLogsTab />
+      ) : activeTab === "pec" ? (
+        <HodPecTab />
       ) : (
         <div className="bg-white rounded-xl border border-[#E5E7EB] shadow-sm p-12 text-center flex flex-col items-center">
           <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mb-4">

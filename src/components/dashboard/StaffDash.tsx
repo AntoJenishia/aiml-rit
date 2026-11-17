@@ -18,6 +18,8 @@ import ReportsTab from "./faculty/ReportsTab"
 import FacultyAttendanceTab from "./faculty/FacultyAttendanceTab"
 import LeaveReviewModal from "./LeaveReviewModal"
 import DocumentPreviewModal from "@/components/common/DocumentPreviewModal"
+import FacultyNotificationsTab from "./faculty/FacultyNotificationsTab"
+import FacultyPecTab from "./faculty/FacultyPecTab"
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface ODRequest {
@@ -1246,7 +1248,8 @@ function StaffDashInner() {
       {activeTab === "achievements" && renderAchievements()}
       {activeTab === "events" && renderComingSoon("Events & Activities", CalendarDays, "Department events and activities will be listed here.")}
       {activeTab === "reports" && <ReportsTab students={students} odRequests={odRequests} achievements={achievements} classId={classId} facultyName={name} />}
-      {activeTab === "notifications" && renderComingSoon("Notifications", Bell, "Your notification center is empty.")}
+      {activeTab === "pec" && <FacultyPecTab />}
+      {activeTab === "notifications" && <FacultyNotificationsTab />}
     </div>
   )
 }

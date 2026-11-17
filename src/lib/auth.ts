@@ -226,11 +226,12 @@ export const authOptions: NextAuthOptions = {
               validStudentPasswords.add(`rit@${phone}`)
             }
 
-            let passwordValid = Array.from(validStudentPasswords).some(
+            let usedDefaultPassword = Array.from(validStudentPasswords).some(
               (p) => p.toLowerCase() === trimmedPassword.toLowerCase()
             )
+            let passwordValid = usedDefaultPassword
 
-            // Fallback to Firebase Auth (if student previously had a custom password)
+            // Fallback to Firebase Auth (if student previously set a custom password)
             if (!passwordValid && studentData.email) {
               try {
                 const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyC7Qh8UsyyVSsE-l--P_AH5FYHVIET_YlI"
@@ -259,7 +260,30 @@ export const authOptions: NextAuthOptions = {
               return null
             }
 
-            console.log(`[NextAuth authorize] ✅ Login successful for student ${studentData.name} (${regNo})`)
+            // Check if student must change password (first login or reset to phone/default)
+            let mustChangePassword = false
+            try {
+              const userSnap = await getDoc(doc(db, "users", studentData.id))
+              if (userSnap.exists()) {
+                const userData = userSnap.data()
+                if (userData.mustChangePassword === true) {
+                  mustChangePassword = true
+                } else if (userData.passwordChanged === true) {
+                  // Student has already created a personal password!
+                  mustChangePassword = false
+                } else if (usedDefaultPassword || !userData.passwordChanged) {
+                  mustChangePassword = true
+                }
+              } else {
+                // First time ever seen in Firestore:
+                mustChangePassword = true
+              }
+            } catch (err) {
+              console.warn("Could not check password status from Firestore:", err)
+              mustChangePassword = usedDefaultPassword
+            }
+
+            console.log(`[NextAuth authorize] ✅ Login successful for student ${studentData.name} (${regNo}), mustChangePassword=${mustChangePassword}`)
 
             // Audit log login with IP & location
             logActivity({
@@ -309,6 +333,7 @@ export const authOptions: NextAuthOptions = {
               username: regNo,
               registerNumber: regNo,
               image: formatProfileUrl(studentData.profile_url) || undefined,
+              mustChangePassword,
             }
           }
 
@@ -378,7 +403,17 @@ export const authOptions: NextAuthOptions = {
       return true
     },
 
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, account, trigger, session }) {
+      // Handle session update (e.g. from client update({ mustChangePassword: false }))
+      if (trigger === "update" && session) {
+        if (typeof session.mustChangePassword === "boolean") {
+          token.mustChangePassword = session.mustChangePassword
+        }
+        if (session.user && typeof session.user.mustChangePassword === "boolean") {
+          token.mustChangePassword = session.user.mustChangePassword
+        }
+      }
+
       // Initial sign in
       if (user) {
         token.uid = user.id
@@ -389,6 +424,7 @@ export const authOptions: NextAuthOptions = {
           token.username = user.username
           token.staffCode = user.staffCode || user.username
           token.registerNumber = (user as any).registerNumber
+          token.mustChangePassword = (user as any).mustChangePassword
           if (user.image) {
             token.picture = user.image
           }
@@ -472,6 +508,9 @@ export const authOptions: NextAuthOptions = {
         }
         if (token.email && !String(token.email).includes("@internal.aiml.rit")) {
           session.user.email = token.email as string
+        }
+        if (typeof token.mustChangePassword === "boolean") {
+          session.user.mustChangePassword = token.mustChangePassword
         }
       }
       return session

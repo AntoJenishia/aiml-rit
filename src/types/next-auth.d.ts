@@ -10,6 +10,7 @@ declare module "next-auth" {
       staffCode?: string
       username?: string
       registerNumber?: string
+      mustChangePassword?: boolean
     } & DefaultSession["user"]
   }
 
@@ -19,6 +20,7 @@ declare module "next-auth" {
     staffCode?: string
     username?: string
     registerNumber?: string
+    mustChangePassword?: boolean
   }
 }
 
@@ -29,5 +31,6 @@ declare module "next-auth/jwt" {
     staffCode?: string
     username?: string
     registerNumber?: string
+    mustChangePassword?: boolean
   }
 }

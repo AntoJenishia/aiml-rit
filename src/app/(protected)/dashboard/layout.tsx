@@ -5,13 +5,14 @@ import { usePathname, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
 import { signOut } from "next-auth/react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
+import MandatoryPasswordChangeModal from "@/components/auth/MandatoryPasswordChangeModal"
 import {
   LayoutDashboard, User, LogOut, Menu, X,
   Settings, Users, FileText, ChevronRight, Home,
   GraduationCap, Shield, TrendingUp, Megaphone,
   CalendarPlus, BarChart3, Award, Clock, Briefcase,
-  Bell, CalendarDays, FolderOpen, HelpCircle,
+  Bell, CalendarDays, FolderOpen, HelpCircle, BookOpen,
 } from "lucide-react"
 import clsx from "clsx"
 
@@ -42,6 +43,7 @@ const getNavItems = (role?: string, isClassIncharge?: boolean) => {
       { href: "/admin?tab=audit-logs",                 label: "Audit Logs",          icon: Shield,          exact: false, tab: "audit-logs" },
       { href: "/admin?tab=notifications",              label: "Notifications",       icon: Bell,            exact: false, tab: "notifications" },
       { href: "/admin?tab=settings",                   label: "Settings",            icon: Settings,        exact: false, tab: "settings" },
+      { href: "/admin?tab=pec",                        label: "Add PEC",             icon: BookOpen,        exact: false, tab: "pec" },
     ]
   }
   if (role === "staff") {
@@ -55,6 +57,7 @@ const getNavItems = (role?: string, isClassIncharge?: boolean) => {
       { href: "/dashboard/faculty?tab=achievements",   label: "Achievements",    icon: Award,           exact: false, tab: "achievements" },
       { href: "/dashboard/faculty?tab=events",         label: "Events & Activities", icon: CalendarDays, exact: false, tab: "events" },
       { href: "/dashboard/faculty?tab=reports",        label: "Reports",         icon: BarChart3,       exact: false, tab: "reports" },
+      { href: "/dashboard/faculty?tab=pec",            label: "PEC Classes",     icon: BookOpen,        exact: false, tab: "pec" },
       { href: "/dashboard/faculty?tab=notifications",  label: "Notifications",   icon: Bell,            exact: false, tab: "notifications" },
     ]
   }
@@ -70,8 +73,6 @@ const getNavItems = (role?: string, isClassIncharge?: boolean) => {
     { href: "/dashboard/student?tab=notifications",  label: "Notifications",  icon: Bell,            exact: false, tab: "notifications" },
   ]
 }
-
-import { Suspense } from "react"
 
 function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth()
@@ -239,6 +240,11 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
           {children}
         </div>
       </main>
+
+      {/* Mandatory Password Change for Students */}
+      {user?.role === "student" && (user as any)?.mustChangePassword && (
+        <MandatoryPasswordChangeModal />
+      )}
     </div>
   )
 }

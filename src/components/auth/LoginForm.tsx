@@ -4,8 +4,9 @@ import Image from "next/image"
 import Link from "next/link"
 import { useState, useEffect, Suspense } from "react"
 import { useSearchParams, useRouter, usePathname } from "next/navigation"
-import { Shield, ArrowRight, UserCircle, Key, Eye, EyeOff, Briefcase, GraduationCap, Lock } from "lucide-react"
+import { Shield, ArrowRight, UserCircle, Key, Eye, EyeOff, Briefcase, GraduationCap, Lock, HelpCircle } from "lucide-react"
 import ParticleCanvas from "@/components/ParticleCanvas"
+import ForgotPasswordModal from "@/components/auth/ForgotPasswordModal"
 
 interface LoginFormProps {
   forcedMode?: "student" | "ops"
@@ -31,6 +32,7 @@ function LoginFormInner({ forcedMode }: LoginFormProps) {
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
+  const [showForgotModal, setShowForgotModal] = useState(false)
 
   useEffect(() => {
     if (searchParams.get("error")) setError(true)
@@ -76,6 +78,12 @@ function LoginFormInner({ forcedMode }: LoginFormProps) {
 
       {/* Split Card Container */}
       <div className="w-full max-w-[880px] bg-white rounded-2xl sm:rounded-3xl shadow-[0_20px_60px_-15px_rgba(0,32,100,0.12)] relative z-10 flex flex-col md:flex-row border border-white/60 my-auto overflow-hidden">
+        {/* Forgot Password Modal */}
+        <ForgotPasswordModal
+          isOpen={showForgotModal}
+          onClose={() => setShowForgotModal(false)}
+          initialEmail={username.includes("@") ? username : ""}
+        />
         {/* LEFT PANEL: Institutional Branding (Hidden on mobile) */}
         <div className="hidden md:flex w-full md:w-[44%] relative p-8 md:p-10 flex-col justify-between overflow-hidden bg-[#002855]">
           {/* Background Glows for Left Panel */}
@@ -259,6 +267,19 @@ function LoginFormInner({ forcedMode }: LoginFormProps) {
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
+
+              {/* Forgot Password Link (for Students) */}
+              {!isOps && (
+                <div className="flex justify-end pt-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotModal(true)}
+                    className="text-xs font-semibold text-[#003087] hover:text-[#002266] hover:underline transition inline-flex items-center gap-1"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+              )}
 
               {/* Submit Button */}
               <button

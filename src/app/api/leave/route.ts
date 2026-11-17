@@ -12,8 +12,8 @@ export async function POST(req: NextRequest) {
     if (!session?.user?.uid) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
-
     const uid = session.user.uid
+
     const body = await req.json()
     const {
       startDate,
@@ -141,10 +141,12 @@ export async function GET(req: NextRequest) {
     if (!session?.user?.uid) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
+    const uid = session.user.uid
 
     const { searchParams } = new URL(req.url)
     const role = ((session.user as any)?.role || "student") as string
-    const uid = session.user.uid
+    let staffCode = ""
+    let staffName = ""
     const batchFilter = searchParams.get("batch")
     const sectionFilter = searchParams.get("section")
     const statusFilter = searchParams.get("status")
@@ -155,9 +157,31 @@ export async function GET(req: NextRequest) {
       // Students see only their own leave requests
       query = query.where("studentUid", "==", uid)
     } else if (role === "staff") {
-      if (batchFilter) query = query.where("batch", "==", batchFilter)
-      if (sectionFilter) query = query.where("section", "==", sectionFilter)
-    } else if (role === "hod" || role === "admin") {
+      // Ensure we have the staff's identifier for filtering
+      staffName = (session.user as any).name || "";
+      staffCode = (session.user as any).staffCode || "";
+      // If staffCode missing (e.g., Google login), fetch from Supabase using email
+      if (!staffCode && session.user.email) {
+        const { data: staffData, error: sbError } = await supabaseAdmin
+          .from("staff")
+          .select("staff_code,name")
+          .eq("email", session.user.email)
+          .maybeSingle();
+        if (!sbError && staffData) {
+          staffCode = staffData.staff_code || "";
+          staffName = staffData.name || staffName;
+        }
+      }
+      // Apply Firestore filters when possible
+      if (staffCode) {
+        query = query.where("staffCode", "==", staffCode);
+      } else if (staffName) {
+        query = query.where("classInchargeName", "==", staffName);
+      }
+      if (batchFilter) query = query.where("batch", "==", batchFilter);
+      if (sectionFilter) query = query.where("section", "==", sectionFilter);
+    }
+     else if (role === "hod" || role === "admin") {
       if (batchFilter) query = query.where("batch", "==", batchFilter)
       if (sectionFilter) query = query.where("section", "==", sectionFilter)
     }
@@ -167,6 +191,16 @@ export async function GET(req: NextRequest) {
     }
 
     const snap = await query.get()
+
+  // In‑memory filter for class‑in‑charge staff (fallback if Firestore query missed)
+  let leaveDocs = snap.docs
+  if (role === "staff") {
+    leaveDocs = leaveDocs.filter((doc) => {
+      const d = doc.data()
+      return (staffCode && d.staffCode === staffCode) || (staffName && d.classInchargeName === staffName)
+    })
+  }
+
 
     // 1. Fetch attendance records to compute real-time attendance rate
     const attSnap = await adminDb.collection("attendance").get()
@@ -284,7 +318,13 @@ export async function GET(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.uid) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const uid = session.user.uid!;
+
+
     const role = (session?.user as any)?.role as string
     if (!session?.user || (role !== "staff" && role !== "hod" && role !== "admin")) {
       return NextResponse.json({ error: "Unauthorized: Faculty or HOD access required" }, { status: 403 })
