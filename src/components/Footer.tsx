@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { Code2 } from "lucide-react";
 
 export default function Footer() {
   return (
@@ -63,9 +64,41 @@ export default function Footer() {
 
         </div>
 
-        {/* Bottom copyright line */}
-        <div className="mt-6 pt-6 border-t border-slate-800/80 text-center text-[11px] text-slate-500">
-          © {new Date().getFullYear()} Department of Artificial Intelligence &amp; Machine Learning (AIML), Rajalakshmi Institute of Technology. All rights reserved.
+        {/* Developers & Copyright row */}
+        <div className="mt-6 pt-6 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-400">
+          <div>
+            © {new Date().getFullYear()} Department of Artificial Intelligence &amp; Machine Learning (AIML), Rajalakshmi Institute of Technology. All rights reserved.
+          </div>
+          <div className="flex items-center gap-1.5 flex-wrap justify-center sm:justify-end text-slate-400">
+            <Code2 className="w-3.5 h-3.5 text-sky-400 inline shrink-0" />
+            <span>Developed by</span>
+            <a
+              href="https://www.linkedin.com/in/devaprakashj/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-white hover:text-sky-400 font-semibold transition-colors underline-offset-2 hover:underline"
+            >
+              Devaprakash J
+            </a>
+            <span className="text-slate-600">•</span>
+            <a
+              href="https://www.linkedin.com/in/antojenishia/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-white hover:text-sky-400 font-semibold transition-colors underline-offset-2 hover:underline"
+            >
+              Anto Jenishia
+            </a>
+            <span className="text-slate-600">•</span>
+            <a
+              href="https://www.linkedin.com/in/praveen-m-899438309/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-white hover:text-sky-400 font-semibold transition-colors underline-offset-2 hover:underline"
+            >
+              Praveen M
+            </a>
+          </div>
         </div>
       </div>
     </footer>

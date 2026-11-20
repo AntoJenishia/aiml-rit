@@ -11,6 +11,7 @@ import BeyondClassroom from "@/components/home/BeyondClassroom";
 import DepartmentGallery from "@/components/home/DepartmentGallery";
 import LatestUpdates from "@/components/home/LatestUpdates";
 import DepartmentImpact from "@/components/home/DepartmentImpact";
+import DevelopersSection from "@/components/home/DevelopersSection";
 import ContactSection from "@/components/home/ContactSection";
 
 export default function HomePage() {
@@ -50,7 +51,10 @@ export default function HomePage() {
       {/* 11. Department Impact */}
       <DepartmentImpact />
 
-      {/* 12. Contact Section */}
+      {/* 12. Developers Section */}
+      <DevelopersSection />
+
+      {/* 13. Contact Section */}
       <ContactSection />
       
     </div>
